@@ -107,7 +107,7 @@ const MyOrders = () => {
         }
     ]
 
-    const getStatusColor = (status) => {
+    const getStatusColor = (status: string) => {
         switch (status) {
             case 'placed':
                 return 'bg-blue-100 text-blue-800'
@@ -120,7 +120,7 @@ const MyOrders = () => {
         }
     }
 
-    const getStatusText = (status) => {
+    const getStatusText = (status: string) => {
         switch (status) {
             case 'placed':
                 return 'Order Placed'
@@ -133,7 +133,7 @@ const MyOrders = () => {
         }
     }
 
-    const OngoingOrderCard = ({ item, index }) => (
+    const OngoingOrderCard = ({ item, index }: any) => (
         <MotiView
             from={{ opacity: 0, translateY: 50 }}
             animate={{ opacity: 1, translateY: 0 }}
@@ -184,7 +184,7 @@ const MyOrders = () => {
         </MotiView>
     )
 
-    const HistoryOrderCard = ({ item, index }) => (
+    const HistoryOrderCard = ({ item, index }: any) => (
         <MotiView
             from={{ opacity: 0, translateY: 50 }}
             animate={{ opacity: 1, translateY: 0 }}
@@ -235,7 +235,7 @@ const MyOrders = () => {
         </MotiView>
     )
 
-    const TabButton = ({ title, isActive, onPress }) => (
+    const TabButton = ({ title, isActive, onPress }: any) => (
         <TouchableOpacity onPress={onPress} className="flex-1">
             <MotiView
                 animate={{

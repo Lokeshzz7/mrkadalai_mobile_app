@@ -11,6 +11,22 @@ import {
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
 
+
+type RechargeHistoryItem = {
+    id: string;
+    amount: number;
+    date: string;
+    time: string;
+    status: 'completed' | 'pending' | 'failed';
+    transactionId: string;
+};
+
+type RechargeHistoryCardProps = {
+    item: RechargeHistoryItem;
+    index: number;
+};
+
+
 const Wallet = () => {
     const [rechargeAmount, setRechargeAmount] = useState('')
     const [showOptionsModal, setShowOptionsModal] = useState(false)
@@ -70,7 +86,7 @@ const Wallet = () => {
 
     const quickRechargeAmounts = [50, 100, 200, 500]
 
-    const getStatusColor = (status) => {
+    const getStatusColor = (status: string) => {
         switch (status) {
             case 'successful':
                 return 'bg-green-100 text-green-800'
@@ -83,7 +99,7 @@ const Wallet = () => {
         }
     }
 
-    const getStatusText = (status) => {
+    const getStatusText = (status: string) => {
         switch (status) {
             case 'successful':
                 return 'Successful'
@@ -123,7 +139,7 @@ const Wallet = () => {
         }
     }
 
-    const RechargeHistoryCard = ({ item, index }) => (
+    const RechargeHistoryCard = ({ item, index }: any) => (
         <MotiView
             from={{ opacity: 0, translateY: 50 }}
             animate={{ opacity: 1, translateY: 0 }}

@@ -49,7 +49,7 @@ const Cart = () => {
         { id: 6, time: '4:00 PM - 5:00 PM', available: true }
     ]
 
-    const updateQuantity = (itemId, change) => {
+    const updateQuantity = (itemId: any, change: any) => {
         setCartItems(prevItems =>
             prevItems.map(item => {
                 if (item.id === itemId) {
@@ -84,7 +84,7 @@ const Cart = () => {
         )
     }
 
-    const CartItem = ({ item, index }) => (
+    const CartItem = ({ item, index }: any) => (
         <MotiView
             from={{ opacity: 0, translateX: -50 }}
             animate={{ opacity: 1, translateX: 0 }}
@@ -140,7 +140,7 @@ const Cart = () => {
         </MotiView>
     )
 
-    const TimeSlotItem = ({ slot, index }) => (
+    const TimeSlotItem = ({ slot, index }: any) => (
         <TouchableOpacity
             onPress={() => slot.available && setSelectedTimeSlot(slot.id)}
             activeOpacity={0.7}
