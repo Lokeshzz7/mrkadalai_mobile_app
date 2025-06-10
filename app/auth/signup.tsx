@@ -1,118 +1,297 @@
-import { View, Text, TextInput, TouchableOpacity, Image, SafeAreaView, ActivityIndicator, Alert } from 'react-native'
 import React, { useState } from 'react'
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  SafeAreaView,
+  ActivityIndicator,
+  Alert,
+  ScrollView
+} from 'react-native'
+import { MotiView, MotiText } from 'moti'
+import { Picker } from '@react-native-picker/picker'
 import { router } from 'expo-router'
 import { icons } from '@/constants/icons'
 import { useAuth } from '../../context/AuthContext'
-import Colors from '@/constants/theme/colors'
 
 const Signup = () => {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [college, setCollege] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false)
   const { signup, isLoading } = useAuth()
 
+  const collegeList = [
+    'Select your college',
+    'Anna University',
+    'SRM Institute of Science and Technology',
+    'Vellore Institute of Technology (VIT)',
+    'PSG College of Technology',
+    'Coimbatore Institute of Technology',
+    'Thiagarajar College of Engineering',
+    'SSN College of Engineering',
+    'Loyola College',
+    'Stella Maris College',
+    'Madras Christian College',
+    'Other'
+  ]
+
   const handleSignup = async () => {
-    if (name.trim() === '' || email.trim() === '' || password.trim() === '') {
+    // Validation
+    if (name.trim() === '' || email.trim() === '' || phoneNumber.trim() === '' ||
+      college === '' || college === 'Select your college' || password.trim() === '' ||
+      confirmPassword.trim() === '') {
       Alert.alert('Error', 'Please fill in all fields')
       return
     }
 
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match')
+      return
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long')
+      return
+    }
+
+    const phoneRegex = /^[6-9]\d{9}$/
+    if (!phoneRegex.test(phoneNumber)) {
+      Alert.alert('Error', 'Please enter a valid 10-digit phone number')
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address')
+      return
+    }
+
     try {
-      await signup(name, email, password)
+      await signup(name, email, phoneNumber, college, password)
+      Alert.alert('Success', 'Account created successfully! Please login.')
     } catch (error) {
       Alert.alert('Signup Failed', 'Could not create account. Please try again.')
     }
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-dark-200">
-      <View className="flex-1 px-6 py-8">
-        {/* Header */}
-        <View className="items-center mb-10 mt-6">
-          <Image
-            source={icons.logo}
-            className="size-20"
-            resizeMode="contain"
-          />
-          <Text className="text-white text-3xl font-bold mt-4">Create Account</Text>
-          <Text className="text-light-200 text-base mt-2">Sign up to get started</Text>
-        </View>
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
+        <View className="flex-1 px-4 py-8">
+          {/* Header */}
+          <MotiView
+            from={{ opacity: 0, translateY: -30 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 600 }}
+            className="items-center mb-8 mt-4"
+          >
+            <View className="w-24 h-24 bg-yellow-400 rounded-full items-center justify-center mb-6 shadow-md">
+              <Text className="text-4xl">🍽️</Text>
+            </View>
+            <MotiText
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 600, delay: 200 }}
+              className="text-gray-900 text-3xl font-bold mb-2"
+            >
+              Create Account
+            </MotiText>
+            <MotiText
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 600, delay: 400 }}
+              className="text-gray-600 text-base text-center"
+            >
+              Join us and discover amazing food experiences
+            </MotiText>
+          </MotiView>
 
+          {/* Form Container */}
+          <MotiView
+            from={{ opacity: 0, translateY: 30 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 600, delay: 600 }}
+            className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 mb-6"
+          >
+            {/* Full Name Field */}
+            <View className="mb-5">
+              <Text className="text-gray-700 text-sm font-semibold mb-2">👤 Full Name</Text>
+              <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Enter your full name"
+                  placeholderTextColor="#9CA3AF"
+                  className="text-gray-900 text-base"
+                  autoCapitalize="words"
+                  editable={!isLoading}
+                />
+              </View>
+            </View>
 
-        <View className="space-y-5">
-          <View className="bg-dark-200 rounded-xl px-4 py-3">
-            <Text className="text-light-200 text-sm mb-1">Full Name</Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter your full name"
-              placeholderTextColor="#777"
-              className="text-white text-base"
-              autoCapitalize="words"
-              editable={!isLoading}
-            />
-          </View>
+            {/* Email Field */}
+            <View className="mb-5">
+              <Text className="text-gray-700 text-sm font-semibold mb-2">📧 Email Address</Text>
+              <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#9CA3AF"
+                  className="text-gray-900 text-base"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  editable={!isLoading}
+                />
+              </View>
+            </View>
 
-          <View className="bg-dark-200 rounded-xl px-4 py-3">
-            <Text className="text-light-200 text-sm mb-1">Email</Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Enter your email"
-              placeholderTextColor="#777"
-              className="text-white text-base"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              editable={!isLoading}
-            />
-          </View>
+            {/* Phone Number Field */}
+            <View className="mb-5">
+              <Text className="text-gray-700 text-sm font-semibold mb-2">📞 Phone Number</Text>
+              <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
+                <TextInput
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  placeholder="Enter your phone number"
+                  placeholderTextColor="#9CA3AF"
+                  className="text-gray-900 text-base"
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  editable={!isLoading}
+                />
+              </View>
+            </View>
 
-          <View className="bg-dark-200 rounded-xl px-4 py-3">
-            <Text className="text-light-200 text-sm mb-1">Password</Text>
-            <View className="flex-row justify-between items-center">
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Create a password"
-                placeholderTextColor="#777"
-                className="text-white text-base flex-1"
-                secureTextEntry={!isPasswordVisible}
-                autoCapitalize="none"
-                editable={!isLoading}
-              />
-              <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)} disabled={isLoading}>
-                <Text className="text-button_color">
-                  {isPasswordVisible ? 'Hide' : 'Show'}
+            {/* College Dropdown */}
+            <View className="mb-5">
+              <Text className="text-gray-700 text-sm font-semibold mb-2">🎓 College</Text>
+              <View className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                <Picker
+                  selectedValue={college}
+                  onValueChange={setCollege}
+                  style={{
+                    height: 50,
+                    color: '#1F2937',
+                  }}
+                  enabled={!isLoading}
+                >
+                  {collegeList.map((item, index) => (
+                    <Picker.Item
+                      key={index}
+                      label={item}
+                      value={item}
+                      color={index === 0 ? '#9CA3AF' : '#1F2937'}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            {/* Password Field */}
+            <View className="mb-5">
+              <Text className="text-gray-700 text-sm font-semibold mb-2">🔒 Password</Text>
+              <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
+                <View className="flex-row justify-between items-center">
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Create a password (min 6 characters)"
+                    placeholderTextColor="#9CA3AF"
+                    className="text-gray-900 text-base flex-1"
+                    secureTextEntry={!isPasswordVisible}
+                    autoCapitalize="none"
+                    editable={!isLoading}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                    disabled={isLoading}
+                    className="ml-2"
+                  >
+                    <Text className="text-yellow-600 font-semibold">
+                      {isPasswordVisible ? '👁️' : '👁️‍🗨️'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Confirm Password Field */}
+            <View className="mb-6">
+              <Text className="text-gray-700 text-sm font-semibold mb-2">🔐 Confirm Password</Text>
+              <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
+                <View className="flex-row justify-between items-center">
+                  <TextInput
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="Confirm your password"
+                    placeholderTextColor="#9CA3AF"
+                    className="text-gray-900 text-base flex-1"
+                    secureTextEntry={!isConfirmPasswordVisible}
+                    autoCapitalize="none"
+                    editable={!isLoading}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}
+                    disabled={isLoading}
+                    className="ml-2"
+                  >
+                    <Text className="text-yellow-600 font-semibold">
+                      {isConfirmPasswordVisible ? '👁️' : '👁️‍🗨️'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Signup Button */}
+            <TouchableOpacity
+              className="bg-yellow-400 rounded-xl py-4 shadow-md"
+              onPress={handleSignup}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#1F2937" size="small" />
+              ) : (
+                <Text className="text-gray-900 text-center font-bold text-lg">
+                  Create Account
                 </Text>
+              )}
+            </TouchableOpacity>
+          </MotiView>
+
+          {/* Login Link */}
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 600, delay: 800 }}
+            className="bg-white rounded-2xl p-4 shadow-md border border-gray-100"
+          >
+            <View className="flex-row justify-center items-center">
+              <Text className="text-gray-600 text-base">Already have an account? </Text>
+              <TouchableOpacity
+                onPress={() => router.push('/auth/login')}
+                disabled={isLoading}
+                activeOpacity={0.7}
+              >
+                <Text className="text-yellow-600 font-bold text-base">Sign In</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </MotiView>
         </View>
-
-        {/* Signup Button */}
-        <TouchableOpacity
-          className="bg-button_color rounded-full py-4 mt-8"
-          onPress={handleSignup}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color={Colors.dark[200]} />
-          ) : (
-            <Text className="text-dark-200 text-center font-bold text-lg">
-              Sign Up
-            </Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Login Link */}
-        <View className="flex-row justify-center mt-6">
-          <Text className="text-light-200">Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.push('/auth/login')} disabled={isLoading}>
-            <Text className="text-button_color font-bold">Log In</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   )
 }

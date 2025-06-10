@@ -6,12 +6,16 @@ type User = {
   id: string;
   name: string;
   email: string;
+  phoneNumber: string;
+  college: string;
 };
 
 type RegisteredUser = {
   id: string;
   name: string;
   email: string;
+  phoneNumber: string;
+  college: string;
   password: string;
 };
 
@@ -19,7 +23,7 @@ type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, phoneNumber: string, college: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -52,17 +56,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(true);
     try {
       const existingUserString = await AsyncStorage.getItem('registeredUser');
-      
+
       if (existingUserString) {
         const existingUser: RegisteredUser = JSON.parse(existingUserString);
-        
+
         if (existingUser.email !== email || existingUser.password !== password) {
           throw new Error('Invalid email or password');
         }
+
         const userData: User = {
           id: existingUser.id,
           name: existingUser.name,
-          email: existingUser.email
+          email: existingUser.email,
+          phoneNumber: existingUser.phoneNumber,
+          college: existingUser.college
         };
 
         await AsyncStorage.setItem('user', JSON.stringify(userData));
@@ -79,18 +86,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = async (name: string, email: string, phoneNumber: string, college: string, password: string) => {
     setIsLoading(true);
     try {
       const registeredUserData: RegisteredUser = {
         id: Date.now().toString(),
         name: name,
         email: email,
-        password: password 
+        phoneNumber: phoneNumber,
+        college: college,
+        password: password
       };
-      
+
       await AsyncStorage.setItem('registeredUser', JSON.stringify(registeredUserData));
-     
       router.replace('/auth/login');
     } catch (error) {
       console.error('Signup failed:', error);
@@ -111,7 +119,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, signup, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        signup,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
