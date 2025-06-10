@@ -52,11 +52,11 @@ const RestaurantHome = () => {
     { id: 10, name: 'Fish & Chips', category: 'meals', price: '$19.99', image: '🍟', rating: 4.8, time: '25-30 min' }
   ]
 
-  const filteredFoodItems = selectedCategory === 'All'
+  const filteredFoodItems = (selectedCategory === 'All')
     ? foodItems
     : foodItems.filter(item => item.category === selectedCategory.toLowerCase())
 
-  const DateCard = ({ date, index, isSelected, onPress }) => (
+  const DateCard = ({ date, index, isSelected, onPress }: any) => (
     <TouchableOpacity onPress={onPress}>
       <MotiView
         animate={{
@@ -65,7 +65,7 @@ const RestaurantHome = () => {
         }}
         transition={{
           type: 'timing',
-          duration: 200,
+          duration: 100,
         }}
         className={`mx-2 px-4 py-3 rounded-2xl border-2 ${isSelected ? 'border-yellow-400' : 'border-gray-200'
           } shadow-sm`}
@@ -86,7 +86,7 @@ const RestaurantHome = () => {
     </TouchableOpacity>
   )
 
-  const CategoryCard = ({ category, isSelected, onPress }) => (
+  const CategoryCard = ({ category, isSelected, onPress }: any) => (
     <TouchableOpacity onPress={onPress} className="mr-3">
       <MotiView
         animate={{
@@ -111,7 +111,7 @@ const RestaurantHome = () => {
     </TouchableOpacity>
   )
 
-  const FoodItemCard = ({ item, index }) => (
+  const FoodItemCard = ({ item, index }: any) => (
     <MotiView
       from={{ opacity: 0, translateY: 50 }}
       animate={{ opacity: 1, translateY: 0 }}
@@ -149,7 +149,8 @@ const RestaurantHome = () => {
     <SafeAreaView className="flex-1 bg-white  p-4">
 
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 70 }} // Add padding for tab bar
+      >
         <View className="flex-row justify-end px-4 pt-2">
           <TouchableOpacity className="bg-yellow-400 px-4 py-2 rounded-full">
             <Text className="font-semibold text-gray-900">🎫 Ticket</Text>

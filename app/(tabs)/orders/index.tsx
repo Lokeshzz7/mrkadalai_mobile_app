@@ -291,7 +291,7 @@ const MyOrders = () => {
                         )}
                         keyExtractor={(item) => item.id.toString()}
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 20 }}
+                        contentContainerStyle={{ paddingBottom: 70 }}
                     />
                 ) : (
                     <FlatList
@@ -301,7 +301,7 @@ const MyOrders = () => {
                         )}
                         keyExtractor={(item) => item.id.toString()}
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 20 }}
+                        contentContainerStyle={{ paddingBottom: 70 }}
                     />
                 )}
             </View>

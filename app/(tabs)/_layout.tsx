@@ -16,115 +16,118 @@ const TabIcon = ({ focused, icon, title }: any) => {
                     source={icon} tintColor={Colors.secondary}
                     className="size-7"
                 />
-
             </ImageBackground>
         )
-
     }
 
     return (
         <View className='size-full justify-center items-center mt-3'>
-
             <Image source={icon}
                 tintColor={Colors.light[200]}
                 className="size-7" />
         </View>
     )
-
 }
 
 const _layout = () => {
     return (
-        <Tabs
-            screenOptions={{
-
-                tabBarShowLabel: false,
-                tabBarItemStyle: {
-                    width: '100%',
-                    height: '100%',
-                    justifyContent: 'center',
-                    alignItems: 'center'
-                },
-                tabBarStyle: {
-                    backgroundColor: Colors.dark[200],
-                    height: 52,
-                    position: 'absolute',
-                    overflow: 'hidden',
-                    borderColor: Colors.light[200],
-                }
-            }}
-        >
-
-            <Tabs.Screen
-                name='index'
-                options={{
-                    title: 'Home',
-                    headerShown: false,
-                    tabBarIcon: ({ focused }: any) => (
-                        <TabIcon
-                            focused={focused}
-                            icon={icons.home}
-                            title="Home"
-                        />
-                    )
+        <View style={{ flex: 1 }}>
+            <Tabs
+                screenOptions={{
+                    tabBarShowLabel: false,
+                    tabBarItemStyle: {
+                        width: '100%',
+                        height: '100%',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                    },
+                    tabBarStyle: {
+                        backgroundColor: Colors.dark[200],
+                        height: 52,
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        overflow: 'hidden',
+                        borderColor: Colors.light[200],
+                    }
                 }}
+            >
+                <Tabs.Screen
+                    name='index'
+                    options={{
+                        title: 'Home',
+                        headerShown: false,
+                        tabBarIcon: ({ focused }: any) => (
+                            <TabIcon
+                                focused={focused}
+                                icon={icons.home}
+                                title="Home"
+                            />
+                        )
+                    }}
+                />
 
-            />
+                <Tabs.Screen
+                    name='orders'
+                    options={{
+                        title: 'Notes',
+                        headerShown: false,
+                        tabBarIcon: ({ focused }: any) => (
+                            <TabIcon
+                                focused={focused}
+                                icon={icons.notes}
+                                title="Notes"
+                            />
+                        )
+                    }}
+                />
 
-            {/* Notes Screen */}
-            <Tabs.Screen
-                name='orders'
-                options={{
+                <Tabs.Screen
+                    name='wallet'
+                    options={{
+                        title: 'Calendar',
+                        headerShown: false,
+                        tabBarIcon: ({ focused }: any) => (
+                            <TabIcon
+                                focused={focused}
+                                icon={icons.calendar}
+                                title="Search"
+                            />
+                        )
+                    }}
+                />
+                <Tabs.Screen
+                    name='cart'
+                    options={{
+                        title: 'Cart',
+                        headerShown: false,
+                        tabBarIcon: ({ focused }: any) => (
+                            <TabIcon
+                                focused={focused}
+                                icon={icons.search}
+                                title="Cart"
+                            />
+                        )
+                    }}
+                />
 
-                    title: 'Notes',
-                    headerShown: false,
-                    tabBarIcon: ({ focused }: any) => (
-                        <TabIcon
-                            focused={focused}
-                            icon={icons.notes}
-                            title="Notes"
-                        />
-                    )
-                }}
-
-            />
-
-            {/* Calendar Screen */}
-            <Tabs.Screen
-                name='wallet'
-                options={{
-
-                    title: 'Calendar',
-                    headerShown: false,
-                    tabBarIcon: ({ focused }: any) => (
-                        <TabIcon
-                            focused={focused}
-                            icon={icons.calendar}
-                            title="Search"
-                        />
-                    )
-                }}
-
-            />
-
-            {/* Profile Screen */}
-            <Tabs.Screen
-                name='profile'
-                options={{
-
-                    title: 'Profile',
-                    headerShown: false,
-                    tabBarIcon: ({ focused }: any) => (
-                        <TabIcon
-                            focused={focused}
-                            icon={icons.person}
-                            title="Profile"
-                        />
-                    )
-                }}
-            />
-
-        </Tabs>
+                <Tabs.Screen
+                    name='profile'
+                    options={{
+                        title: 'Profile',
+                        headerShown: false,
+                        tabBarIcon: ({ focused }: any) => (
+                            <TabIcon
+                                focused={focused}
+                                icon={icons.person}
+                                title="Profile"
+                            />
+                        )
+                    }}
+                />
+            </Tabs>
+        </View>
     )
 }
 

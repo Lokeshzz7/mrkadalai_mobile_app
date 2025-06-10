@@ -218,7 +218,8 @@ const Wallet = () => {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 70 }} // Add padding for tab bar
+            >
                 {/* Wallet Balance Section */}
                 <MotiView
                     from={{ opacity: 0, translateY: -30 }}
