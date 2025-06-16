@@ -21,6 +21,7 @@ const Signup = () => {
   const [email, setEmail] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [college, setCollege] = useState('')
+  const [customerYear, setCustomerYear] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
@@ -29,24 +30,24 @@ const Signup = () => {
 
   const collegeList = [
     'Select your college',
-    'Anna University',
-    'SRM Institute of Science and Technology',
-    'Vellore Institute of Technology (VIT)',
-    'PSG College of Technology',
-    'Coimbatore Institute of Technology',
-    'Thiagarajar College of Engineering',
-    'SSN College of Engineering',
-    'Loyola College',
-    'Stella Maris College',
-    'Madras Christian College',
-    'Other'
+    'CIT',
+    'REC',
+  ]
+
+  const yearOfStudy = [
+    'Select your year',
+    '1 year',
+    '2 year',
+    '3 year',
+    '4 year',
   ]
 
   const handleSignup = async () => {
     // Validation
     if (name.trim() === '' || email.trim() === '' || phoneNumber.trim() === '' ||
-      college === '' || college === 'Select your college' || password.trim() === '' ||
-      confirmPassword.trim() === '') {
+      college === '' || college === 'Select your college' ||
+      customerYear === '' || customerYear === 'Select your year' ||
+      password.trim() === '' || confirmPassword.trim() === '') {
       Alert.alert('Error', 'Please fill in all fields')
       return
     }
@@ -74,10 +75,10 @@ const Signup = () => {
     }
 
     try {
-      await signup(name, email, phoneNumber, college, password)
-      Alert.alert('Success', 'Account created successfully! Please login.')
-    } catch (error) {
-      Alert.alert('Signup Failed', 'Could not create account. Please try again.')
+      await signup(name, email, phoneNumber, college, customerYear, password)
+      Alert.alert('Success', 'Account created successfully!')
+    } catch (error: any) {
+      Alert.alert('Signup Failed', error.message || 'Could not create account. Please try again.')
     }
   }
 
@@ -182,12 +183,37 @@ const Signup = () => {
                   selectedValue={college}
                   onValueChange={setCollege}
                   style={{
-                    height: 50,
+                    height: 60,
                     color: '#1F2937',
                   }}
                   enabled={!isLoading}
                 >
                   {collegeList.map((item, index) => (
+                    <Picker.Item
+                      key={index}
+                      label={item}
+                      value={item}
+                      color={index === 0 ? '#9CA3AF' : '#1F2937'}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            {/* Year of Study Dropdown */}
+            <View className="mb-5">
+              <Text className="text-gray-700 text-sm font-semibold mb-2">📚 Year of Study</Text>
+              <View className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                <Picker
+                  selectedValue={customerYear}
+                  onValueChange={setCustomerYear}
+                  style={{
+                    height: 60,
+                    color: '#1F2937',
+                  }}
+                  enabled={!isLoading}
+                >
+                  {yearOfStudy.map((item, index) => (
                     <Picker.Item
                       key={index}
                       label={item}

@@ -19,19 +19,101 @@ const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  const [formErrors, setFormErrors] = useState({ email: '', password: '' })
   const { login, isLoading } = useAuth()
 
+  // Email validation
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  // Form validation
+  const validateForm = () => {
+    const errors = { email: '', password: '' }
+    let isValid = true
+
+    if (email.trim() === '') {
+      errors.email = 'Email is required'
+      isValid = false
+    } else if (!validateEmail(email.trim())) {
+      errors.email = 'Please enter a valid email address'
+      isValid = false
+    }
+
+    if (password.trim() === '') {
+      errors.password = 'Password is required'
+      isValid = false
+    } else if (password.length < 6) {
+      errors.password = 'Password must be at least 6 characters'
+      isValid = false
+    }
+
+    setFormErrors(errors)
+    return isValid
+  }
+
   const handleLogin = async () => {
-    if (email.trim() === '' || password.trim() === '') {
-      Alert.alert('Error', 'Please fill in all fields')
+    setFormErrors({ email: '', password: '' })
+
+    // Validate form
+    if (!validateForm()) {
       return
     }
 
     try {
-      await login(email, password)
+      await login(email.trim(), password)
+      console.log('✅ Login successful, user will be redirected')
     } catch (error) {
-      Alert.alert('Login Failed', 'Invalid email or password')
+      console.error('Login error:', error)
+
+      let errorMessage = 'Login failed. Please try again.'
+      let shouldClearForm = false
+
+      if (error instanceof Error) {
+        if (error.message.includes('Invalid email or password')) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.'
+          shouldClearForm = true
+        } else if (error.message.includes('Server returned invalid response')) {
+          errorMessage = 'Unable to connect to server. Please check your internet connection and try again.'
+        } else if (error.message.includes('Network request failed') || error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.'
+        } else if (error.message.includes('Login service not found')) {
+          errorMessage = 'Service temporarily unavailable. Please try again later.'
+        } else if (error.message.includes('Server error')) {
+          errorMessage = 'Server is temporarily unavailable. Please try again in a few minutes.'
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+
+      Alert.alert(
+        'Login Failed',
+        errorMessage,
+        [
+          {
+            text: 'Try Again',
+            onPress: () => {
+              if (shouldClearForm) {
+                setPassword('') 
+              }
+            }
+          }
+        ]
+      )
     }
+  }
+
+  const handleForgotPassword = () => {
+    Alert.alert(
+      'Forgot Password',
+      'Please contact support to reset your password.',
+      [
+        { text: 'OK', style: 'default' }
+      ]
+    )
   }
 
   return (
@@ -40,6 +122,7 @@ const Login = () => {
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
       >
         <View className="flex-1 px-4 py-8">
           {/* Header */}
@@ -80,65 +163,90 @@ const Login = () => {
             {/* Email Field */}
             <View className="mb-5">
               <Text className="text-gray-700 text-sm font-semibold mb-2">📧 Email Address</Text>
-              <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
+              <View className={`bg-gray-50 rounded-xl px-4 py-4 border ${formErrors.email ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}>
                 <TextInput
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(text) => {
+                    setEmail(text)
+                    if (formErrors.email) {
+                      setFormErrors(prev => ({ ...prev, email: '' }))
+                    }
+                  }}
                   placeholder="Enter your email"
                   placeholderTextColor="#9CA3AF"
                   className="text-gray-900 text-base"
                   autoCapitalize="none"
                   keyboardType="email-address"
                   editable={!isLoading}
+                  autoCorrect={false}
                 />
               </View>
+              {formErrors.email ? (
+                <Text className="text-red-500 text-xs mt-1 ml-2">❌ {formErrors.email}</Text>
+              ) : null}
             </View>
 
             {/* Password Field */}
             <View className="mb-4">
               <Text className="text-gray-700 text-sm font-semibold mb-2">🔒 Password</Text>
-              <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
+              <View className={`bg-gray-50 rounded-xl px-4 py-4 border ${formErrors.password ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}>
                 <View className="flex-row justify-between items-center">
                   <TextInput
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={(text) => {
+                      setPassword(text)
+                      if (formErrors.password) {
+                        setFormErrors(prev => ({ ...prev, password: '' }))
+                      }
+                    }}
                     placeholder="Enter your password"
                     placeholderTextColor="#9CA3AF"
                     className="text-gray-900 text-base flex-1"
                     secureTextEntry={!isPasswordVisible}
                     autoCapitalize="none"
                     editable={!isLoading}
+                    autoCorrect={false}
                   />
                   <TouchableOpacity
                     onPress={() => setIsPasswordVisible(!isPasswordVisible)}
                     disabled={isLoading}
-                    className="ml-2"
+                    className="ml-2 p-1"
                   >
-                    <Text className="text-yellow-600 font-semibold">
-                      {isPasswordVisible ? '👁️' : '👁️‍🗨️'}
+                    <Text className="text-lg">
+                      {isPasswordVisible ? '👁️' : '🙈'}
                     </Text>
                   </TouchableOpacity>
                 </View>
               </View>
+              {formErrors.password ? (
+                <Text className="text-red-500 text-xs mt-1 ml-2">❌ {formErrors.password}</Text>
+              ) : null}
             </View>
 
             {/* Forgot Password */}
-            <TouchableOpacity className="self-end mb-6" disabled={isLoading}>
+            <TouchableOpacity
+              className="self-end mb-6"
+              disabled={isLoading}
+              onPress={handleForgotPassword}
+            >
               <Text className="text-yellow-600 text-sm font-semibold">Forgot Password?</Text>
             </TouchableOpacity>
 
             {/* Login Button */}
             <TouchableOpacity
-              className="bg-yellow-400 rounded-xl py-4 shadow-md"
+              className={`rounded-xl py-4 shadow-md ${isLoading ? 'bg-gray-300' : 'bg-yellow-400 active:bg-yellow-500'}`}
               onPress={handleLogin}
               disabled={isLoading}
               activeOpacity={0.8}
             >
               {isLoading ? (
-                <ActivityIndicator color="#1F2937" size="small" />
+                <View className="flex-row items-center justify-center">
+                  <ActivityIndicator color="#1F2937" size="small" />
+                  <Text className="text-gray-700 ml-2 font-semibold">Signing In...</Text>
+                </View>
               ) : (
                 <Text className="text-gray-900 text-center font-bold text-lg">
-                  Sign In
+                  🚀 Sign In
                 </Text>
               )}
             </TouchableOpacity>
@@ -162,6 +270,8 @@ const Login = () => {
               </TouchableOpacity>
             </View>
           </MotiView>
+
+          
         </View>
       </ScrollView>
     </SafeAreaView>
