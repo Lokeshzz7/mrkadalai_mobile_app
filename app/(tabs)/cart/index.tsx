@@ -9,8 +9,12 @@ import {
     Alert
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
+import { useRouter } from 'expo-router' // Add this import
+import OrderPayment from './orderPayment'
 
 const Cart = () => {
+    const router = useRouter() // Add this line
+
     const [cartItems, setCartItems] = useState([
         {
             id: 1,
@@ -69,6 +73,7 @@ const Cart = () => {
         return cartItems.reduce((total, item) => total + item.quantity, 0)
     }
 
+    // Updated handleCheckout function
     const handleCheckout = () => {
         if (cartItems.length === 0) {
             Alert.alert('Empty Cart', 'Please add items to your cart first')
@@ -78,10 +83,9 @@ const Cart = () => {
             Alert.alert('Select Time Slot', 'Please select a delivery time slot')
             return
         }
-        Alert.alert(
-            'Checkout Successful',
-            `Order placed for ${calculateTotalItems()} items\nTotal: $${calculateTotal().toFixed(2)}\nDelivery: ${timeSlots.find(slot => slot.id === selectedTimeSlot)?.time}`
-        )
+
+        // Navigate to OrderPayment page
+        router.push('/(tabs)/cart/orderPayment')
     }
 
     const CartItem = ({ item, index }: any) => (
