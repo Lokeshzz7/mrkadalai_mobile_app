@@ -146,28 +146,24 @@ const RestaurantHome = () => {
   )
 
   return (
-    <SafeAreaView className="flex-1 bg-white  p-4">
-
-
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 70 }} // Add padding for tab bar
-      >
-        <View className="flex-row justify-end px-4 pt-2">
+    <SafeAreaView className="flex-1 bg-white">
+      {/* Fixed Header Section */}
+      <View className="bg-white">
+        {/* Ticket Button */}
+        <View className="flex-row justify-between px-4 pt-2">
+          
+            <MotiText className="text-2xl font-bold text-gray-900">
+              
+            </MotiText>
           <TouchableOpacity className="bg-yellow-400 px-4 py-2 rounded-full">
-            <Text className="font-semibold text-gray-900">🎫 Ticket</Text>
+            <Text className="font-semibold text-gray-900">🎫 Faq</Text>
           </TouchableOpacity>
         </View>
-        <MotiView
-          from={{ opacity: 0, translateX: -50 }}
-          animate={{ opacity: 1, translateX: 0 }}
-          transition={{ type: 'timing', duration: 600 }}
-          className="px-4 pt-4 pb-6"
-        >
-          <MotiText className="text-2xl font-bold text-gray-900">
-            Hey Sandy, Good afternoon! 👋
-          </MotiText>
-          <Text className="text-gray-600 mt-1">What would you like to order today?</Text>
-        </MotiView>
 
+        {/* Welcome Message */}
+
+
+        {/* Date Selection */}
         <View className="mb-6">
           <Text className="text-lg font-semibold text-gray-900 px-4 mb-4">
             Select Date
@@ -194,7 +190,7 @@ const RestaurantHome = () => {
         </View>
 
         {/* Categories */}
-        <View className="mb-6">
+        <View className="mb-4">
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4">
             {categories.map((category) => (
               <CategoryCard
@@ -207,18 +203,21 @@ const RestaurantHome = () => {
           </ScrollView>
         </View>
 
-        {/* Food Items */}
-        <View className="flex-1">
-          <Text className="text-lg font-semibold text-gray-900 px-4 mb-4">
-            {selectedCategory === 'All' ? 'Popular Items' : selectedCategory}
-          </Text>
-          {filteredFoodItems.map((item, index) => (
-            <FoodItemCard key={item.id} item={item} index={index} />
-          ))}
-        </View>
+        {/* Section Title */}
+        <Text className="text-lg font-semibold text-gray-900 px-4 mb-4">
+          {selectedCategory === 'All' ? 'Popular Items' : selectedCategory}
+        </Text>
+      </View>
 
-        {/* Bottom spacing */}
-        <View className="h-6" />
+      {/* Scrollable Food Items Section */}
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 80 }}
+      >
+        {filteredFoodItems.map((item, index) => (
+          <FoodItemCard key={item.id} item={item} index={index} />
+        ))}
       </ScrollView>
     </SafeAreaView>
   )
