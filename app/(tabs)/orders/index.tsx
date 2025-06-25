@@ -6,14 +6,36 @@ import {
     SafeAreaView,
     ScrollView,
     TouchableOpacity,
-    Image
+    Image,
+    Modal
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
+import { useRouter } from 'expo-router'
+import Receipt from './receipt'
+import Cancel from './cancel'
+
+// Define the Order type
+interface Order {
+    id: number;
+    orderNumber: string;
+    foodName: string;
+    price: string;
+    quantity: number;
+    image: string;
+    status: string;
+    orderTime?: string;
+    estimatedTime?: string;
+    orderDate?: string;
+    completedTime?: string;
+}
 
 const MyOrders = () => {
     const [activeTab, setActiveTab] = useState('ongoing')
+    const [showCancelModal, setShowCancelModal] = useState(false)
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+    const router = useRouter()
 
-    const ongoingOrders = [
+    const ongoingOrders: Order[] = [
         {
             id: 1,
             orderNumber: '#ORD-001',
@@ -60,7 +82,7 @@ const MyOrders = () => {
         }
     ]
 
-    const orderHistory = [
+    const orderHistory: Order[] = [
         {
             id: 5,
             orderNumber: '#ORD-005',
@@ -133,7 +155,108 @@ const MyOrders = () => {
         }
     }
 
-    const OngoingOrderCard = ({ item, index }: any) => (
+    const navigateToReceipt = (item: Order) => {
+        router.push({
+            pathname: '/(tabs)/orders/receipt',
+            params: {
+                id: item.id.toString(),
+                orderNumber: item.orderNumber,
+                foodName: item.foodName,
+                price: item.price,
+                quantity: item.quantity.toString(),
+                image: item.image,
+                status: item.status,
+                orderTime: item.orderTime || '',
+                orderDate: item.orderDate || '',
+                completedTime: item.completedTime || ''
+            }
+        })
+    }
+
+    const handleCancelPress = (item: Order) => {
+        setSelectedOrder(item)
+        setShowCancelModal(true)
+    }
+
+    const handleCancelConfirm = () => {
+        if (!selectedOrder) return;
+
+        setShowCancelModal(false)
+        router.push({
+            pathname: '/(tabs)/orders/cancel',
+            params: {
+                id: selectedOrder.id.toString(),
+                orderNumber: selectedOrder.orderNumber,
+                foodName: selectedOrder.foodName,
+                price: selectedOrder.price,
+                quantity: selectedOrder.quantity.toString(),
+                image: selectedOrder.image,
+                status: selectedOrder.status,
+                orderTime: selectedOrder.orderTime || '',
+            }
+        })
+    }
+
+    const CancelConfirmationModal = () => (
+        <Modal
+            visible={showCancelModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowCancelModal(false)}
+        >
+            <View className="flex-1 bg-black bg-opacity-50 justify-center items-center px-4">
+                <MotiView
+                    from={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'timing', duration: 200 }}
+                    className="bg-white rounded-2xl p-6 w-full max-w-sm"
+                >
+                    {/* Modal Header */}
+                    <View className="items-center mb-4">
+                        <Text className="text-4xl mb-2">⚠️</Text>
+                        <Text className="text-xl font-bold text-gray-900">Cancel Order</Text>
+                        <Text className="text-sm text-gray-600 text-center mt-2">
+                            Are you sure you want to cancel this order?
+                        </Text>
+                    </View>
+
+                    {/* Order Info - Only render if selectedOrder exists */}
+                    {selectedOrder && (
+                        <View className="bg-gray-50 rounded-xl p-4 mb-6">
+                            <View className="flex-row items-center">
+                                <View className="w-12 h-12 bg-yellow-100 rounded-xl items-center justify-center mr-3">
+                                    <Text className="text-xl">{selectedOrder.image}</Text>
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="font-bold text-gray-900">{selectedOrder.foodName}</Text>
+                                    <Text className="text-sm text-gray-600">{selectedOrder.orderNumber}</Text>
+                                    <Text className="text-sm font-medium text-yellow-600">{selectedOrder.price}</Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Action Buttons */}
+                    <View className="flex-row space-x-3">
+                        <TouchableOpacity
+                            className="flex-1 bg-gray-100 py-3 rounded-xl"
+                            onPress={() => setShowCancelModal(false)}
+                        >
+                            <Text className="text-center font-medium text-gray-700">Keep Order</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            className="flex-1 bg-red-500 py-3 rounded-xl"
+                            onPress={handleCancelConfirm}
+                        >
+                            <Text className="text-center font-medium text-white">Yes, Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </MotiView>
+            </View>
+        </Modal>
+    )
+
+    const OngoingOrderCard = ({ item, index }: { item: Order; index: number }) => (
         <MotiView
             from={{ opacity: 0, translateY: 50 }}
             animate={{ opacity: 1, translateY: 0 }}
@@ -173,10 +296,15 @@ const MyOrders = () => {
                 </View>
 
                 <View className="flex-row">
-                    <TouchableOpacity className="bg-gray-100 px-3 py-2 rounded-lg mr-2">
+                    <TouchableOpacity className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
+                        onPress={() => navigateToReceipt(item)}
+                    >
                         <Text className="text-xs font-medium text-gray-700">View Receipt</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity className="bg-red-100 px-3 py-2 rounded-lg">
+                    <TouchableOpacity
+                        className="bg-red-100 px-3 py-2 rounded-lg"
+                        onPress={() => handleCancelPress(item)}
+                    >
                         <Text className="text-xs font-medium text-red-700">Cancel</Text>
                     </TouchableOpacity>
                 </View>
@@ -184,7 +312,7 @@ const MyOrders = () => {
         </MotiView>
     )
 
-    const HistoryOrderCard = ({ item, index }: any) => (
+    const HistoryOrderCard = ({ item, index }: { item: Order; index: number }) => (
         <MotiView
             from={{ opacity: 0, translateY: 50 }}
             animate={{ opacity: 1, translateY: 0 }}
@@ -224,7 +352,9 @@ const MyOrders = () => {
                 </View>
 
                 <View className="flex-row">
-                    <TouchableOpacity className="bg-gray-100 px-3 py-2 rounded-lg mr-2">
+                    <TouchableOpacity className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
+                        onPress={() => navigateToReceipt(item)}
+                    >
                         <Text className="text-xs font-medium text-gray-700">View Receipt</Text>
                     </TouchableOpacity>
                     <TouchableOpacity className="bg-yellow-400 px-3 py-2 rounded-lg">
@@ -235,7 +365,7 @@ const MyOrders = () => {
         </MotiView>
     )
 
-    const TabButton = ({ title, isActive, onPress }: any) => (
+    const TabButton = ({ title, isActive, onPress }: { title: string; isActive: boolean; onPress: () => void }) => (
         <TouchableOpacity onPress={onPress} className="flex-1">
             <MotiView
                 animate={{
@@ -325,6 +455,9 @@ const MyOrders = () => {
                         </Text>
                     </MotiView>
                 )}
+
+            {/* Cancel Confirmation Modal */}
+            <CancelConfirmationModal />
         </SafeAreaView>
     )
 }
