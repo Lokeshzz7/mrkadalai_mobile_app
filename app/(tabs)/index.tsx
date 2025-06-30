@@ -165,7 +165,7 @@ const RestaurantHome = () => {
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Fixed Header Section */}
-      <View className="bg-white">
+      <View className="bg-white mt-3">
         {/* Ticket Button */}
 
         <View className="flex-row justify-between px-4 pt-2">
