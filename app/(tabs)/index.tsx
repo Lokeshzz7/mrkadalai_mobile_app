@@ -8,6 +8,7 @@ import {
   TouchableOpacity
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
+import { router } from 'expo-router'
 
 const RestaurantHome = () => {
   const [selectedDate, setSelectedDate] = useState(0)
@@ -175,7 +176,9 @@ const RestaurantHome = () => {
               Hello Moto !
             </Text>
           </MotiText>
-          <TouchableOpacity className="bg-yellow-400 px-4 py-2 rounded-full">
+          <TouchableOpacity className="bg-yellow-400 px-4 py-2 rounded-full"
+            onPress={() => router.push("/ticket/faq")}
+          >
             <Text className="font-semibold text-gray-900">🎫 Faq</Text>
           </TouchableOpacity>
         </View>

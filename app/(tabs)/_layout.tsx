@@ -97,6 +97,7 @@ const _layout = () => {
                         )
                     }}
                 />
+
                 <Tabs.Screen
                     name='cart'
                     options={{
@@ -124,6 +125,16 @@ const _layout = () => {
                                 title="Profile"
                             />
                         )
+                    }}
+                />
+
+                {/* Hidden FAQ screen - won't show in tab bar */}
+                <Tabs.Screen
+                    name='faq'
+                    options={{
+                        title: 'FAQ',
+                        headerShown: false,
+                        href: null, // This hides it from the tab bar
                     }}
                 />
             </Tabs>
