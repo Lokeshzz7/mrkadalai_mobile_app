@@ -14,14 +14,21 @@ import { useRouter } from 'expo-router'
 import Receipt from './receipt'
 import Cancel from './cancel'
 
-// Define the Order type
-interface Order {
+// Define the OrderItem type
+interface OrderItem {
     id: number;
-    orderNumber: string;
     foodName: string;
     price: string;
     quantity: number;
     image: string;
+}
+
+// Define the Order type
+interface Order {
+    id: number;
+    orderNumber: string;
+    items: OrderItem[];
+    totalPrice: string;
     status: string;
     orderTime?: string;
     estimatedTime?: string;
@@ -39,10 +46,12 @@ const MyOrders = () => {
         {
             id: 1,
             orderNumber: '#ORD-001',
-            foodName: 'Grilled Chicken',
-            price: '$18.99',
-            quantity: 2,
-            image: '🍖',
+            items: [
+                { id: 1, foodName: 'Grilled Chicken', price: '$18.99', quantity: 2, image: '🍖' },
+                { id: 2, foodName: 'Caesar Salad', price: '$12.99', quantity: 1, image: '🥗' },
+                { id: 3, foodName: 'Fresh Orange Juice', price: '$4.99', quantity: 2, image: '🧃' }
+            ],
+            totalPrice: '$55.96',
             status: 'processing',
             orderTime: '2:30 PM',
             estimatedTime: '25-30 min'
@@ -50,82 +59,71 @@ const MyOrders = () => {
         {
             id: 2,
             orderNumber: '#ORD-002',
-            foodName: 'Caesar Salad',
-            price: '$12.99',
-            quantity: 1,
-            image: '🥗',
+            items: [
+                { id: 4, foodName: 'Beef Burger', price: '$15.99', quantity: 3, image: '🍔' },
+                { id: 5, foodName: 'French Fries', price: '$6.99', quantity: 2, image: '🍟' },
+                { id: 6, foodName: 'Cola', price: '$2.99', quantity: 3, image: '🥤' }
+            ],
+            totalPrice: '$70.94',
             status: 'placed',
             orderTime: '2:45 PM',
-            estimatedTime: '10-15 min'
+            estimatedTime: '20-25 min'
         },
         {
             id: 3,
             orderNumber: '#ORD-003',
-            foodName: 'Beef Burger',
-            price: '$15.99',
-            quantity: 3,
-            image: '🍔',
+            items: [
+                { id: 7, foodName: 'Margherita Pizza', price: '$22.99', quantity: 1, image: '🍕' },
+                { id: 8, foodName: 'Chicken Wings', price: '$8.99', quantity: 2, image: '🍗' },
+                { id: 9, foodName: 'Garlic Bread', price: '$5.99', quantity: 1, image: '🍞' }
+            ],
+            totalPrice: '$46.96',
             status: 'processing',
             orderTime: '3:00 PM',
-            estimatedTime: '20-25 min'
-        },
-        {
-            id: 4,
-            orderNumber: '#ORD-004',
-            foodName: 'Fresh Orange Juice',
-            price: '$4.99',
-            quantity: 2,
-            image: '🧃',
-            status: 'placed',
-            orderTime: '3:15 PM',
-            estimatedTime: '5 min'
+            estimatedTime: '30-35 min'
         }
     ]
 
     const orderHistory: Order[] = [
         {
-            id: 5,
-            orderNumber: '#ORD-005',
-            foodName: 'Pasta Carbonara',
-            price: '$16.99',
-            quantity: 1,
-            image: '🍝',
+            id: 4,
+            orderNumber: '#ORD-004',
+            items: [
+                { id: 10, foodName: 'Pasta Carbonara', price: '$16.99', quantity: 1, image: '🍝' },
+                { id: 11, foodName: 'Tiramisu', price: '$7.99', quantity: 2, image: '🍰' },
+                { id: 12, foodName: 'Iced Coffee', price: '$3.99', quantity: 1, image: '☕' }
+            ],
+            totalPrice: '$36.96',
             status: 'completed',
             orderDate: 'Yesterday',
             completedTime: '7:30 PM'
         },
         {
-            id: 6,
-            orderNumber: '#ORD-006',
-            foodName: 'Fish & Chips',
-            price: '$19.99',
-            quantity: 2,
-            image: '🍟',
+            id: 5,
+            orderNumber: '#ORD-005',
+            items: [
+                { id: 13, foodName: 'Fish & Chips', price: '$19.99', quantity: 2, image: '🐟' },
+                { id: 14, foodName: 'Coleslaw', price: '$4.99', quantity: 1, image: '🥬' },
+                { id: 15, foodName: 'Lemon Tart', price: '$6.99', quantity: 2, image: '🍋' }
+            ],
+            totalPrice: '$58.95',
             status: 'completed',
             orderDate: '2 days ago',
             completedTime: '6:45 PM'
         },
         {
-            id: 7,
-            orderNumber: '#ORD-007',
-            foodName: 'Chicken Wings',
-            price: '$8.99',
-            quantity: 1,
-            image: '🍗',
+            id: 6,
+            orderNumber: '#ORD-006',
+            items: [
+                { id: 16, foodName: 'Sushi Platter', price: '$32.99', quantity: 1, image: '🍣' },
+                { id: 17, foodName: 'Miso Soup', price: '$4.99', quantity: 2, image: '🍜' },
+                { id: 18, foodName: 'Green Tea', price: '$2.99', quantity: 1, image: '🍵' },
+                { id: 19, foodName: 'Edamame', price: '$5.99', quantity: 1, image: '🫘' }
+            ],
+            totalPrice: '$51.95',
             status: 'completed',
             orderDate: '3 days ago',
             completedTime: '8:15 PM'
-        },
-        {
-            id: 8,
-            orderNumber: '#ORD-008',
-            foodName: 'Iced Coffee',
-            price: '$3.99',
-            quantity: 3,
-            image: '☕',
-            status: 'completed',
-            orderDate: '1 week ago',
-            completedTime: '2:20 PM'
         }
     ]
 
@@ -159,16 +157,7 @@ const MyOrders = () => {
         router.push({
             pathname: '/(tabs)/orders/receipt',
             params: {
-                id: item.id.toString(),
-                orderNumber: item.orderNumber,
-                foodName: item.foodName,
-                price: item.price,
-                quantity: item.quantity.toString(),
-                image: item.image,
-                status: item.status,
-                orderTime: item.orderTime || '',
-                orderDate: item.orderDate || '',
-                completedTime: item.completedTime || ''
+                orderData: JSON.stringify(item)
             }
         })
     }
@@ -185,14 +174,7 @@ const MyOrders = () => {
         router.push({
             pathname: '/(tabs)/orders/cancel',
             params: {
-                id: selectedOrder.id.toString(),
-                orderNumber: selectedOrder.orderNumber,
-                foodName: selectedOrder.foodName,
-                price: selectedOrder.price,
-                quantity: selectedOrder.quantity.toString(),
-                image: selectedOrder.image,
-                status: selectedOrder.status,
-                orderTime: selectedOrder.orderTime || '',
+                orderData: JSON.stringify(selectedOrder)
             }
         })
     }
@@ -204,7 +186,7 @@ const MyOrders = () => {
             animationType="fade"
             onRequestClose={() => setShowCancelModal(false)}
         >
-            <View className="flex-1 bg-black bg-opacity-50 justify-center items-center px-4">
+            <View className="flex-1 bg-white opacity-90  justify-center items-center px-4">
                 <MotiView
                     from={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -220,19 +202,20 @@ const MyOrders = () => {
                         </Text>
                     </View>
 
-                    {/* Order Info - Only render if selectedOrder exists */}
-                    {selectedOrder && (
+                    {/* Order Info - Only render if selectedOrder exists and has items */}
+                    {selectedOrder && selectedOrder.items && selectedOrder.items.length > 0 && (
                         <View className="bg-gray-50 rounded-xl p-4 mb-6">
-                            <View className="flex-row items-center">
-                                <View className="w-12 h-12 bg-yellow-100 rounded-xl items-center justify-center mr-3">
-                                    <Text className="text-xl">{selectedOrder.image}</Text>
-                                </View>
-                                <View className="flex-1">
-                                    <Text className="font-bold text-gray-900">{selectedOrder.foodName}</Text>
-                                    <Text className="text-sm text-gray-600">{selectedOrder.orderNumber}</Text>
-                                    <Text className="text-sm font-medium text-yellow-600">{selectedOrder.price}</Text>
-                                </View>
+                            <View className="flex-row items-center justify-between mb-2">
+                                <Text className="font-bold text-gray-900">{selectedOrder.orderNumber}</Text>
+                                <Text className="text-sm font-medium text-yellow-600">{selectedOrder.totalPrice}</Text>
                             </View>
+                            <Text className="text-sm text-gray-600">
+                                {selectedOrder.items.length} item{selectedOrder.items.length > 1 ? 's' : ''}
+                            </Text>
+                            <Text className="text-xs text-gray-500 mt-1">
+                                {selectedOrder.items.slice(0, 2).map(item => item.foodName).join(', ')}
+                                {selectedOrder.items.length > 2 && ` +${selectedOrder.items.length - 2} more`}
+                            </Text>
                         </View>
                     )}
 
@@ -267,26 +250,46 @@ const MyOrders = () => {
             }}
             className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100"
         >
-            {/* Order Number */}
+            {/* Order Number and Time */}
             <View className="flex-row justify-between items-center mb-3">
                 <Text className="text-sm font-bold text-gray-900">{item.orderNumber}</Text>
                 <Text className="text-xs text-gray-500">{item.orderTime}</Text>
             </View>
 
-            {/* Food Item Details */}
-            <View className="flex-row mb-4">
-                <View className="w-16 h-16 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
-                    <Text className="text-2xl">{item.image}</Text>
+            {/* Order Items Preview */}
+            <View className="mb-4">
+                <View className="flex-row mb-3">
+                    {/* Display first 3 item images */}
+                    <View className="flex-row">
+                        {item.items.slice(0, 3).map((orderItem, idx) => (
+                            <View
+                                key={orderItem.id}
+                                className={`w-12 h-12 bg-yellow-100 rounded-xl items-center justify-center ${idx > 0 ? '-ml-2' : ''}`}
+                                style={{ zIndex: 3 - idx }}
+                            >
+                                <Text className="text-lg">{orderItem.image}</Text>
+                            </View>
+                        ))}
+                        {item.items.length > 3 && (
+                            <View className="w-12 h-12 bg-gray-200 rounded-xl items-center justify-center -ml-2">
+                                <Text className="text-xs font-bold text-gray-600">+{item.items.length - 3}</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    <View className="flex-1 ml-3">
+                        <Text className="text-base font-bold text-gray-900 mb-1">
+                            {item.items.length} item{item.items.length > 1 ? 's' : ''}
+                        </Text>
+                        <Text className="text-sm text-gray-600 mb-1">
+                            {item.items.slice(0, 2).map(orderItem => orderItem.foodName).join(', ')}
+                            {item.items.length > 2 && ` +${item.items.length - 2} more`}
+                        </Text>
+                        <Text className="text-lg font-bold text-yellow-600">{item.totalPrice}</Text>
+                    </View>
                 </View>
 
-                <View className="flex-1">
-                    <Text className="text-lg font-bold text-gray-900 mb-1">{item.foodName}</Text>
-                    <View className="flex-row items-center justify-between">
-                        <Text className="text-lg font-bold text-yellow-600">{item.price}</Text>
-                        <Text className="text-sm text-gray-600">Qty: {item.quantity}</Text>
-                    </View>
-                    <Text className="text-xs text-gray-500 mt-1">Est. {item.estimatedTime}</Text>
-                </View>
+                <Text className="text-xs text-gray-500">Est. {item.estimatedTime}</Text>
             </View>
 
             {/* Status and Action Buttons */}
@@ -296,7 +299,8 @@ const MyOrders = () => {
                 </View>
 
                 <View className="flex-row">
-                    <TouchableOpacity className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
+                    <TouchableOpacity
+                        className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
                         onPress={() => navigateToReceipt(item)}
                     >
                         <Text className="text-xs font-medium text-gray-700">View Receipt</Text>
@@ -323,26 +327,46 @@ const MyOrders = () => {
             }}
             className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100"
         >
-            {/* Order Number */}
+            {/* Order Number and Date */}
             <View className="flex-row justify-between items-center mb-3">
                 <Text className="text-sm font-bold text-gray-900">{item.orderNumber}</Text>
                 <Text className="text-xs text-gray-500">{item.orderDate}</Text>
             </View>
 
-            {/* Food Item Details */}
-            <View className="flex-row mb-4">
-                <View className="w-16 h-16 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
-                    <Text className="text-2xl">{item.image}</Text>
+            {/* Order Items Preview */}
+            <View className="mb-4">
+                <View className="flex-row mb-3">
+                    {/* Display first 3 item images */}
+                    <View className="flex-row">
+                        {item.items.slice(0, 3).map((orderItem, idx) => (
+                            <View
+                                key={orderItem.id}
+                                className={`w-12 h-12 bg-yellow-100 rounded-xl items-center justify-center ${idx > 0 ? '-ml-2' : ''}`}
+                                style={{ zIndex: 3 - idx }}
+                            >
+                                <Text className="text-lg">{orderItem.image}</Text>
+                            </View>
+                        ))}
+                        {item.items.length > 3 && (
+                            <View className="w-12 h-12 bg-gray-200 rounded-xl items-center justify-center -ml-2">
+                                <Text className="text-xs font-bold text-gray-600">+{item.items.length - 3}</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    <View className="flex-1 ml-3">
+                        <Text className="text-base font-bold text-gray-900 mb-1">
+                            {item.items.length} item{item.items.length > 1 ? 's' : ''}
+                        </Text>
+                        <Text className="text-sm text-gray-600 mb-1">
+                            {item.items.slice(0, 2).map(orderItem => orderItem.foodName).join(', ')}
+                            {item.items.length > 2 && ` +${item.items.length - 2} more`}
+                        </Text>
+                        <Text className="text-lg font-bold text-yellow-600">{item.totalPrice}</Text>
+                    </View>
                 </View>
 
-                <View className="flex-1">
-                    <Text className="text-lg font-bold text-gray-900 mb-1">{item.foodName}</Text>
-                    <View className="flex-row items-center justify-between">
-                        <Text className="text-lg font-bold text-yellow-600">{item.price}</Text>
-                        <Text className="text-sm text-gray-600">Qty: {item.quantity}</Text>
-                    </View>
-                    <Text className="text-xs text-gray-500 mt-1">Completed at {item.completedTime}</Text>
-                </View>
+                <Text className="text-xs text-gray-500">Completed at {item.completedTime}</Text>
             </View>
 
             {/* Status and Action Buttons */}
@@ -352,7 +376,8 @@ const MyOrders = () => {
                 </View>
 
                 <View className="flex-row">
-                    <TouchableOpacity className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
+                    <TouchableOpacity
+                        className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
                         onPress={() => navigateToReceipt(item)}
                     >
                         <Text className="text-xs font-medium text-gray-700">View Receipt</Text>
