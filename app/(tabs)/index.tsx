@@ -57,7 +57,7 @@ const RestaurantHome = () => {
     : foodItems.filter(item => item.category === selectedCategory.toLowerCase())
 
   const DateCard = ({ date, index, isSelected, onPress }: any) => (
-    <TouchableOpacity onPress={onPress}>
+    <TouchableOpacity onPress={onPress} style={{ width: '27%' }}>
       <MotiView
         animate={{
           backgroundColor: isSelected ? '#FCD34D' : '#FFFFFF',
@@ -67,24 +67,32 @@ const RestaurantHome = () => {
           type: 'timing',
           duration: 100,
         }}
-        className={`mx-2 px-4 py-3 rounded-2xl border-2 ${isSelected ? 'border-yellow-400' : 'border-gray-200'
+        className={` px-3 py-3 rounded-2xl border-2 ${isSelected ? 'border-yellow-400' : 'border-gray-200'
           } shadow-sm`}
       >
-        <Text className={`text-center text-sm font-medium ${isSelected ? 'text-gray-800' : 'text-gray-600'
-          }`}>
+        <Text
+          className={`text-center text-sm font-medium ${isSelected ? 'text-gray-800' : 'text-gray-600'
+            }`}
+        >
           {date.day}
         </Text>
-        <Text className={`text-center text-lg font-bold ${isSelected ? 'text-gray-900' : 'text-gray-800'
-          }`}>
+        <Text
+          className={`text-center text-lg font-bold ${isSelected ? 'text-gray-900' : 'text-gray-800'
+            }`}
+        >
           {date.date}
         </Text>
-        <Text className={`text-center text-xs ${isSelected ? 'text-gray-700' : 'text-gray-500'
-          }`}>
+        <Text
+          className={`text-center text-xs ${isSelected ? 'text-gray-700' : 'text-gray-500'
+            }`}
+        >
           {date.month}
         </Text>
       </MotiView>
     </TouchableOpacity>
-  )
+  );
+
+
 
   const CategoryCard = ({ category, isSelected, onPress }: any) => (
     <TouchableOpacity onPress={onPress} className="mr-3">
@@ -123,11 +131,9 @@ const RestaurantHome = () => {
       className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100"
     >
       <View className="flex-row">
-        <View className="w-20 h-20 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
-          <Text className="text-3xl">{item.image}</Text>
-        </View>
 
-        <View className="flex-1">
+
+        <View className="flex-1 gap-3">
           <Text className="text-lg font-bold text-gray-900 mb-1">{item.name}</Text>
           <View className="flex-row items-center mb-2">
             <Text className="text-yellow-500 mr-1">⭐</Text>
@@ -136,11 +142,22 @@ const RestaurantHome = () => {
           </View>
           <View className="flex-row items-center justify-between">
             <Text className="text-xl font-bold text-yellow-600">{item.price}</Text>
-            <TouchableOpacity className="bg-yellow-400 px-4 py-2 rounded-full">
-              <Text className="font-semibold text-gray-900">Add</Text>
-            </TouchableOpacity>
+
           </View>
         </View>
+        <View className='flex flex-col gap-4'>
+          <View className="w-20 h-20 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
+            <Text className="text-3xl">{item.image}</Text>
+
+          </View>
+
+          <TouchableOpacity className="bg-yellow-400 px-4 py-2 w-20 rounded-full  items-center  ">
+            <Text className="font-semibold text-gray-900">Add</Text>
+          </TouchableOpacity>
+        </View>
+
+
+
       </View>
     </MotiView>
   )
@@ -150,11 +167,14 @@ const RestaurantHome = () => {
       {/* Fixed Header Section */}
       <View className="bg-white">
         {/* Ticket Button */}
+
         <View className="flex-row justify-between px-4 pt-2">
-          
-            <MotiText className="text-2xl font-bold text-gray-900">
-              
-            </MotiText>
+
+          <MotiText className="text-2xl font-bold text-gray-900">
+            <Text>
+              Hello Moto !
+            </Text>
+          </MotiText>
           <TouchableOpacity className="bg-yellow-400 px-4 py-2 rounded-full">
             <Text className="font-semibold text-gray-900">🎫 Faq</Text>
           </TouchableOpacity>
@@ -164,11 +184,9 @@ const RestaurantHome = () => {
 
 
         {/* Date Selection */}
-        <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 px-4 mb-4">
-            Select Date
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-2">
+        <View className="my-6">
+
+          <View className="flex-row justify-between px-4">
             {dates.map((date, index) => (
               <DateCard
                 key={date.id}
@@ -178,8 +196,9 @@ const RestaurantHome = () => {
                 onPress={() => setSelectedDate(index)}
               />
             ))}
-          </ScrollView>
+          </View>
         </View>
+
 
         {/* Categories Header */}
         <View className="flex-row justify-between items-center px-4 mb-4">
