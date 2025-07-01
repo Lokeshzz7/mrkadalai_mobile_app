@@ -1,18 +1,42 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   FlatList,
   Text,
   View,
   SafeAreaView,
   ScrollView,
-  TouchableOpacity
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
 import { router } from 'expo-router'
+import { apiRequest } from '../../utils/api' // Adjust path as needed
+
+// Types
+interface Product {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  category: 'Meals' | 'Starters' | 'Desserts' | 'Beverages';
+  inventory?: {
+    quantity: number;
+    reserved: number;
+  };
+}
+
+interface ApiResponse {
+  products: Product[];
+}
 
 const RestaurantHome = () => {
   const [selectedDate, setSelectedDate] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState('All')
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Generate dates for today + 2 days
   const getDates = () => {
@@ -33,29 +57,67 @@ const RestaurantHome = () => {
 
   const dates = getDates()
 
-  const categories = [
-    { id: 'all', name: 'All', icon: '🍽️' },
-    { id: 'starters', name: 'Starters', icon: '🥗' },
-    { id: 'meals', name: 'Meals', icon: '🍛' },
-    { id: 'beverages', name: 'Beverages', icon: '🥤' }
-  ]
+  // Category mapping with icons
+  const categoryMapping = {
+    'All': { id: 'all', name: 'All', icon: '🍽️' },
+    'Starters': { id: 'starters', name: 'Starters', icon: '🥗' },
+    'Meals': { id: 'meals', name: 'Meals', icon: '🍛' },
+    'Beverages': { id: 'beverages', name: 'Beverages', icon: '🥤' },
+    'Desserts': { id: 'desserts', name: 'Desserts', icon: '🍰' }
+  }
 
-  const foodItems = [
-    { id: 1, name: 'Caesar Salad', category: 'starters', price: '$12.99', image: '🥗', rating: 4.5, time: '10-15 min' },
-    { id: 2, name: 'Chicken Wings', category: 'starters', price: '$8.99', image: '🍗', rating: 4.3, time: '15-20 min' },
-    { id: 3, name: 'Grilled Chicken', category: 'meals', price: '$18.99', image: '🍖', rating: 4.7, time: '25-30 min' },
-    { id: 4, name: 'Beef Burger', category: 'meals', price: '$15.99', image: '🍔', rating: 4.6, time: '20-25 min' },
-    { id: 5, name: 'Pasta Carbonara', category: 'meals', price: '$16.99', image: '🍝', rating: 4.4, time: '20-25 min' },
-    { id: 6, name: 'Fresh Orange Juice', category: 'beverages', price: '$4.99', image: '🧃', rating: 4.2, time: '5 min' },
-    { id: 7, name: 'Iced Coffee', category: 'beverages', price: '$3.99', image: '☕', rating: 4.5, time: '5 min' },
-    { id: 8, name: 'Smoothie Bowl', category: 'beverages', price: '$7.99', image: '🥤', rating: 4.3, time: '10 min' },
-    { id: 9, name: 'Bruschetta', category: 'starters', price: '$9.99', image: '🍞', rating: 4.1, time: '10-15 min' },
-    { id: 10, name: 'Fish & Chips', category: 'meals', price: '$19.99', image: '🍟', rating: 4.8, time: '25-30 min' }
-  ]
+  // Get unique categories from products
+  const getAvailableCategories = () => {
+    const availableCategories = ['All']
+    const productCategories = [...new Set(products.map(product => product.category))]
+    availableCategories.push(...productCategories)
+    return availableCategories.map(cat => categoryMapping[cat as keyof typeof categoryMapping])
+  }
 
-  const filteredFoodItems = (selectedCategory === 'All')
-    ? foodItems
-    : foodItems.filter(item => item.category === selectedCategory.toLowerCase())
+  // Get category icon based on product category
+  const getCategoryIcon = (category: string) => {
+    const iconMap: { [key: string]: string } = {
+      'Starters': '🥗',
+      'Meals': '🍛',
+      'Beverages': '🥤',
+      'Desserts': '🍰'
+    }
+    return iconMap[category] || '🍽️'
+  }
+
+  // Fetch products from API
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response: ApiResponse = await apiRequest('/customer/outlets/get-product/', {
+        method: 'GET'
+      })
+      setProducts(response.products)
+    } catch (err) {
+      console.error('Error fetching products:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch products')
+      Alert.alert('Error', 'Failed to load products. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  // Filter products based on selected category
+  const filteredProducts = selectedCategory === 'All'
+    ? products
+    : products.filter(product => product.category === selectedCategory)
+
+  // Check if product is available (has stock)
+  const isProductAvailable = (product: Product) => {
+    if (!product.inventory) return true // If no inventory data, assume available
+    const availableStock = product.inventory.quantity
+    return availableStock > 0
+  }
 
   const DateCard = ({ date, index, isSelected, onPress }: any) => (
     <TouchableOpacity onPress={onPress} style={{ width: '27%' }}>
@@ -68,32 +130,26 @@ const RestaurantHome = () => {
           type: 'timing',
           duration: 100,
         }}
-        className={` px-3 py-3 rounded-2xl border-2 ${isSelected ? 'border-yellow-400' : 'border-gray-200'
-          } shadow-sm`}
+        className={`px-3 py-3 rounded-2xl border-2 ${isSelected ? 'border-yellow-400' : 'border-gray-200'} shadow-sm`}
       >
         <Text
-          className={`text-center text-sm font-medium ${isSelected ? 'text-gray-800' : 'text-gray-600'
-            }`}
+          className={`text-center text-sm font-medium ${isSelected ? 'text-gray-800' : 'text-gray-600'}`}
         >
           {date.day}
         </Text>
         <Text
-          className={`text-center text-lg font-bold ${isSelected ? 'text-gray-900' : 'text-gray-800'
-            }`}
+          className={`text-center text-lg font-bold ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}
         >
           {date.date}
         </Text>
         <Text
-          className={`text-center text-xs ${isSelected ? 'text-gray-700' : 'text-gray-500'
-            }`}
+          className={`text-center text-xs ${isSelected ? 'text-gray-700' : 'text-gray-500'}`}
         >
           {date.month}
         </Text>
       </MotiView>
     </TouchableOpacity>
-  );
-
-
+  )
 
   const CategoryCard = ({ category, isSelected, onPress }: any) => (
     <TouchableOpacity onPress={onPress} className="mr-3">
@@ -106,13 +162,11 @@ const RestaurantHome = () => {
           type: 'timing',
           duration: 200,
         }}
-        className={`px-6 py-3 rounded-full border ${isSelected ? 'border-yellow-400' : 'border-gray-200'
-          }`}
+        className={`px-6 py-3 rounded-full border ${isSelected ? 'border-yellow-400' : 'border-gray-200'}`}
       >
         <View className="flex-row items-center">
           <Text className="text-lg mr-2">{category.icon}</Text>
-          <Text className={`font-medium ${isSelected ? 'text-gray-900' : 'text-gray-700'
-            }`}>
+          <Text className={`font-medium ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
             {category.name}
           </Text>
         </View>
@@ -120,75 +174,110 @@ const RestaurantHome = () => {
     </TouchableOpacity>
   )
 
-  const FoodItemCard = ({ item, index }: any) => (
-    <MotiView
-      from={{ opacity: 0, translateY: 50 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{
-        type: 'timing',
-        duration: 300,
-        delay: index * 100,
-      }}
-      className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100"
-    >
-      <View className="flex-row">
+  const FoodItemCard = ({ item, index }: { item: Product; index: number }) => {
+    const isAvailable = isProductAvailable(item)
+    const availableStock = item.inventory ? item.inventory.quantity : 0
 
-
-        <View className="flex-1 gap-3">
-          <Text className="text-lg font-bold text-gray-900 mb-1">{item.name}</Text>
-          <View className="flex-row items-center mb-2">
-            <Text className="text-yellow-500 mr-1">⭐</Text>
-            <Text className="text-sm text-gray-600 mr-3">{item.rating}</Text>
-            <Text className="text-sm text-gray-500">🕒 {item.time}</Text>
+    return (
+      <MotiView
+        from={{ opacity: 0, translateY: 50 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{
+          type: 'timing',
+          duration: 300,
+          delay: index * 100,
+        }}
+        className={`bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100 ${!isAvailable ? 'opacity-60' : ''}`}
+      >
+        <View className="flex-row">
+          <View className="flex-1 gap-3">
+            <Text className="text-lg font-bold text-gray-900 mb-1">{item.name}</Text>
+            {item.description && (
+              <Text className="text-sm text-gray-600 mb-2">{item.description}</Text>
+            )}
+            <View className="flex-row items-center mb-2">
+              <Text className="text-sm text-gray-500">
+                {item.inventory ? `Stock: ${availableStock}` : 'Available'}
+              </Text>
+            </View>
+            <View className="flex-row items-center justify-between">
+              <Text className="text-xl font-bold text-yellow-600">
+                ${item.price.toFixed(2)}
+              </Text>
+            </View>
           </View>
-          <View className="flex-row items-center justify-between">
-            <Text className="text-xl font-bold text-yellow-600">{item.price}</Text>
+          
+          <View className="flex flex-col gap-4">
+            <View className="w-20 h-20 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
+              <Text className="text-3xl">{getCategoryIcon(item.category)}</Text>
+            </View>
 
+            <TouchableOpacity 
+              className={`px-4 py-2 w-20 rounded-full items-center ${
+                isAvailable ? 'bg-yellow-400' : 'bg-gray-300'
+              }`}
+              disabled={!isAvailable}
+            >
+              <Text className={`font-semibold ${
+                isAvailable ? 'text-gray-900' : 'text-gray-500'
+              }`}>
+                {isAvailable ? 'Add' : 'Out'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-        <View className='flex flex-col gap-4'>
-          <View className="w-20 h-20 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
-            <Text className="text-3xl">{item.image}</Text>
+      </MotiView>
+    )
+  }
 
-          </View>
+  // Loading component
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#FCD34D" />
+          <Text className="mt-4 text-gray-600">Loading products...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
-          <TouchableOpacity className="bg-yellow-400 px-4 py-2 w-20 rounded-full  items-center  ">
-            <Text className="font-semibold text-gray-900">Add</Text>
+  // Error component
+  if (error) {
+    return (
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 justify-center items-center px-4">
+          <Text className="text-red-500 text-center mb-4">{error}</Text>
+          <TouchableOpacity 
+            className="bg-yellow-400 px-6 py-3 rounded-full"
+            onPress={fetchProducts}
+          >
+            <Text className="font-semibold text-gray-900">Retry</Text>
           </TouchableOpacity>
         </View>
-
-
-
-      </View>
-    </MotiView>
-  )
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Fixed Header Section */}
       <View className="bg-white mt-3">
-        {/* Ticket Button */}
-
+        {/* Header with greeting and FAQ button */}
         <View className="flex-row justify-between px-4 pt-2">
-
           <MotiText className="text-2xl font-bold text-gray-900">
-            <Text>
-              Hello Moto !
-            </Text>
+            <Text>Hello Moto !</Text>
           </MotiText>
-          <TouchableOpacity className="bg-yellow-400 px-4 py-2 rounded-full"
+          <TouchableOpacity 
+            className="bg-yellow-400 px-4 py-2 rounded-full"
             onPress={() => router.push("/ticket/faq")}
           >
             <Text className="font-semibold text-gray-900">🎫 Faq</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Welcome Message */}
-
-
         {/* Date Selection */}
         <View className="my-6">
-
           <View className="flex-row justify-between px-4">
             {dates.map((date, index) => (
               <DateCard
@@ -202,7 +291,6 @@ const RestaurantHome = () => {
           </View>
         </View>
 
-
         {/* Categories Header */}
         <View className="flex-row justify-between items-center px-4 mb-4">
           <Text className="text-lg font-semibold text-gray-900">All Categories</Text>
@@ -214,7 +302,7 @@ const RestaurantHome = () => {
         {/* Categories */}
         <View className="mb-4">
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4">
-            {categories.map((category) => (
+            {getAvailableCategories().map((category) => (
               <CategoryCard
                 key={category.id}
                 category={category}
@@ -226,21 +314,35 @@ const RestaurantHome = () => {
         </View>
 
         {/* Section Title */}
-        <Text className="text-lg font-semibold text-gray-900 px-4 mb-4">
-          {selectedCategory === 'All' ? 'Popular Items' : selectedCategory}
-        </Text>
+        <View className="flex-row justify-between items-center px-4 mb-4">
+          <Text className="text-lg font-semibold text-gray-900">
+            {selectedCategory === 'All' ? 'All Products' : selectedCategory}
+          </Text>
+          <Text className="text-sm text-gray-500">
+            {filteredProducts.length} items
+          </Text>
+        </View>
       </View>
 
-      {/* Scrollable Food Items Section */}
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80 }}
-      >
-        {filteredFoodItems.map((item, index) => (
-          <FoodItemCard key={item.id} item={item} index={index} />
-        ))}
-      </ScrollView>
+      {/* Scrollable Products Section */}
+      {filteredProducts.length > 0 ? (
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 80 }}
+        >
+          {filteredProducts.map((item, index) => (
+            <FoodItemCard key={item.id} item={item} index={index} />
+          ))}
+        </ScrollView>
+      ) : (
+        <View className="flex-1 justify-center items-center">
+          <Text className="text-gray-500 text-lg">No products available</Text>
+          <Text className="text-gray-400 text-sm mt-2">
+            {selectedCategory !== 'All' ? `No ${selectedCategory.toLowerCase()} found` : 'No products in this outlet'}
+          </Text>
+        </View>
+      )}
     </SafeAreaView>
   )
 }
