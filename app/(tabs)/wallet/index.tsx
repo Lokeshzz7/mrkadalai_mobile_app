@@ -101,7 +101,7 @@ const Wallet = () => {
     const [transactionHistory, setTransactionHistory] = useState<TransactionHistoryItem[]>([])
 
     const quickRechargeAmounts = [50, 100, 200, 500]
-    const paymentMethods = ['UPI', 'CARD', 'CASH', 'WALLET']
+    const paymentMethods = ['UPI', 'CARD']
 
     // Transform backend transaction to frontend format
     const transformRechargeTransaction = (transaction: any): RechargeHistoryItem => {

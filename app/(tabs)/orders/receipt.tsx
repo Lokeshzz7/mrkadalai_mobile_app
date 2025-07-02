@@ -339,14 +339,14 @@ Thank you for your order!
                                 <Text className="font-medium text-green-800">Order ID</Text>
                                 <Text className="font-bold text-green-600 text-xs">{orderData.orderNumber}</Text>
                             </View>
-                            <View className="flex-row items-center justify-between">
+                            {/* <View className="flex-row items-center justify-between">
                                 <Text className="font-medium text-green-800">Payment Status</Text>
                                 <Text className="font-bold text-green-600">
                                     {orderData.status.toLowerCase() === 'delivered' ? '✅ Paid' : 
                                      orderData.status.toLowerCase() === 'pending' ? '⏳ Processing' : 
                                      orderData.status.toLowerCase() === 'cancelled' ? '❌ Cancelled' : '✅ Paid'}
                                 </Text>
-                            </View>
+                            </View> */}
                         </View>
                     </View>
 

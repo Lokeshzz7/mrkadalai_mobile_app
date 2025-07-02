@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
 import { useRouter } from 'expo-router'
-import { apiRequest } from '../../../utils/api' // Adjust path as needed
+import { apiRequest } from '../../../utils/api'
 import { useFocusEffect } from '@react-navigation/native'
 
 // Types
@@ -53,12 +53,12 @@ const Cart = () => {
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null)
 
     const timeSlots = [
-        { id: 1, time: '11:00 AM - 12:00 PM', available: true },
-        { id: 2, time: '12:00 PM - 1:00 PM', available: true },
-        { id: 3, time: '1:00 PM - 2:00 PM', available: false },
-        { id: 4, time: '2:00 PM - 3:00 PM', available: true },
-        { id: 5, time: '3:00 PM - 4:00 PM', available: true },
-        { id: 6, time: '4:00 PM - 5:00 PM', available: true }
+        { id: 1, time: '11:00 AM - 12:00 PM', available: true, slot: 'SLOT_11_12' },
+        { id: 2, time: '12:00 PM - 1:00 PM', available: true, slot: 'SLOT_12_13' },
+        { id: 3, time: '1:00 PM - 2:00 PM', available: true, slot: 'SLOT_13_14' },
+        { id: 4, time: '2:00 PM - 3:00 PM', available: true, slot: 'SLOT_14_15' },
+        { id: 5, time: '3:00 PM - 4:00 PM', available: true, slot: 'SLOT_15_16' },
+        { id: 6, time: '4:00 PM - 5:00 PM', available: true, slot: 'SLOT_16_17' }
     ]
 
     // Get category icon based on product category
@@ -202,8 +202,20 @@ const Cart = () => {
             return
         }
 
-        // Navigate to OrderPayment page
-        router.push('/(tabs)/cart/orderPayment')
+        // Get selected time slot details
+        const selectedSlot = timeSlots.find(slot => slot.id === selectedTimeSlot)
+        
+        // Navigate to OrderPayment page with cart data and selected time slot
+        router.push({
+            pathname: '/(tabs)/cart/orderPayment',
+            params: {
+                cartData: JSON.stringify(cartData),
+                selectedTimeSlot: selectedSlot?.slot,
+                selectedTimeSlotDisplay: selectedSlot?.time,
+                totalAmount: calculateTotal().toFixed(2),
+                totalItems: calculateTotalItems().toString()
+            }
+        })
     }
 
     const CartItem = ({ item, index }: { item: CartItem; index: number }) => {
