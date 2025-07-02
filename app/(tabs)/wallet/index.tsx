@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     FlatList,
     Text,
@@ -7,10 +7,49 @@ import {
     ScrollView,
     TouchableOpacity,
     TextInput,
-    Modal
+    Modal,
+    Alert,
+    ActivityIndicator,
+    RefreshControl
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
+import { apiRequest } from '../../../utils/api'
 
+interface RequestOptions extends RequestInit {
+  body?: any;
+}
+
+// Wallet API Services
+const walletAPI = {
+  // 1. Recharge wallet
+  rechargeWallet: async (amount: number, paymentMethod: string) => {
+    return apiRequest('/customer/outlets/recharge-wallet', {
+      method: 'POST',
+      body: { amount, paymentMethod }
+    });
+  },
+
+  // 2. Get recent transactions (all transactions)
+  getRecentTransactions: async () => {
+    return apiRequest('/customer/outlets/get-recent-recharge', {
+      method: 'GET'
+    });
+  },
+
+  // 3. Get wallet details
+  getWalletDetails: async () => {
+    return apiRequest('/customer/outlets/get-wallet-details', {
+      method: 'GET'
+    });
+  },
+
+  // 4. Get recharge history only
+  getRechargeHistory: async () => {
+    return apiRequest('/customer/outlets/get-recharge-history', {
+      method: 'GET'
+    });
+  }
+};
 
 type RechargeHistoryItem = {
     id: string;
@@ -19,6 +58,8 @@ type RechargeHistoryItem = {
     time: string;
     status: 'completed' | 'pending' | 'failed' | 'successful';
     transactionId: string;
+    method: string;
+    createdAt: string;
 };
 
 type TransactionHistoryItem = {
@@ -29,16 +70,13 @@ type TransactionHistoryItem = {
     type: 'debit' | 'credit';
     description: string;
     transactionId: string;
+    method: string;
+    status: string;
+    createdAt: string;
 };
 
 // Union type for FlatList data
 type HistoryItem = RechargeHistoryItem | TransactionHistoryItem;
-
-type RechargeHistoryCardProps = {
-    item: RechargeHistoryItem;
-    index: number;
-};
-
 
 const Wallet = () => {
     const [activeTab, setActiveTab] = useState('recharge')
@@ -47,190 +85,137 @@ const Wallet = () => {
 
     const [rechargeAmount, setRechargeAmount] = useState('')
     const [showOptionsModal, setShowOptionsModal] = useState(false)
-    const [walletBalance, setWalletBalance] = useState(245.50)
-    const [bonusCredits, setBonusCredits] = useState(35.00)
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('UPI')
+    const [walletBalance, setWalletBalance] = useState(0)
+    const [bonusCredits, setBonusCredits] = useState(0)
+    const [totalRecharged, setTotalRecharged] = useState(0)
+    const [totalUsed, setTotalUsed] = useState(0)
 
-    const rechargeHistory: RechargeHistoryItem[] = [
-        {
-            id: '1',
-            amount: 100.00,
-            date: '2024-06-09',
-            time: '02:30 PM',
-            status: 'successful',
-            transactionId: 'TXN123456789'
-        },
-        {
-            id: '2',
-            amount: 50.00,
-            date: '2024-06-08',
-            time: '11:45 AM',
-            status: 'successful',
-            transactionId: 'TXN123456788'
-        },
-        {
-            id: '3',
-            amount: 75.00,
-            date: '2024-06-07',
-            time: '08:20 PM',
-            status: 'failed',
-            transactionId: 'TXN123456787'
-        },
-        {
-            id: '4',
-            amount: 200.00,
-            date: '2024-06-06',
-            time: '03:15 PM',
-            status: 'successful',
-            transactionId: 'TXN123456786'
-        },
-        {
-            id: '5',
-            amount: 25.00,
-            date: '2024-06-05',
-            time: '12:30 PM',
-            status: 'pending',
-            transactionId: 'TXN123456785'
-        },
-        {
-            id: '6',
-            amount: 150.00,
-            date: '2024-06-04',
-            time: '07:45 AM',
-            status: 'successful',
-            transactionId: 'TXN123456784'
-        },
-        {
-            id: '7',
-            amount: 300.00,
-            date: '2024-06-03',
-            time: '09:30 AM',
-            status: 'successful',
-            transactionId: 'TXN123456783'
-        },
-        {
-            id: '8',
-            amount: 80.00,
-            date: '2024-06-02',
-            time: '06:15 PM',
-            status: 'failed',
-            transactionId: 'TXN123456782'
-        },
-        {
-            id: '9',
-            amount: 120.00,
-            date: '2024-06-01',
-            time: '01:45 PM',
-            status: 'successful',
-            transactionId: 'TXN123456781'
-        },
-        {
-            id: '10',
-            amount: 90.00,
-            date: '2024-05-31',
-            time: '10:20 AM',
-            status: 'pending',
-            transactionId: 'TXN123456780'
-        }
-    ]
+    // Loading states
+    const [isLoading, setIsLoading] = useState(false)
+    const [isRecharging, setIsRecharging] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
 
-    const transactionHistory: TransactionHistoryItem[] = [
-        {
-            id: '1',
-            amount: 45.50,
-            date: '2024-06-09',
-            time: '03:15 PM',
-            type: 'debit',
-            description: 'Food Order - Pizza Palace',
-            transactionId: 'TXN987654321'
-        },
-        {
-            id: '2',
-            amount: 100.00,
-            date: '2024-06-09',
-            time: '02:30 PM',
-            type: 'credit',
-            description: 'Wallet Recharge',
-            transactionId: 'TXN123456789'
-        },
-        {
-            id: '3',
-            amount: 25.75,
-            date: '2024-06-08',
-            time: '07:45 PM',
-            type: 'debit',
-            description: 'Grocery Store Purchase',
-            transactionId: 'TXN987654320'
-        },
-        {
-            id: '4',
-            amount: 15.30,
-            date: '2024-06-08',
-            time: '02:20 PM',
-            type: 'debit',
-            description: 'Coffee Shop',
-            transactionId: 'TXN987654319'
-        },
-        {
-            id: '5',
-            amount: 50.00,
-            date: '2024-06-08',
-            time: '11:45 AM',
-            type: 'credit',
-            description: 'Wallet Recharge',
-            transactionId: 'TXN123456788'
-        },
-        {
-            id: '6',
-            amount: 35.20,
-            date: '2024-06-07',
-            time: '09:30 PM',
-            type: 'debit',
-            description: 'Online Shopping',
-            transactionId: 'TXN987654318'
-        },
-        {
-            id: '7',
-            amount: 200.00,
-            date: '2024-06-06',
-            time: '03:15 PM',
-            type: 'credit',
-            description: 'Wallet Recharge',
-            transactionId: 'TXN123456786'
-        },
-        {
-            id: '8',
-            amount: 18.90,
-            date: '2024-06-06',
-            time: '01:10 PM',
-            type: 'debit',
-            description: 'Restaurant Payment',
-            transactionId: 'TXN987654317'
-        },
-        {
-            id: '9',
-            amount: 60.40,
-            date: '2024-06-05',
-            time: '05:25 PM',
-            type: 'debit',
-            description: 'Gas Station',
-            transactionId: 'TXN987654316'
-        },
-        {
-            id: '10',
-            amount: 150.00,
-            date: '2024-06-04',
-            time: '07:45 AM',
-            type: 'credit',
-            description: 'Wallet Recharge',
-            transactionId: 'TXN123456784'
-        }
-    ]
+    // Data states
+    const [rechargeHistory, setRechargeHistory] = useState<RechargeHistoryItem[]>([])
+    const [transactionHistory, setTransactionHistory] = useState<TransactionHistoryItem[]>([])
 
     const quickRechargeAmounts = [50, 100, 200, 500]
+    const paymentMethods = ['UPI', 'CARD', 'CASH', 'WALLET']
+
+    // Transform backend transaction to frontend format
+    const transformRechargeTransaction = (transaction: any): RechargeHistoryItem => {
+        const date = new Date(transaction.createdAt);
+        return {
+            id: transaction.id.toString(),
+            amount: transaction.amount,
+            date: date.toISOString().split('T')[0],
+            time: date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            }),
+            status: transaction.status === 'RECHARGE' ? 'successful' : 'pending',
+            transactionId: `TXN${transaction.id}`,
+            method: transaction.method,
+            createdAt: transaction.createdAt
+        };
+    };
+
+    const transformAllTransactions = (transaction: any): TransactionHistoryItem => {
+        const date = new Date(transaction.createdAt);
+        return {
+            id: transaction.id.toString(),
+            amount: transaction.amount,
+            date: date.toISOString().split('T')[0],
+            time: date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            }),
+            type: transaction.status === 'RECHARGE' ? 'credit' : 'debit',
+            description: transaction.status === 'RECHARGE' ? 'Wallet Recharge' : 'Payment',
+            transactionId: `TXN${transaction.id}`,
+            method: transaction.method,
+            status: transaction.status,
+            createdAt: transaction.createdAt
+        };
+    };
+
+    // Fetch wallet details
+    const fetchWalletDetails = async () => {
+        try {
+            setIsLoading(true);
+            const response = await walletAPI.getWalletDetails();
+            
+            if (response.wallet) {
+                setWalletBalance(response.wallet.balance || 0);
+                setTotalRecharged(response.wallet.totalRecharged || 0);
+                setTotalUsed(response.wallet.totalUsed || 0);
+                // Calculate bonus credits (you can modify this logic)
+                setBonusCredits(response.wallet.balance * 0.1); // 10% of balance as bonus
+            }
+        } catch (error) {
+            console.error('Error fetching wallet details:', error);
+            Alert.alert('Error', 'Failed to fetch wallet details');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Fetch recharge history
+    const fetchRechargeHistory = async () => {
+        try {
+            const response = await walletAPI.getRechargeHistory();
+            
+            if (response.rechargeHistory) {
+                const transformedHistory = response.rechargeHistory.map(transformRechargeTransaction);
+                setRechargeHistory(transformedHistory);
+            }
+        } catch (error) {
+            console.error('Error fetching recharge history:', error);
+            Alert.alert('Error', 'Failed to fetch recharge history');
+        }
+    };
+
+    // Fetch all transactions
+    const fetchAllTransactions = async () => {
+        try {
+            const response = await walletAPI.getRecentTransactions();
+            
+            if (response.transactions) {
+                const transformedTransactions = response.transactions.map(transformAllTransactions);
+                setTransactionHistory(transformedTransactions);
+            }
+        } catch (error) {
+            console.error('Error fetching transactions:', error);
+            Alert.alert('Error', 'Failed to fetch transaction history');
+        }
+    };
+
+    // Load data on component mount
+    useEffect(() => {
+        loadInitialData();
+    }, []);
+
+    const loadInitialData = async () => {
+        await Promise.all([
+            fetchWalletDetails(),
+            fetchRechargeHistory(),
+            fetchAllTransactions()
+        ]);
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadInitialData();
+        setRefreshing(false);
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'successful':
+            case 'RECHARGE':
                 return 'bg-green-100 text-green-800'
             case 'failed':
                 return 'bg-red-100 text-red-800'
@@ -244,6 +229,7 @@ const Wallet = () => {
     const getStatusText = (status: string) => {
         switch (status) {
             case 'successful':
+            case 'RECHARGE':
                 return 'Successful'
             case 'failed':
                 return 'Failed'
@@ -262,36 +248,52 @@ const Wallet = () => {
         return type === 'credit' ? '↗️' : '↙️'
     }
 
-    const handleRecharge = () => {
-        if (rechargeAmount && parseFloat(rechargeAmount) > 0) {
-            // Simulate successful recharge
-            const newTransaction: RechargeHistoryItem = {
-                id: Date.now().toString(),
-                amount: parseFloat(rechargeAmount),
-                date: new Date().toISOString().split('T')[0],
-                time: new Date().toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                }),
-                status: 'successful',
-                transactionId: `TXN${Date.now()}`
+    const handleRecharge = async () => {
+        if (!rechargeAmount || parseFloat(rechargeAmount) <= 0) {
+            Alert.alert('Invalid Amount', 'Please enter a valid amount');
+            return;
+        }
+
+        try {
+            setIsRecharging(true);
+            
+            const response = await walletAPI.rechargeWallet(
+                parseFloat(rechargeAmount), 
+                selectedPaymentMethod
+            );
+
+            if (response.wallet) {
+                // Update wallet balance
+                setWalletBalance(response.wallet.balance);
+                setTotalRecharged(response.wallet.totalRecharged || 0);
+                
+                // Refresh data
+                await Promise.all([
+                    fetchRechargeHistory(),
+                    fetchAllTransactions()
+                ]);
             }
 
-            // Add to history (in real app, this would be handled by state management)
-            setWalletBalance(prev => prev + parseFloat(rechargeAmount))
-            setRechargeAmount('')
+            setRechargeAmount('');
+            setShowOptionsModal(false);
+            Alert.alert('Success', 'Wallet recharged successfully!');
+            
+        } catch (error) {
+            console.error('Recharge error:', error);
 
-            // Show success message or navigate
-            alert('Recharge successful!')
-        } else {
-            alert('Please enter a valid amount')
+            if (error instanceof Error) {
+                Alert.alert('Error', error.message);
+            } else {
+                Alert.alert('Error', 'Failed to recharge wallet');
+            }
+        } finally {
+            setIsRecharging(false);
         }
-    }
+    };
 
     // Type guard to check if item is RechargeHistoryItem
     const isRechargeHistoryItem = (item: HistoryItem): item is RechargeHistoryItem => {
-        return 'status' in item;
+        return 'status' in item && !('type' in item);
     }
 
     const RechargeHistoryCard = ({ item, index }: { item: RechargeHistoryItem; index: number }) => (
@@ -308,10 +310,13 @@ const Wallet = () => {
             <View className="flex-row justify-between items-start mb-2">
                 <View className="flex-1">
                     <Text className="text-lg font-bold text-gray-900 mb-1">
-                        ${item.amount.toFixed(2)}
+                        ₹{item.amount.toFixed(2)}
                     </Text>
                     <Text className="text-sm text-gray-600">
                         {item.date} • {item.time}
+                    </Text>
+                    <Text className="text-xs text-gray-500 mt-1">
+                        via {item.method}
                     </Text>
                 </View>
                 <View className={`px-3 py-1 rounded-full ${getStatusColor(item.status)}`}>
@@ -343,7 +348,7 @@ const Wallet = () => {
                     <View className="flex-row items-center mb-1">
                         <Text className="text-lg mr-2">{getTransactionIcon(item.type)}</Text>
                         <Text className={`text-lg font-bold ${getTransactionTypeColor(item.type)}`}>
-                            {item.type === 'credit' ? '+' : '-'}${item.amount.toFixed(2)}
+                            {item.type === 'credit' ? '+' : '-'}₹{item.amount.toFixed(2)}
                         </Text>
                     </View>
                     <Text className="text-sm font-medium text-gray-900 mb-1">
@@ -351,6 +356,9 @@ const Wallet = () => {
                     </Text>
                     <Text className="text-sm text-gray-600">
                         {item.date} • {item.time}
+                    </Text>
+                    <Text className="text-xs text-gray-500 mt-1">
+                        via {item.method}
                     </Text>
                 </View>
             </View>
@@ -383,52 +391,6 @@ const Wallet = () => {
         return activeTab === 'recharge' ? showAllRecharge : showAllTransaction
     }
 
-    const OptionsModal = () => (
-        <Modal
-            visible={showOptionsModal}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setShowOptionsModal(false)}
-        >
-            <TouchableOpacity
-                className="flex-1 bg-black bg-opacity-50 justify-center items-center"
-                activeOpacity={1}
-                onPress={() => setShowOptionsModal(false)}
-            >
-                <MotiView
-                    from={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'timing', duration: 200 }}
-                    className="bg-white rounded-2xl p-4 mx-8 shadow-lg"
-                >
-                    <TouchableOpacity
-                        className="py-4 border-b border-gray-100"
-                        onPress={() => {
-                            setShowOptionsModal(false)
-                            // Navigate to transaction history
-                        }}
-                    >
-                        <Text className="text-gray-900 font-medium text-center">
-                            📊 Transaction History
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        className="py-4"
-                        onPress={() => {
-                            setShowOptionsModal(false)
-                            // Navigate to recharge history (current page)
-                        }}
-                    >
-                        <Text className="text-gray-900 font-medium text-center">
-                            💳 Recharge History
-                        </Text>
-                    </TouchableOpacity>
-                </MotiView>
-            </TouchableOpacity>
-        </Modal>
-    )
-
     const TabButton = ({ title, isActive, onPress }: any) => (
         <TouchableOpacity onPress={onPress} className="flex-1">
             <MotiView
@@ -439,16 +401,27 @@ const Wallet = () => {
                     type: 'timing',
                     duration: 200,
                 }}
-                className={`py-3 rounded-xl mx-1 border ${isActive ? 'border-yellow-400' : 'border-gray-200'
-                    }`}
+                className={`py-3 rounded-xl mx-1 border ${isActive ? 'border-yellow-400' : 'border-gray-200'}`}
             >
-                <Text className={`text-center font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'
-                    }`}>
+                <Text className={`text-center font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>
                     {title}
                 </Text>
             </MotiView>
         </TouchableOpacity>
     )
+
+    const refreshData = async () => {
+        await loadInitialData();
+    };
+
+    if (isLoading) {
+        return (
+            <SafeAreaView className="flex-1 bg-white items-center justify-center">
+                <ActivityIndicator size="large" color="#FCD34D" />
+                <Text className="mt-2 text-gray-600">Loading wallet...</Text>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView className="flex-1 bg-white">
@@ -458,10 +431,18 @@ const Wallet = () => {
                     <Text className="text-2xl">←</Text>
                 </TouchableOpacity>
                 <Text className="text-xl font-bold text-gray-900">Wallet</Text>
-                <View className="w-10" />
+                <TouchableOpacity onPress={refreshData} className="p-2">
+                    <Text className="text-lg">🔄</Text>
+                </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 70 }} // Add padding for tab bar
+            <ScrollView 
+                className="flex-1" 
+                showsVerticalScrollIndicator={false} 
+                contentContainerStyle={{ paddingBottom: 70 }}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                }
             >
                 {/* Wallet Balance Section */}
                 <MotiView
@@ -499,7 +480,7 @@ const Wallet = () => {
                                 Available Balance
                             </Text>
                             <Text className="text-gray-900 text-4xl font-bold mb-2">
-                                ${walletBalance.toFixed(2)}
+                                ₹{walletBalance.toFixed(2)}
                             </Text>
                             <View className="flex-row items-center">
                                 <View className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2" />
@@ -509,26 +490,26 @@ const Wallet = () => {
                             </View>
                         </View>
 
-                        {/* Bonus Credits Section */}
+                        {/* Stats Section */}
                         <View className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
                             <View className="flex-row items-center justify-between">
                                 <View className="flex-1">
                                     <View className="flex-row items-center mb-1">
                                         <Text className="text-yellow-600 text-sm mr-2">🎁</Text>
                                         <Text className="text-yellow-800 text-sm font-semibold">
-                                            Bonus Credits
+                                            Total Recharged
                                         </Text>
                                     </View>
                                     <Text className="text-gray-900 text-xl font-bold">
-                                        ${bonusCredits.toFixed(2)}
+                                        ₹{totalRecharged.toFixed(2)}
                                     </Text>
                                 </View>
                                 <View className="items-end">
                                     <Text className="text-yellow-600 text-xs font-medium mb-1">
-                                        Expires in
+                                        Total Used
                                     </Text>
                                     <Text className="text-gray-700 text-sm font-semibold">
-                                        90 days
+                                        ₹{totalUsed.toFixed(2)}
                                     </Text>
                                 </View>
                             </View>
@@ -553,11 +534,19 @@ const Wallet = () => {
                             {quickRechargeAmounts.map((amount) => (
                                 <TouchableOpacity
                                     key={amount}
-                                    className="bg-yellow-100 px-4 py-2 rounded-xl flex-1 mx-1"
+                                    className={`px-4 py-2 rounded-xl flex-1 mx-1 ${
+                                        rechargeAmount === amount.toString() 
+                                            ? 'bg-yellow-400 border-yellow-500' 
+                                            : 'bg-yellow-100 border-yellow-200'
+                                    } border`}
                                     onPress={() => setRechargeAmount(amount.toString())}
                                 >
-                                    <Text className="text-center font-medium text-gray-800">
-                                        ${amount}
+                                    <Text className={`text-center font-medium ${
+                                        rechargeAmount === amount.toString() 
+                                            ? 'text-gray-900' 
+                                            : 'text-gray-800'
+                                    }`}>
+                                        ₹{amount}
                                     </Text>
                                 </TouchableOpacity>
                             ))}
@@ -568,21 +557,58 @@ const Wallet = () => {
                             <Text className="text-gray-700 font-medium mb-2">Enter Amount</Text>
                             <TextInput
                                 className="border border-gray-200 rounded-xl px-4 py-3 text-lg font-medium"
-                                placeholder="$0.00"
+                                placeholder="₹0.00"
                                 value={rechargeAmount}
                                 onChangeText={setRechargeAmount}
                                 keyboardType="numeric"
+                                editable={!isRecharging}
                             />
+                        </View>
+
+                        {/* Payment Method Selection */}
+                        <View className="mb-4">
+                            <Text className="text-gray-700 font-medium mb-2">Payment Method</Text>
+                            <View className="flex-row flex-wrap">
+                                {paymentMethods.map((method) => (
+                                    <TouchableOpacity
+                                        key={method}
+                                        className={`px-3 py-2 rounded-lg mr-2 mb-2 border ${
+                                            selectedPaymentMethod === method 
+                                                ? 'bg-yellow-400 border-yellow-500' 
+                                                : 'bg-gray-100 border-gray-200'
+                                        }`}
+                                        onPress={() => setSelectedPaymentMethod(method)}
+                                    >
+                                        <Text className={`text-sm font-medium ${
+                                            selectedPaymentMethod === method 
+                                                ? 'text-gray-900' 
+                                                : 'text-gray-600'
+                                        }`}>
+                                            {method}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                         </View>
 
                         {/* Pay Button */}
                         <TouchableOpacity
-                            className="bg-yellow-400 py-4 rounded-xl"
+                            className={`py-4 rounded-xl ${isRecharging ? 'bg-yellow-200' : 'bg-yellow-400'}`}
                             onPress={handleRecharge}
+                            disabled={isRecharging}
                         >
-                            <Text className="text-center font-bold text-gray-900 text-lg">
-                                💰 Pay Now
-                            </Text>
+                            {isRecharging ? (
+                                <View className="flex-row items-center justify-center">
+                                    <ActivityIndicator size="small" color="#000" />
+                                    <Text className="ml-2 text-center font-bold text-gray-900 text-lg">
+                                        Processing...
+                                    </Text>
+                                </View>
+                            ) : (
+                                <Text className="text-center font-bold text-gray-900 text-lg">
+                                    💰 Pay ₹{rechargeAmount || '0'}
+                                </Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </MotiView>
@@ -600,9 +626,6 @@ const Wallet = () => {
                         </Text>
                         <Text className="text-red-700 text-sm leading-5">
                             • Wallet recharges are non-refundable
-                        </Text>
-                        <Text className="text-red-700 text-sm leading-5">
-                            • Bonus credits expire after 90 days
                         </Text>
                         <Text className="text-red-700 text-sm leading-5">
                             • Processing fees may apply for certain payment methods
@@ -625,7 +648,7 @@ const Wallet = () => {
                         }}
                     />
                     <TabButton
-                        title="Transaction History"
+                        title="All Transactions"
                         isActive={activeTab === 'transaction'}
                         onPress={() => {
                             setActiveTab('transaction')
@@ -635,63 +658,51 @@ const Wallet = () => {
                     />
                 </View>
 
-                {/* See All Button */}
-                <View className="flex-row justify-end px-4 mb-4">
-                    <TouchableOpacity
-                        onPress={handleSeeAll}
-                        className={`px-4 py-2 rounded-lg border ${getCurrentShowAll()
-                            ? 'bg-yellow-400 border-yellow-500'
-                            : 'bg-gray-100 border-gray-300'
-                            }`}
-                    >
-                        <Text className={`font-medium ${getCurrentShowAll()
-                            ? 'text-gray-900'
-                            : 'text-gray-700'
-                            }`}>
-                            {getCurrentShowAll() ? '✓ All Displayed' : 'See All'}
+                {/* History Section */}
+                <View className="px-4">
+                    <View className="flex-row justify-between items-center mb-4">
+                        <Text className="text-lg font-bold text-gray-900">
+                            {activeTab === 'recharge' ? 'Recent Recharges' : 'Recent Transactions'}
                         </Text>
-                    </TouchableOpacity>
-                </View>
+                        {((activeTab === 'recharge' && rechargeHistory.length > 3) || 
+                          (activeTab === 'transaction' && transactionHistory.length > 3)) && (
+                            <TouchableOpacity onPress={handleSeeAll}>
+                                <Text className="text-yellow-600 font-medium">
+                                    {getCurrentShowAll() ? 'Show Less' : 'See All'}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
 
-                {/* History List */}
-                <View className="flex-1">
-                    <FlatList<HistoryItem>
-                        data={getCurrentData()}
-                        renderItem={({ item, index }) =>
-                            isRechargeHistoryItem(item) ? (
-                                <RechargeHistoryCard item={item} index={index} />
-                            ) : (
-                                <TransactionHistoryCard item={item} index={index} />
-                            )
-                        }
-                        keyExtractor={(item) => item.id.toString()}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 70 }}
-                        scrollEnabled={false}
-                    />
+                    {getCurrentData().length === 0 ? (
+                        <View className="bg-white rounded-2xl p-8 items-center justify-center">
+                            <Text className="text-6xl mb-4">📝</Text>
+                            <Text className="text-gray-600 text-center">
+                                No {activeTab === 'recharge' ? 'recharge' : 'transaction'} history yet
+                            </Text>
+                            <Text className="text-gray-500 text-sm text-center mt-2">
+                                Your {activeTab === 'recharge' ? 'recharges' : 'transactions'} will appear here
+                            </Text>
+                        </View>
+                    ) : (
+                        <FlatList
+                            data={getCurrentData()}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item, index }) => {
+                                if (isRechargeHistoryItem(item)) {
+                                    return <RechargeHistoryCard item={item} index={index} />
+                                } else {
+                                    return <TransactionHistoryCard item={item} index={index} />
+                                }
+                            }}
+                            scrollEnabled={false}
+                            showsVerticalScrollIndicator={false}
+                        />
+                    )}
                 </View>
-
-                {/* Empty State */}
-                {getCurrentData().length === 0 && (
-                    <MotiView
-                        from={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ type: 'timing', duration: 400 }}
-                        className="flex-1 items-center justify-center px-8 py-12"
-                    >
-                        <Text className="text-6xl mb-4">💳</Text>
-                        <Text className="text-xl font-bold text-gray-900 mb-2">No Transactions</Text>
-                        <Text className="text-gray-600 text-center">
-                            Your {activeTab === 'recharge' ? 'recharge' : 'transaction'} history will appear here once you make your first transaction.
-                        </Text>
-                    </MotiView>
-                )}
             </ScrollView>
-
-            {/* Options Modal */}
-            {/* <OptionsModal /> */}
         </SafeAreaView>
     )
 }
 
-export default Wallet
+export default Wallet;

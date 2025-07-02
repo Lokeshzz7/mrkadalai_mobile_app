@@ -133,7 +133,6 @@ const MyOrders = () => {
             const data = await apiRequest('/customer/outlets/customer-ongoing-order/', {
                 method: 'GET',
             })
-            console.log("ONGOING ORDERS RESPONSE:", data.orders);
             const transformedOrders = data.orders.map(transformOrder)
             setOngoingOrders(transformedOrders)
         } catch (error) {
@@ -153,7 +152,6 @@ const MyOrders = () => {
             const data = await apiRequest('/customer/outlets/customer-order-history/', {
                 method: 'GET',
             })
-            console.log("HISTORY ORDERS RESPONSE:", data.orders);
             const transformedOrders = data.orders.map(transformOrder)
             setOrderHistory(transformedOrders)
         } catch (error) {
