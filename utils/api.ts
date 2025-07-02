@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://172.16.101.96:5500/api';
+const API_BASE_URL = 'http://172.16.100.14:5500/api';
 
 interface RequestOptions extends RequestInit {
   body?: any;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     FlatList,
     Text,
@@ -7,15 +7,48 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
-    Modal
+    Modal,
+    ActivityIndicator,
+    Alert
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
 import { useRouter } from 'expo-router'
+import { apiRequest } from '../../../utils/api'
 import Receipt from './receipt'
 import Cancel from './cancel'
 
-// Define the OrderItem type
+// Define the OrderItem type based on backend response
 interface OrderItem {
+    id: number;
+    quantity: number;
+    price: number;
+    product: {
+        id: number;
+        name: string;
+        description: string;
+        price: number;
+    };
+}
+
+// Define the Order type based on backend response
+interface Order {
+    id: number;
+    status: string;
+    totalAmount: number;
+    createdAt: string;
+    updatedAt: string;
+    customerId: number;
+    outletId: number;
+    items: OrderItem[];
+    outlet: {
+        id: number;
+        name: string;
+        address: string;
+    };
+}
+
+// Transform backend order to frontend format
+interface TransformedOrderItem {
     id: number;
     foodName: string;
     price: string;
@@ -23,118 +56,154 @@ interface OrderItem {
     image: string;
 }
 
-// Define the Order type
-interface Order {
+interface TransformedOrder {
     id: number;
     orderNumber: string;
-    items: OrderItem[];
+    items: TransformedOrderItem[];
     totalPrice: string;
     status: string;
     orderTime?: string;
     estimatedTime?: string;
     orderDate?: string;
     completedTime?: string;
+    outlet?: {
+        id: number;
+        name: string;
+        address: string;
+    };
 }
 
 const MyOrders = () => {
     const [activeTab, setActiveTab] = useState('ongoing')
     const [showCancelModal, setShowCancelModal] = useState(false)
-    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+    const [selectedOrder, setSelectedOrder] = useState<TransformedOrder | null>(null)
+    const [ongoingOrders, setOngoingOrders] = useState<TransformedOrder[]>([])
+    const [orderHistory, setOrderHistory] = useState<TransformedOrder[]>([])
+    const [loading, setLoading] = useState(false)
+    const [refreshing, setRefreshing] = useState(false)
     const router = useRouter()
 
-    const ongoingOrders: Order[] = [
-        {
-            id: 1,
-            orderNumber: '#ORD-001',
-            items: [
-                { id: 1, foodName: 'Grilled Chicken', price: '$18.99', quantity: 2, image: '🍖' },
-                { id: 2, foodName: 'Caesar Salad', price: '$12.99', quantity: 1, image: '🥗' },
-                { id: 3, foodName: 'Fresh Orange Juice', price: '$4.99', quantity: 2, image: '🧃' }
-            ],
-            totalPrice: '$55.96',
-            status: 'processing',
-            orderTime: '2:30 PM',
-            estimatedTime: '25-30 min'
-        },
-        {
-            id: 2,
-            orderNumber: '#ORD-002',
-            items: [
-                { id: 4, foodName: 'Beef Burger', price: '$15.99', quantity: 3, image: '🍔' },
-                { id: 5, foodName: 'French Fries', price: '$6.99', quantity: 2, image: '🍟' },
-                { id: 6, foodName: 'Cola', price: '$2.99', quantity: 3, image: '🥤' }
-            ],
-            totalPrice: '$70.94',
-            status: 'placed',
-            orderTime: '2:45 PM',
-            estimatedTime: '20-25 min'
-        },
-        {
-            id: 3,
-            orderNumber: '#ORD-003',
-            items: [
-                { id: 7, foodName: 'Margherita Pizza', price: '$22.99', quantity: 1, image: '🍕' },
-                { id: 8, foodName: 'Chicken Wings', price: '$8.99', quantity: 2, image: '🍗' },
-                { id: 9, foodName: 'Garlic Bread', price: '$5.99', quantity: 1, image: '🍞' }
-            ],
-            totalPrice: '$46.96',
-            status: 'processing',
-            orderTime: '3:00 PM',
-            estimatedTime: '30-35 min'
-        }
-    ]
+    // Get random food emoji for items
+    const getFoodEmoji = () => {
+        const emojis = ['🍖', '🥗', '🧃', '🍔', '🍟', '🥤', '🍕', '🍗', '🍞', '🍝', '🍰', '☕', '🐟', '🥬', '🍋', '🍣', '🍜', '🍵', '🫘']
+        return emojis[Math.floor(Math.random() * emojis.length)]
+    }
 
-    const orderHistory: Order[] = [
-        {
-            id: 4,
-            orderNumber: '#ORD-004',
-            items: [
-                { id: 10, foodName: 'Pasta Carbonara', price: '$16.99', quantity: 1, image: '🍝' },
-                { id: 11, foodName: 'Tiramisu', price: '$7.99', quantity: 2, image: '🍰' },
-                { id: 12, foodName: 'Iced Coffee', price: '$3.99', quantity: 1, image: '☕' }
-            ],
-            totalPrice: '$36.96',
-            status: 'completed',
-            orderDate: 'Yesterday',
-            completedTime: '7:30 PM'
-        },
-        {
-            id: 5,
-            orderNumber: '#ORD-005',
-            items: [
-                { id: 13, foodName: 'Fish & Chips', price: '$19.99', quantity: 2, image: '🐟' },
-                { id: 14, foodName: 'Coleslaw', price: '$4.99', quantity: 1, image: '🥬' },
-                { id: 15, foodName: 'Lemon Tart', price: '$6.99', quantity: 2, image: '🍋' }
-            ],
-            totalPrice: '$58.95',
-            status: 'completed',
-            orderDate: '2 days ago',
-            completedTime: '6:45 PM'
-        },
-        {
-            id: 6,
-            orderNumber: '#ORD-006',
-            items: [
-                { id: 16, foodName: 'Sushi Platter', price: '$32.99', quantity: 1, image: '🍣' },
-                { id: 17, foodName: 'Miso Soup', price: '$4.99', quantity: 2, image: '🍜' },
-                { id: 18, foodName: 'Green Tea', price: '$2.99', quantity: 1, image: '🍵' },
-                { id: 19, foodName: 'Edamame', price: '$5.99', quantity: 1, image: '🫘' }
-            ],
-            totalPrice: '$51.95',
-            status: 'completed',
-            orderDate: '3 days ago',
-            completedTime: '8:15 PM'
+    // Transform backend order to frontend format
+    const transformOrder = (order: Order): TransformedOrder => {
+        const transformedItems: TransformedOrderItem[] = order.items.map(item => ({
+            id: item.id,
+            foodName: item.product.name,
+            price: `${item.product.price.toFixed(2)}`,
+            quantity: item.quantity,
+            image: getFoodEmoji()
+        }))
+
+        const orderDate = new Date(order.createdAt)
+        const now = new Date()
+        const diffTime = Math.abs(now.getTime() - orderDate.getTime())
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+        
+        let displayDate = ''
+        if (diffDays === 0) {
+            displayDate = orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        } else if (diffDays === 1) {
+            displayDate = 'Yesterday'
+        } else {
+            displayDate = `${diffDays} days ago`
         }
-    ]
+
+        return {
+            id: order.id,
+            orderNumber: `#ORD-${order.id.toString().padStart(3, '0')}`,
+            items: transformedItems,
+            totalPrice: `$${order.totalAmount.toFixed(2)}`,
+            status: order.status.toLowerCase(),
+            orderTime: orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            estimatedTime: '20-30 min', // Default estimated time
+            orderDate: displayDate,
+            completedTime: new Date(order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            outlet: order.outlet
+        }
+    }
+
+    // Fetch ongoing orders
+    const fetchOngoingOrders = async () => {
+        try {
+            const data = await apiRequest('/customer/outlets/customer-ongoing-order/', {
+                method: 'GET',
+            })
+            console.log("ONGOING ORDERS RESPONSE:", data.orders);
+            const transformedOrders = data.orders.map(transformOrder)
+            setOngoingOrders(transformedOrders)
+        } catch (error) {
+            if (error instanceof Error) {
+                console.error('Error fetching ongoing orders:', error);
+                Alert.alert('Error', error.message || 'Failed to fetch ongoing orders. Please try again.');
+            } else {
+                console.error('Unknown error:', error);
+                Alert.alert('Error', 'An unexpected error occurred.');
+            }
+        }
+    }
+
+    // Fetch order history
+    const fetchOrderHistory = async () => {
+        try {
+            const data = await apiRequest('/customer/outlets/customer-order-history/', {
+                method: 'GET',
+            })
+            console.log("HISTORY ORDERS RESPONSE:", data.orders);
+            const transformedOrders = data.orders.map(transformOrder)
+            setOrderHistory(transformedOrders)
+        } catch (error) {
+            if (error instanceof Error) {
+                console.error('Error fetching orders history:', error);
+                Alert.alert('Error', error.message || 'Failed to fetch orders history. Please try again.');
+            } else {
+                console.error('Unknown error:', error);
+                Alert.alert('Error', 'An unexpected error occurred.');
+            }
+        }
+    }
+
+    // Load orders based on active tab
+    const loadOrders = async (showLoader = true) => {
+        if (showLoader) setLoading(true)
+        
+        try {
+            if (activeTab === 'ongoing') {
+                await fetchOngoingOrders()
+            } else {
+                await fetchOrderHistory()
+            }
+        } finally {
+            if (showLoader) setLoading(false)
+        }
+    }
+
+    // Refresh orders
+    const onRefresh = async () => {
+        setRefreshing(true)
+        await loadOrders(false)
+        setRefreshing(false)
+    }
+
+    // Load orders when component mounts or tab changes
+    useEffect(() => {
+        loadOrders()
+    }, [activeTab])
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'placed':
+            case 'pending':
                 return 'bg-blue-100 text-blue-800'
             case 'processing':
                 return 'bg-yellow-100 text-yellow-800'
             case 'completed':
                 return 'bg-green-100 text-green-800'
+            case 'cancelled':
+                return 'bg-red-100 text-red-800'
             default:
                 return 'bg-gray-100 text-gray-800'
         }
@@ -142,18 +211,20 @@ const MyOrders = () => {
 
     const getStatusText = (status: string) => {
         switch (status) {
-            case 'placed':
+            case 'pending':
                 return 'Order Placed'
             case 'processing':
                 return 'On Processing'
             case 'completed':
                 return 'Completed'
+            case 'cancelled':
+                return 'Cancelled'
             default:
                 return 'Unknown'
         }
     }
 
-    const navigateToReceipt = (item: Order) => {
+    const navigateToReceipt = (item: TransformedOrder) => {
         router.push({
             pathname: '/(tabs)/orders/receipt',
             params: {
@@ -162,22 +233,58 @@ const MyOrders = () => {
         })
     }
 
-    const handleCancelPress = (item: Order) => {
+    const handleCancelPress = (item: TransformedOrder) => {
         setSelectedOrder(item)
         setShowCancelModal(true)
     }
 
-    const handleCancelConfirm = () => {
-        if (!selectedOrder) return;
+    const handleCancelConfirm = async () => {
+    if (!selectedOrder) return;
+
+    try {
+        setLoading(true)
+        
+        // Call the backend cancel API
+        const response = await apiRequest(`/customer/outlets/customer-cancel-order/${selectedOrder.id}`, {
+            method: 'PUT',
+        })
 
         setShowCancelModal(false)
-        router.push({
-            pathname: '/(tabs)/orders/cancel',
-            params: {
-                orderData: JSON.stringify(selectedOrder)
-            }
-        })
+        
+        // Show success message
+        Alert.alert(
+            'Order Cancelled',
+            `Order ${selectedOrder.orderNumber} has been cancelled successfully. ${response.refundAmount ? `$${response.refundAmount.toFixed(2)} has been refunded to your ${response.refundMethod === 'CASH' ? 'account' : 'wallet'}.` : ''}`,
+            [
+                {
+                    text: 'OK',
+                    onPress: () => {
+                        // Navigate to cancel page with updated order data
+                        const cancelledOrder = { ...selectedOrder, status: 'cancelled' }
+                        router.push({
+                            pathname: '/(tabs)/orders/cancel',
+                            params: {
+                                orderData: JSON.stringify(cancelledOrder)
+                            }
+                        })
+                    }
+                }
+            ]
+        )
+        
+        // Refresh the orders list
+        await loadOrders(false)
+        
+    } catch (error) {
+        console.error('Error cancelling order:', error)
+        Alert.alert(
+            'Cancellation Failed', 
+            error instanceof Error ? error.message : 'Failed to cancel order. Please try again.'
+        )
+    } finally {
+        setLoading(false)
     }
+}
 
     const CancelConfirmationModal = () => (
         <Modal
@@ -230,8 +337,11 @@ const MyOrders = () => {
                         <TouchableOpacity
                             className="flex-1 bg-red-500 py-3 rounded-xl"
                             onPress={handleCancelConfirm}
+                            disabled={loading}
                         >
-                            <Text className="text-center font-medium text-white">Yes, Cancel</Text>
+                            <Text className="text-center font-medium text-white">
+                                {loading ? 'Cancelling...' : 'Yes, Cancel'}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </MotiView>
@@ -239,7 +349,7 @@ const MyOrders = () => {
         </Modal>
     )
 
-    const OngoingOrderCard = ({ item, index }: { item: Order; index: number }) => (
+    const OngoingOrderCard = ({ item, index }: { item: TransformedOrder; index: number }) => (
         <MotiView
             from={{ opacity: 0, translateY: 50 }}
             animate={{ opacity: 1, translateY: 0 }}
@@ -316,7 +426,7 @@ const MyOrders = () => {
         </MotiView>
     )
 
-    const HistoryOrderCard = ({ item, index }: { item: Order; index: number }) => (
+    const HistoryOrderCard = ({ item, index }: { item: TransformedOrder; index: number }) => (
         <MotiView
             from={{ opacity: 0, translateY: 50 }}
             animate={{ opacity: 1, translateY: 0 }}
@@ -411,15 +521,19 @@ const MyOrders = () => {
         </TouchableOpacity>
     )
 
+    const currentOrders = activeTab === 'ongoing' ? ongoingOrders : orderHistory
+
     return (
         <SafeAreaView className="flex-1 bg-white">
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
-                <TouchableOpacity className="p-2">
+                <TouchableOpacity className="p-2" onPress={() => router.back()}>
                     <Text className="text-2xl">←</Text>
                 </TouchableOpacity>
                 <Text className="text-xl font-bold text-gray-900">My Orders</Text>
-                <View className="w-10" />
+                <TouchableOpacity className="p-2" onPress={onRefresh}>
+                    <Text className="text-lg">🔄</Text>
+                </TouchableOpacity>
             </View>
 
             {/* Tab Navigation */}
@@ -436,50 +550,49 @@ const MyOrders = () => {
                 />
             </View>
 
+            {/* Loading State */}
+            {loading && (
+                <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator size="large" color="#FCD34D" />
+                    <Text className="text-gray-600 mt-2">Loading orders...</Text>
+                </View>
+            )}
+
             {/* Orders List */}
-            <View className="flex-1">
-                {activeTab === 'ongoing' ? (
+            {!loading && (
+                <View className="flex-1">
                     <FlatList
-                        data={ongoingOrders}
+                        data={currentOrders}
                         renderItem={({ item, index }) => (
-                            <OngoingOrderCard item={item} index={index} />
-                        )}
-                        keyExtractor={(item) => item.id.toString()}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 70 }}
-                    />
-                ) : (
-                    <FlatList
-                        data={orderHistory}
-                        renderItem={({ item, index }) => (
+                            activeTab === 'ongoing' ? 
+                            <OngoingOrderCard item={item} index={index} /> :
                             <HistoryOrderCard item={item} index={index} />
                         )}
                         keyExtractor={(item) => item.id.toString()}
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{ paddingBottom: 70 }}
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        ListEmptyComponent={() => (
+                            <MotiView
+                                from={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ type: 'timing', duration: 400 }}
+                                className="flex-1 items-center justify-center px-8 py-20"
+                            >
+                                <Text className="text-6xl mb-4">🍽️</Text>
+                                <Text className="text-xl font-bold text-gray-900 mb-2">No Orders Found</Text>
+                                <Text className="text-gray-600 text-center">
+                                    {activeTab === 'ongoing'
+                                        ? "You don't have any ongoing orders right now."
+                                        : "You haven't placed any orders yet."
+                                    }
+                                </Text>
+                            </MotiView>
+                        )}
                     />
-                )}
-            </View>
-
-            {/* Empty State */}
-            {((activeTab === 'ongoing' && ongoingOrders.length === 0) ||
-                (activeTab === 'history' && orderHistory.length === 0)) && (
-                    <MotiView
-                        from={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ type: 'timing', duration: 400 }}
-                        className="flex-1 items-center justify-center px-8"
-                    >
-                        <Text className="text-6xl mb-4">🍽️</Text>
-                        <Text className="text-xl font-bold text-gray-900 mb-2">No Orders Found</Text>
-                        <Text className="text-gray-600 text-center">
-                            {activeTab === 'ongoing'
-                                ? "You don't have any ongoing orders right now."
-                                : "You haven't placed any orders yet."
-                            }
-                        </Text>
-                    </MotiView>
-                )}
+                </View>
+            )}
 
             {/* Cancel Confirmation Modal */}
             <CancelConfirmationModal />

@@ -1,13 +1,16 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import {
     Text,
     View,
     SafeAreaView,
     TouchableOpacity,
-    ScrollView
+    ScrollView,
+    ActivityIndicator,
+    Alert
 } from 'react-native'
 import { MotiView } from 'moti'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { apiRequest } from '../../../utils/api'
 
 // Define the OrderItem type
 interface OrderItem {
@@ -31,9 +34,19 @@ interface Order {
     completedTime?: string;
 }
 
+// Backend response type for cancel order
+interface CancelOrderResponse {
+    message: string;
+    order: any;
+    refundAmount: number;
+    refundMethod: string;
+}
+
 const Cancel = () => {
     const router = useRouter()
     const params = useLocalSearchParams()
+    const [loading, setLoading] = useState(false)
+    const [cancelData, setCancelData] = useState<CancelOrderResponse | null>(null)
 
     // Parse order data from params
     let orderData: Order
@@ -53,6 +66,42 @@ const Cancel = () => {
         }
     }
 
+    // Cancel order API call
+    const cancelOrder = async () => {
+        try {
+            setLoading(true)
+            const response = await apiRequest(`/customer/outlets/customer-cancel-order/${orderData.id}`, {
+                method: 'PUT',
+            })
+            setCancelData(response)
+        } catch (error) {
+            console.error('Error cancelling order:', error)
+            Alert.alert(
+                'Cancellation Failed',
+                error instanceof Error ? error.message : 'Failed to cancel order. Please try again.',
+                [
+                    {
+                        text: 'Try Again',
+                        onPress: cancelOrder
+                    },
+                    {
+                        text: 'Go Back',
+                        onPress: () => router.back()
+                    }
+                ]
+            )
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Auto-cancel order when component mounts if not already cancelled
+    useEffect(() => {
+        if (orderData.status !== 'cancelled') {
+            cancelOrder()
+        }
+    }, [])
+
     // Calculate totals
     const calculateItemsTotal = () => {
         return orderData.items.reduce((total, item) => {
@@ -69,10 +118,13 @@ const Cancel = () => {
     const gstAmount = subtotal * gstRate
     const totalAmount = subtotal + gstAmount
 
-    // Wallet information
+    // Use actual refund amount from API or calculated amount
+    const refundAmount = cancelData?.refundAmount || totalAmount
+    const refundMethod = cancelData?.refundMethod || 'WALLET'
+
+    // Wallet information (mock data - you might want to fetch this from API)
     const previousWalletBalance = 150.75
-    const refundAmount = totalAmount
-    const newWalletBalance = previousWalletBalance + refundAmount
+    const newWalletBalance = refundMethod === 'WALLET' ? previousWalletBalance + refundAmount : previousWalletBalance
 
     const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`
 
@@ -103,12 +155,30 @@ const Cancel = () => {
     }
 
     const handleBrowseFood = () => {
-        router.push('/(tabs)/orders')
+        router.push('/(tabs)')
     }
 
-    const handleContactSupport = () => {
-        // Handle contact support navigation
-        console.log('Contact support pressed')
+    // Show loading state while cancelling
+    if (loading) {
+        return (
+            <SafeAreaView className="flex-1 bg-gray-50">
+                <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100">
+                    <TouchableOpacity className="p-2" onPress={() => router.back()}>
+                        <Text className="text-2xl">←</Text>
+                    </TouchableOpacity>
+                    <Text className="text-xl font-bold text-gray-900">Cancelling Order</Text>
+                    <View className="w-10" />
+                </View>
+                
+                <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator size="large" color="#FCD34D" />
+                    <Text className="text-gray-600 mt-4 text-lg">Cancelling your order...</Text>
+                    <Text className="text-gray-500 mt-2 text-center px-8">
+                        Please wait while we process your cancellation and refund.
+                    </Text>
+                </View>
+            </SafeAreaView>
+        )
     }
 
     return (
@@ -219,36 +289,60 @@ const Cancel = () => {
 
                             <View className="border-t border-gray-200 pt-3 mt-3">
                                 <InfoRow label="Total Refund Amount" value={formatCurrency(refundAmount)} />
+                                <InfoRow label="Refund Method" value={refundMethod === 'CASH' ? 'Cash Refund' : 'Wallet Credit'} />
                             </View>
                         </View>
+
+                        {cancelData && (
+                            <View className="mt-4 p-4 bg-green-50 rounded-xl">
+                                <Text className="text-sm text-green-800 text-center font-medium">
+                                    ✅ {cancelData.message}
+                                </Text>
+                            </View>
+                        )}
                     </View>
 
-                    {/* Wallet Balance Information */}
-                    <View className="bg-white rounded-2xl px-6 py-6 mb-6">
-                        <Text className="text-lg font-bold text-gray-900 mb-4">Wallet Balance</Text>
+                    {/* Wallet Balance Information - Only show if refund method is wallet */}
+                    {refundMethod === 'WALLET' && (
+                        <View className="bg-white rounded-2xl px-6 py-6 mb-6">
+                            <Text className="text-lg font-bold text-gray-900 mb-4">Wallet Balance</Text>
 
-                        <View className="space-y-2">
-                            <WalletRow
-                                label="Previous Wallet Balance"
-                                value={formatCurrency(previousWalletBalance)}
-                            />
-                            <WalletRow
-                                label="Refunded Amount"
-                                value={`+ ${formatCurrency(refundAmount)}`}
-                            />
-                            <WalletRow
-                                label="Current Wallet Balance"
-                                value={formatCurrency(newWalletBalance)}
-                                isHighlighted={true}
-                            />
-                        </View>
+                            <View className="space-y-2">
+                                <WalletRow
+                                    label="Previous Wallet Balance"
+                                    value={formatCurrency(previousWalletBalance)}
+                                />
+                                <WalletRow
+                                    label="Refunded Amount"
+                                    value={`+ ${formatCurrency(refundAmount)}`}
+                                />
+                                <WalletRow
+                                    label="Current Wallet Balance"
+                                    value={formatCurrency(newWalletBalance)}
+                                    isHighlighted={true}
+                                />
+                            </View>
 
-                        <View className="mt-4 p-4 bg-blue-50 rounded-xl">
-                            <Text className="text-sm text-blue-800 text-center">
-                                💡 Your refund has been processed and added to your wallet balance instantly!
-                            </Text>
+                            <View className="mt-4 p-4 bg-blue-50 rounded-xl">
+                                <Text className="text-sm text-blue-800 text-center">
+                                    💡 Your refund has been processed and added to your wallet balance instantly!
+                                </Text>
+                            </View>
                         </View>
-                    </View>
+                    )}
+
+                    {/* Cash Refund Information - Only show if refund method is cash */}
+                    {refundMethod === 'CASH' && (
+                        <View className="bg-white rounded-2xl px-6 py-6 mb-6">
+                            <Text className="text-lg font-bold text-gray-900 mb-4">Cash Refund Information</Text>
+                            
+                            <View className="p-4 bg-blue-50 rounded-xl">
+                                <Text className="text-sm text-blue-800 text-center">
+                                    💵 Since you paid with cash, your refund of {formatCurrency(refundAmount)} will be processed according to our refund policy. Please contact customer support for details.
+                                </Text>
+                            </View>
+                        </View>
+                    )}
 
                     {/* Refund Breakdown by Item */}
                     <View className="bg-white rounded-2xl px-6 py-6 mb-6">
@@ -285,8 +379,15 @@ const Cancel = () => {
                             <View className="flex-row items-start">
                                 <Text className="text-xl mr-3">🔄</Text>
                                 <View className="flex-1">
-                                    <Text className="font-medium text-gray-900">Instant Refund</Text>
-                                    <Text className="text-sm text-gray-600">Your refund has been added to your wallet and is ready to use.</Text>
+                                    <Text className="font-medium text-gray-900">
+                                        {refundMethod === 'WALLET' ? 'Instant Refund' : 'Refund Processing'}
+                                    </Text>
+                                    <Text className="text-sm text-gray-600">
+                                        {refundMethod === 'WALLET' 
+                                            ? 'Your refund has been added to your wallet and is ready to use.'
+                                            : 'Your refund is being processed according to our refund policy.'
+                                        }
+                                    </Text>
                                 </View>
                             </View>
 
@@ -294,7 +395,12 @@ const Cancel = () => {
                                 <Text className="text-xl mr-3">🍽️</Text>
                                 <View className="flex-1">
                                     <Text className="font-medium text-gray-900">Order Again</Text>
-                                    <Text className="text-sm text-gray-600">Use your wallet balance for your next delicious order.</Text>
+                                    <Text className="text-sm text-gray-600">
+                                        {refundMethod === 'WALLET' 
+                                            ? 'Use your wallet balance for your next delicious order.'
+                                            : 'Place a new order anytime with our delicious menu.'
+                                        }
+                                    </Text>
                                 </View>
                             </View>
 
@@ -325,7 +431,12 @@ const Cancel = () => {
                             <Text className="text-center font-bold text-gray-900 text-lg">Browse Food Again</Text>
                         </TouchableOpacity>
 
-
+                        <TouchableOpacity
+                            className="bg-gray-100 py-4 rounded-2xl"
+                            onPress={handleBackToOrders}
+                        >
+                            <Text className="text-center font-medium text-gray-700 text-lg">Back to Orders</Text>
+                        </TouchableOpacity>
                     </View>
 
                     {/* Cancellation Policy */}
@@ -342,13 +453,19 @@ const Cancel = () => {
                             <View className="flex-row items-start">
                                 <View className="w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3"></View>
                                 <Text className="text-sm text-gray-600 flex-1">
-                                    Full refunds are processed instantly to your wallet.
+                                    {refundMethod === 'WALLET' 
+                                        ? 'Wallet refunds are processed instantly.'
+                                        : 'Cash refunds are processed according to our refund policy.'
+                                    }
                                 </Text>
                             </View>
                             <View className="flex-row items-start">
                                 <View className="w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3"></View>
                                 <Text className="text-sm text-gray-600 flex-1">
-                                    Wallet balance can be used for future orders or withdrawn.
+                                    {refundMethod === 'WALLET' 
+                                        ? 'Wallet balance can be used for future orders or withdrawn.'
+                                        : 'For questions about cash refunds, please contact customer support.'
+                                    }
                                 </Text>
                             </View>
                         </View>
