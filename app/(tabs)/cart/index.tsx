@@ -1,18 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import {
-    FlatList,
     Text,
     View,
     SafeAreaView,
     ScrollView,
     TouchableOpacity,
     Alert,
-    ActivityIndicator
+    ActivityIndicator,
+    RefreshControl
 } from 'react-native'
-import { MotiView, MotiText } from 'moti'
+import { MotiView } from 'moti'
 import { useRouter } from 'expo-router'
-import { apiRequest } from '../../../utils/api'
 import { useFocusEffect } from '@react-navigation/native'
+import { useCart } from '../../../context/CartContext'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Types
 interface CartProduct {
@@ -36,23 +37,34 @@ interface CartItem {
     product: CartProduct;
 }
 
-interface CartData {
+interface TimeSlot {
     id: number;
-    customerId: number;
-    items: CartItem[];
-    createdAt: string;
-    updatedAt: string;
+    time: string;
+    available: boolean;
+    slot: string;
 }
 
-const Cart = () => {
+const Cart: React.FC = () => {
     const router = useRouter()
-    
-    const [cartData, setCartData] = useState<CartData | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [updatingItem, setUpdatingItem] = useState<number | null>(null)
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null)
+    const [refreshing, setRefreshing] = useState(false)
+    const [lastOrderCheck, setLastOrderCheck] = useState<string>('')
+    
+    // Use cart context
+    const { 
+        state: cartState, 
+        fetchCartData, 
+        updateItemQuantity, 
+        removeItem,
+        getTotalCartItems, 
+        getItemQuantity,
+        canAddMore,
+        getTotalPrice,
+        validateCartStock,
+        refreshProducts
+    } = useCart()
 
-    const timeSlots = [
+    const timeSlots: TimeSlot[] = [
         { id: 1, time: '11:00 AM - 12:00 PM', available: true, slot: 'SLOT_11_12' },
         { id: 2, time: '12:00 PM - 1:00 PM', available: true, slot: 'SLOT_12_13' },
         { id: 3, time: '1:00 PM - 2:00 PM', available: true, slot: 'SLOT_13_14' },
@@ -61,8 +73,8 @@ const Cart = () => {
         { id: 6, time: '4:00 PM - 5:00 PM', available: true, slot: 'SLOT_16_17' }
     ]
 
-    // Get category icon based on product category
-    const getCategoryIcon = (category: string) => {
+    // Get category icon
+    const getCategoryIcon = (category: string): string => {
         const iconMap: { [key: string]: string } = {
             'Starters': '🥗',
             'Meals': '🍛',
@@ -72,128 +84,136 @@ const Cart = () => {
         return iconMap[category] || '🍽️'
     }
 
-    // Fetch cart data from API using your updated API structure
-    const fetchCartData = async () => {
-        try {
-            setLoading(true)
-            const response = await apiRequest('/customer/outlets/get-cart', {
-                method: 'GET'
-            })
-            
-            if (response.cart) {
-                setCartData(response.cart)
-            } else {
-                setCartData(null)
+    // Check if we need to refresh after order completion
+    useEffect(() => {
+        const checkOrderCompletion = async () => {
+            try {
+                const lastOrder = await AsyncStorage.getItem('lastOrderCompleted')
+                if (lastOrder && lastOrder !== lastOrderCheck) {
+                    setLastOrderCheck(lastOrder)
+                    // Refresh cart and products after order completion
+                    await Promise.all([
+                        fetchCartData(),
+                        refreshProducts()
+                    ])
+                    // Clear the flag
+                    await AsyncStorage.removeItem('lastOrderCompleted')
+                }
+            } catch (error) {
+                console.error('Error checking order completion:', error)
             }
-        } catch (error) {
-            console.error('Error fetching cart:', error)
-            // If cart doesn't exist or error occurs, set empty cart
-            setCartData(null)
-        } finally {
-            setLoading(false)
         }
-    }
+        
+        checkOrderCompletion()
+    }, [fetchCartData, refreshProducts, lastOrderCheck])
 
-    // Use focus effect to refresh cart when screen is focused
+    // Fetch cart data when screen is focused
     useFocusEffect(
         useCallback(() => {
             fetchCartData()
-        }, [])
+            // Also validate current cart against latest stock
+            validateCartStock()
+        }, [fetchCartData, validateCartStock])
     )
 
-    // Update quantity using your backend API structure
-    const updateQuantity = async (productId: number, change: number) => {
-        if (!cartData) return
-        
-        const currentItem = cartData.items.find(item => item.productId === productId)
-        if (!currentItem) return
-
-        const newQuantity = currentItem.quantity + change
-        
+    // Handle pull to refresh
+    const handleRefresh = useCallback(async () => {
+        setRefreshing(true)
         try {
-            setUpdatingItem(productId)
-            
-            if (newQuantity <= 0) {
-                // Remove all items of this product
-                await apiRequest('/customer/outlets/update-cart-item', {
-                    method: 'PUT',
-                    body: {
-                        productId,
-                        quantity: currentItem.quantity, // Remove all quantity
-                        action: 'remove'
-                    }
-                })
-            } else if (change > 0) {
-                // Add quantity
-                await apiRequest('/customer/outlets/update-cart-item', {
-                    method: 'PUT',
-                    body: {
-                        productId,
-                        quantity: Math.abs(change),
-                        action: 'add'
-                    }
-                })
-            } else {
-                // Remove quantity (but not all)
-                await apiRequest('/customer/outlets/update-cart-item', {
-                    method: 'PUT',
-                    body: {
-                        productId,
-                        quantity: Math.abs(change),
-                        action: 'remove'
-                    }
-                })
-            }
-            
-            // Refresh cart data after successful update
-            await fetchCartData()
+            await Promise.all([
+                fetchCartData(),
+                refreshProducts()
+            ])
         } catch (error) {
-            console.error('Error updating quantity:', error)
-            Alert.alert('Error', 'Failed to update item quantity. Please try again.')
+            console.error('Error refreshing cart:', error)
         } finally {
-            setUpdatingItem(null)
+            setRefreshing(false)
         }
+    }, [fetchCartData, refreshProducts])
+
+    // Handle quantity changes with enhanced stock validation
+    // Handle quantity changes with corrected stock validation
+const handleQuantityChange = useCallback(async (productId: number, change: number, product: CartProduct) => {
+    const inventory = product.inventory
+    const totalStock = inventory?.quantity || 0
+    const reservedStock = inventory?.reserved || 0
+    const currentQuantity = getItemQuantity?.(productId) ?? 0
+    const newQuantity = currentQuantity + change
+
+    const availableStock = Math.max(0, totalStock - reservedStock - currentQuantity)
+
+    console.log(`Updating quantity for ${product.name}:`, {
+        currentQuantity,
+        newQuantity,
+        totalStock,
+        reservedStock,
+        availableStock
+    })
+
+    if (change > 0 && availableStock <= 0) {
+        Alert.alert('Stock Limit', `No more stock available for ${product.name}.`)
+        return
     }
 
-    // Remove item completely from cart
-    const removeItemCompletely = async (productId: number) => {
-        const currentItem = cartData?.items.find(item => item.productId === productId)
-        if (!currentItem) return
+    if (newQuantity < 0) return
 
-        try {
-            setUpdatingItem(productId)
-            
-            await apiRequest('/customer/outlets/update-cart-item', {
-                method: 'PUT',
-                body: {
-                    productId,
-                    quantity: currentItem.quantity, // Remove all quantity
-                    action: 'remove'
+    try {
+        const success = await updateItemQuantity(productId, change, product, availableStock)
+        if (!success) {
+            console.log('Update failed, refreshing cart...')
+            await handleRefresh()
+        }
+    } catch (error) {
+        console.error('Error updating quantity:', error)
+        Alert.alert('Error', 'Failed to update quantity. Please try again.')
+    }
+}, [updateItemQuantity, getItemQuantity, handleRefresh])
+
+
+const debugInventory = useCallback(() => {
+    console.log('=== CART DEBUG INFO ===')
+    cartState.cartData?.items.forEach(item => {
+        const currentQuantity = getItemQuantity(item.productId)
+        const totalStock = item.product.inventory?.quantity || 0
+        const reservedStock = item.product.inventory?.reserved || 0
+        const availableStock = Math.max(0, totalStock - reservedStock)
+        
+        console.log(`${item.product.name}:`)
+        console.log(`  - Current in cart: ${currentQuantity}`)
+        console.log(`  - Total stock: ${totalStock}`)
+        console.log(`  - Reserved stock: ${reservedStock}`)
+        console.log(`  - Available stock: ${availableStock}`)
+        console.log(`  - Inventory object:`, item.product.inventory)
+        console.log('---')
+    })
+    console.log('======================')
+}, [cartState.cartData, getItemQuantity])
+
+    // Remove item completely
+    const removeItemCompletely = useCallback((productId: number) => {
+        Alert.alert(
+            'Remove Item',
+            'Remove this item from cart?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                    text: 'Remove', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await removeItem(productId)
+                        } catch (error) {
+                            console.error('Error removing item:', error)
+                            Alert.alert('Error', 'Failed to remove item. Please try again.')
+                        }
+                    }
                 }
-            })
-            
-            // Refresh cart data
-            await fetchCartData()
-        } catch (error) {
-            console.error('Error removing item:', error)
-            Alert.alert('Error', 'Failed to remove item from cart')
-        } finally {
-            setUpdatingItem(null)
-        }
-    }
+            ]
+        )
+    }, [removeItem])
 
-    const calculateTotal = () => {
-        if (!cartData) return 0
-        return cartData.items.reduce((total, item) => total + (item.product.price * item.quantity), 0)
-    }
-
-    const calculateTotalItems = () => {
-        if (!cartData) return 0
-        return cartData.items.reduce((total, item) => total + item.quantity, 0)
-    }
-
-    const handleCheckout = () => {
-        if (!cartData || cartData.items.length === 0) {
+    const handleCheckout = useCallback(async () => {
+        if (!cartState.cartData || cartState.cartData.items.length === 0) {
             Alert.alert('Empty Cart', 'Please add items to your cart first')
             return
         }
@@ -202,141 +222,162 @@ const Cart = () => {
             return
         }
 
-        // Get selected time slot details
+        // Final stock validation before checkout
+        try {
+            const stockValid = await validateCartStock()
+            if (!stockValid) {
+                Alert.alert(
+                    'Stock Updated',
+                    'Some items in your cart are no longer available or have limited stock. Please review your cart.',
+                    [
+                        { text: 'OK', onPress: () => handleRefresh() }
+                    ]
+                )
+                return
+            }
+        } catch (error) {
+            console.error('Error validating stock:', error)
+            Alert.alert(
+                'Validation Error',
+                'Unable to validate stock. Please try again.',
+                [
+                    { text: 'Retry', onPress: () => handleCheckout() },
+                    { text: 'Cancel', style: 'cancel' }
+                ]
+            )
+            return
+        }
+
         const selectedSlot = timeSlots.find(slot => slot.id === selectedTimeSlot)
         
-        // Navigate to OrderPayment page with cart data and selected time slot
+        // Set flag for order completion tracking
+        await AsyncStorage.setItem('orderInProgress', 'true')
+        
         router.push({
             pathname: '/(tabs)/cart/orderPayment',
             params: {
-                cartData: JSON.stringify(cartData),
-                selectedTimeSlot: selectedSlot?.slot,
-                selectedTimeSlotDisplay: selectedSlot?.time,
-                totalAmount: calculateTotal().toFixed(2),
-                totalItems: calculateTotalItems().toString()
+                cartData: JSON.stringify(cartState.cartData),
+                selectedTimeSlot: selectedSlot?.slot || '',
+                selectedTimeSlotDisplay: selectedSlot?.time || '',
+                totalAmount: getTotalPrice().toFixed(2),
+                totalItems: getTotalCartItems().toString()
             }
         })
-    }
+    }, [cartState.cartData, selectedTimeSlot, getTotalPrice, getTotalCartItems, router, validateCartStock, handleRefresh])
 
-    const CartItem = ({ item, index }: { item: CartItem; index: number }) => {
-        const isUpdating = updatingItem === item.productId
-        const isAvailable = item.product.inventory ? item.product.inventory.quantity > 0 : true
+const CartItem = React.memo<{ item: CartItem; index: number }>(({ item, index }) => {
+    const inventory = item.product.inventory
+const totalStock = inventory?.quantity || 0
+const reservedStock = inventory?.reserved || 0
+const cartQuantity = getItemQuantity(item.productId)
 
-        return (
-            <MotiView
-                from={{ opacity: 0, translateX: -50 }}
-                animate={{ opacity: 1, translateX: 0 }}
-                transition={{
-                    type: 'timing',
-                    duration: 300,
-                    delay: index * 100,
-                }}
-                className="bg-white mx-4 mb-1 px-4 py-4 flex-row items-center"
-            >
-                {/* Food Icon */}
-                <View className="w-16 h-16 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
-                    <Text className="text-2xl">{getCategoryIcon(item.product.category)}</Text>
-                </View>
+// 👇 Live remaining stock = total - reserved - current quantity in cart
+const availableStock = Math.max(0, totalStock - reservedStock - cartQuantity)
 
-                {/* Item Details */}
-                <View className="flex-1">
-                    <Text className="text-lg font-semibold text-gray-900 mb-1">
-                        {item.product.name}
+// Stock status
+const isOutOfStock = availableStock <= 0
+const isLowStock = availableStock > 0 && availableStock <= 5
+const canAddMoreItems = availableStock > 0
+
+    
+    // Debug log for troubleshooting
+    console.log(`${item.product.name}:`, {
+        totalStock,
+        reservedStock, 
+        canAddMoreItems
+    })
+    
+    return (
+        <View className="bg-white mx-4 mb-1 px-4 py-4 flex-row items-center">
+            {/* Food Icon */}
+            <View className="w-16 h-16 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
+                <Text className="text-2xl">{getCategoryIcon(item.product.category)}</Text>
+            </View>
+
+            {/* Item Details */}
+            <View className="flex-1">
+                <Text className="text-lg font-semibold text-gray-900 mb-1">
+                    {item.product.name}
+                </Text>
+                {item.product.description && (
+                    <Text className="text-sm text-gray-600 mb-2">
+                        {item.product.description}
                     </Text>
-                    {item.product.description && (
-                        <Text className="text-sm text-gray-600 mb-2">
-                            {item.product.description}
-                        </Text>
-                    )}
-                    <View className="flex-row items-center justify-between">
-                        <Text className="text-lg font-bold text-green-600">
-                            ${item.product.price.toFixed(2)}
-                        </Text>
-                        {item.product.inventory && (
-                            <Text className="text-xs text-gray-500">
-                                Stock: {item.product.inventory.quantity}
-                            </Text>
+                )}
+                <View className="flex-row items-center justify-between">
+                    <Text className="text-lg font-bold text-green-600">
+                        ${item.product.price.toFixed(2)}
+                    </Text>
+                    
+                    {/* 🔧 FIX: Stock Display - Show remaining stock */}
+                    <View className="flex-row items-center">
+                        {isOutOfStock ? (
+                            <View className="bg-red-100 px-2 py-1 rounded-full mr-2">
+                                <Text className="text-red-600 text-xs font-medium">Out of Stock</Text>
+                            </View>
+                        ) : isLowStock ? (
+                            <View className="bg-orange-100 px-2 py-1 rounded-full mr-2">
+                                <Text className="text-orange-600 text-xs font-medium">Low Stock</Text>
+                            </View>
+                        ) : (
+                            <View className="bg-green-100 px-2 py-1 rounded-full mr-2">
+                                <Text className="text-green-600 text-xs font-medium">In Stock</Text>
+                            </View>
                         )}
                     </View>
-                    <Text className="text-sm font-medium text-gray-700 mt-1">
-                        Subtotal: ${(item.product.price * item.quantity).toFixed(2)}
-                    </Text>
                 </View>
+                <Text className="text-sm font-medium text-gray-700 mt-1">
+                    Subtotal: ${(item.product.price * cartQuantity).toFixed(2)}
+                </Text>
+            </View>
 
-                {/* Quantity Controls */}
-                <View className="items-center">
-                    <View className="flex-row items-center bg-gray-100 rounded-full px-1 mb-2">
-                        <TouchableOpacity
-                            onPress={() => updateQuantity(item.productId, -1)}
-                            className="w-8 h-8 bg-red-500 rounded-full items-center justify-center"
-                            activeOpacity={0.7}
-                            disabled={isUpdating}
-                        >
-                            {isUpdating ? (
-                                <ActivityIndicator size="small" color="white" />
-                            ) : (
-                                <Text className="text-white font-bold text-lg">−</Text>
-                            )}
-                        </TouchableOpacity>
-
-                        <Text className="mx-4 text-lg font-semibold text-gray-900 min-w-8 text-center">
-                            {item.quantity}
-                        </Text>
-
-                        <TouchableOpacity
-                            onPress={() => updateQuantity(item.productId, 1)}
-                            className="w-8 h-8 bg-green-500 rounded-full items-center justify-center"
-                            activeOpacity={0.7}
-                            disabled={isUpdating || !isAvailable}
-                        >
-                            {isUpdating ? (
-                                <ActivityIndicator size="small" color="white" />
-                            ) : (
-                                <Text className="text-white font-bold text-lg">+</Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Remove Item Button */}
+            {/* Quantity Controls */}
+            <View className="items-center">
+                <View className="flex-row items-center bg-gray-100 rounded-full px-1 mb-2">
                     <TouchableOpacity
-                        onPress={() => {
-                            Alert.alert(
-                                'Remove Item',
-                                `Remove ${item.product.name} from cart?`,
-                                [
-                                    { text: 'Cancel', style: 'cancel' },
-                                    { 
-                                        text: 'Remove', 
-                                        style: 'destructive',
-                                        onPress: () => removeItemCompletely(item.productId)
-                                    }
-                                ]
-                            )
-                        }}
-                        className="bg-red-100 px-3 py-1 rounded-full"
-                        disabled={isUpdating}
+                        onPress={() => handleQuantityChange(item.productId, -1, item.product)}
+                        className="w-8 h-8 bg-red-500 rounded-full items-center justify-center"
+                        activeOpacity={0.7}
+                        disabled={cartQuantity <= 0}
                     >
-                        <Text className="text-red-600 text-xs font-medium">Remove</Text>
+                        <Text className="text-white font-bold text-lg">−</Text>
+                    </TouchableOpacity>
+
+                    <Text className="mx-4 text-lg font-semibold text-gray-900 min-w-8 text-center">
+                        {cartQuantity}
+                    </Text>
+
+                    <TouchableOpacity
+                        onPress={() => handleQuantityChange(item.productId, 1, item.product)}
+                        className={`w-8 h-8 rounded-full items-center justify-center ${
+                            canAddMoreItems ? 'bg-green-500' : 'bg-gray-400'
+                        }`}
+                        activeOpacity={0.7}
+                        disabled={!canAddMoreItems}
+                    >
+                        <Text className="text-white font-bold text-lg">+</Text>
                     </TouchableOpacity>
                 </View>
-            </MotiView>
-        )
-    }
 
-    const TimeSlotItem = ({ slot, index }: any) => (
+                {/* Remove Item Button */}
+                <TouchableOpacity
+                    onPress={() => removeItemCompletely(item.productId)}
+                    className="bg-red-100 px-3 py-1 rounded-full"
+                >
+                    <Text className="text-red-600 text-xs font-medium">Remove</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    )
+})
+    // Memoized Time Slot Component
+    const TimeSlotItem = React.memo<{ slot: TimeSlot; index: number }>(({ slot, index }) => (
         <TouchableOpacity
             onPress={() => slot.available && setSelectedTimeSlot(slot.id)}
             activeOpacity={0.7}
             disabled={!slot.available}
         >
-            <MotiView
-                from={{ opacity: 0, translateY: 20 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{
-                    type: 'timing',
-                    duration: 300,
-                    delay: index * 50,
-                }}
+            <View
                 className={`mx-4 mb-2 px-4 py-3 rounded-2xl border-2 ${selectedTimeSlot === slot.id
                     ? 'bg-yellow-100 border-yellow-400'
                     : slot.available
@@ -361,12 +402,12 @@ const Cart = () => {
                         <Text className="text-sm text-red-500 font-medium">Unavailable</Text>
                     )}
                 </View>
-            </MotiView>
+            </View>
         </TouchableOpacity>
-    )
+    ))
 
-    // Loading state
-    if (loading) {
+    // Initial loading state
+    if (cartState.loading) {
         return (
             <SafeAreaView className="flex-1 bg-gray-50">
                 <View className="flex-1 justify-center items-center">
@@ -377,7 +418,9 @@ const Cart = () => {
         )
     }
 
-    const cartItems = cartData?.items || []
+    const cartItems = cartState.cartData?.items || []
+    const totalAmount = getTotalPrice()
+    const totalItems = getTotalCartItems()
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -390,30 +433,42 @@ const Cart = () => {
                 <Text className="text-xl font-bold text-gray-900">Cart</Text>
 
                 <View className="flex-row items-center">
-                    <View className="bg-red-500 rounded-full min-w-6 h-6 items-center justify-center mr-2">
+                    <TouchableOpacity 
+                        onPress={handleRefresh}
+                        className="p-2 mr-2"
+                        disabled={refreshing}
+                    >
+                        <Text className="text-lg">🔄</Text>
+                    </TouchableOpacity>
+                    <View className="bg-red-500 rounded-full min-w-6 h-6 items-center justify-center">
                         <Text className="text-white text-xs font-bold">
-                            {calculateTotalItems()}
+                            {totalItems}
                         </Text>
                     </View>
                 </View>
             </View>
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}
+            <ScrollView 
+                className="flex-1" 
+                showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 70 }}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        colors={['#FCD34D']}
+                        tintColor="#FCD34D"
+                    />
+                }
             >
                 {/* Cart Summary */}
-                <MotiView
-                    from={{ opacity: 0, translateY: -30 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: 'timing', duration: 600 }}
-                    className="mx-4 mt-6 mb-6"
-                >
+                <View className="mx-4 mt-6 mb-6">
                     <View className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
                         <View className="flex-row items-center justify-between mb-4">
                             <Text className="text-xl font-bold text-gray-900">Order Summary</Text>
                             <View className="bg-yellow-100 px-3 py-1 rounded-full">
                                 <Text className="text-yellow-800 text-sm font-medium">
-                                    {calculateTotalItems()} items
+                                    {totalItems} items
                                 </Text>
                             </View>
                         </View>
@@ -421,11 +476,11 @@ const Cart = () => {
                         <View className="flex-row justify-between items-center pt-4 border-t border-gray-100">
                             <Text className="text-lg font-semibold text-gray-700">Total Amount</Text>
                             <Text className="text-2xl font-bold text-green-600">
-                                ${calculateTotal().toFixed(2)}
+                                ${totalAmount.toFixed(2)}
                             </Text>
                         </View>
                     </View>
-                </MotiView>
+                </View>
 
                 {/* Cart Items */}
                 {cartItems.length > 0 ? (
@@ -440,12 +495,7 @@ const Cart = () => {
                         ))}
                     </View>
                 ) : (
-                    <MotiView
-                        from={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ type: 'timing', duration: 600 }}
-                        className="mx-4 mb-6"
-                    >
+                    <View className="mx-4 mb-6">
                         <View className="bg-white rounded-2xl p-8 shadow-md border border-gray-100 items-center">
                             <Text className="text-6xl mb-4">🛒</Text>
                             <Text className="text-xl font-bold text-gray-900 mb-2">Your cart is empty</Text>
@@ -457,17 +507,12 @@ const Cart = () => {
                                 <Text className="font-semibold text-gray-900">Browse Menu</Text>
                             </TouchableOpacity>
                         </View>
-                    </MotiView>
+                    </View>
                 )}
 
                 {/* Delivery Time Selection */}
                 {cartItems.length > 0 && (
-                    <MotiView
-                        from={{ opacity: 0, translateY: 30 }}
-                        animate={{ opacity: 1, translateY: 0 }}
-                        transition={{ type: 'timing', duration: 600, delay: 400 }}
-                        className="mx-4 mb-6"
-                    >
+                    <View className="mx-4 mb-6">
                         <View className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
                             <View className="flex-row items-center mb-4">
                                 <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center mr-3">
@@ -482,17 +527,12 @@ const Cart = () => {
                                 <TimeSlotItem key={slot.id} slot={slot} index={index} />
                             ))}
                         </View>
-                    </MotiView>
+                    </View>
                 )}
 
                 {/* Checkout Button */}
                 {cartItems.length > 0 && (
-                    <MotiView
-                        from={{ opacity: 0, translateY: 30 }}
-                        animate={{ opacity: 1, translateY: 0 }}
-                        transition={{ type: 'timing', duration: 600, delay: 600 }}
-                        className="mx-4 mb-8"
-                    >
+                    <View className="mx-4 mb-8">
                         <TouchableOpacity
                             onPress={handleCheckout}
                             activeOpacity={0.8}
@@ -507,11 +547,11 @@ const Cart = () => {
                                     ? 'text-gray-900'
                                     : 'text-gray-500'
                                     }`}>
-                                    Proceed to Checkout • ${calculateTotal().toFixed(2)}
+                                    Proceed to Checkout • ${totalAmount.toFixed(2)}
                                 </Text>
                             </View>
                         </TouchableOpacity>
-                    </MotiView>
+                    </View>
                 )}
 
                 {/* Security Info */}
