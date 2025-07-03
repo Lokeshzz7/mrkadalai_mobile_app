@@ -1,90 +1,91 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-    View, Text, SafeAreaView, ScrollView, TouchableOpacity
+    View, Text, SafeAreaView, ScrollView, TouchableOpacity, Alert, ActivityIndicator
 } from "react-native";
 import { MotiView, MotiText } from "moti";
 import { router } from "expo-router";
+import { apiRequest } from "../../utils/api";
 
-// Sample ticket data
-const ticketData = {
-    ongoing: [
-        {
-            id: "TKT001",
-            ticketNumber: "TKT-2024-001",
-            progress: "In Progress",
-            progressPercentage: 60,
-            dateIssued: "2024-06-28",
-            description: "Unable to reset password using the forgot password feature",
-            issueType: "Account Issues",
-            status: "open"
-        },
-        {
-            id: "TKT002",
-            ticketNumber: "TKT-2024-002",
-            progress: "Under Review",
-            progressPercentage: 30,
-            dateIssued: "2024-06-29",
-            description: "Payment failed but amount was deducted from my account",
-            issueType: "Payment Problems",
-            status: "open"
-        },
-        {
-            id: "TKT003",
-            ticketNumber: "TKT-2024-003",
-            progress: "Waiting for Response",
-            progressPercentage: 80,
-            dateIssued: "2024-06-30",
-            description: "Order was delivered but items are missing from the package",
-            issueType: "Order Issues",
-            status: "open"
-        }
-    ],
-    completed: [
-        {
-            id: "TKT004",
-            ticketNumber: "TKT-2024-004",
-            progress: "Resolved",
-            progressPercentage: 100,
-            dateIssued: "2024-06-25",
-            description: "App crashes when trying to view order history",
-            issueType: "Technical Support",
-            status: "closed",
-            resolvedDate: "2024-06-27"
-        },
-        {
-            id: "TKT005",
-            ticketNumber: "TKT-2024-005",
-            progress: "Completed",
-            progressPercentage: 100,
-            dateIssued: "2024-06-20",
-            description: "Need help updating profile information",
-            issueType: "Account Issues",
-            status: "closed",
-            resolvedDate: "2024-06-22"
-        }
-    ]
-};
+interface Ticket {
+  id: string;
+  ticketNumber: string;
+  progress: string;
+  progressPercentage: number;
+  dateIssued: string;
+  description: string;
+  issueType: string;
+  status: string;
+  resolvedDate?: string;
+  title: string;
+  priority: string;
+  resolutionNote?: string;
+}
+
+interface TicketCardProps {
+  ticket: Ticket;
+}
+
+interface TabButtonProps {
+  title: string;
+  isActive: boolean;
+  onPress: () => void;
+}
+
+interface EmptyStateProps {
+  message: string;
+}
 
 const myTicket = () => {
     const [activeTab, setActiveTab] = useState("ongoing");
+    const [tickets, setTickets] = useState<{ ongoing: Ticket[]; completed: Ticket[] }>({
+        ongoing: [],
+        completed: []
+    });
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const getProgressColor = (progress) => {
-        switch (progress.toLowerCase()) {
-            case "in progress":
-                return "#3B82F6"; // Blue
-            case "under review":
-                return "#F59E0B"; // Yellow
-            case "waiting for response":
-                return "#EF4444"; // Red
-            case "resolved":
-            case "completed":
-                return "#10B981"; // Green
-            default:
-                return "#6B7280"; // Gray
+    const fetchTickets = async () => {
+        try {
+            const response = await apiRequest('/customer/outlets/tickets', {
+                method: 'GET',
+            });
+            
+            setTickets(response.tickets);
+        } catch (error: any) {
+            console.error('Error fetching tickets:', error);
+            Alert.alert('Error', error.message || 'Failed to fetch tickets');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
         }
     };
 
-    const formatDate = (dateString) => {
+    useEffect(() => {
+        fetchTickets();
+    }, []);
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await fetchTickets();
+    };
+
+    const getProgressColor = (progress: string) => {
+        switch (progress.toLowerCase()) {
+            case "in progress":
+                return "#3B82F6"; 
+            case "under review":
+                return "#F59E0B"; 
+            case "waiting for response":
+                return "#EF4444";
+            case "resolved":
+            case "completed":
+                return "#10B981";
+            default:
+                return "#6B7280";
+        }
+    };
+
+    const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
@@ -93,7 +94,7 @@ const myTicket = () => {
         });
     };
 
-    const TicketCard = ({ ticket }) => (
+    const TicketCard = ({ ticket }: TicketCardProps) => (
         <MotiView
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
@@ -179,8 +180,6 @@ const myTicket = () => {
                 <TouchableOpacity
                     className="bg-[#EBB22F] px-4 py-2 rounded-lg"
                     onPress={() => {
-                        // Navigate to ticket details with ticket ID
-                        console.log("View details for ticket:", ticket.ticketNumber);
                         router.push({
                             pathname: "/ticket/viewDetailsTicket",
                             params: { ticketId: ticket.id }
@@ -196,21 +195,19 @@ const myTicket = () => {
         </MotiView>
     );
 
-    const TabButton = ({ title, isActive, onPress }) => (
+    const TabButton = ({ title, isActive, onPress }: TabButtonProps) => (
         <TouchableOpacity
-            className={`flex-1 py-3 px-4 rounded-lg mx-1 ${isActive ? 'bg-[#EBB22F]' : 'bg-gray-200'
-                }`}
+            className={`flex-1 py-3 px-4 rounded-lg mx-1 ${isActive ? 'bg-[#EBB22F]' : 'bg-gray-200'}`}
             onPress={onPress}
             activeOpacity={0.8}
         >
-            <Text className={`text-center font-semibold ${isActive ? 'text-white' : 'text-gray-600'
-                }`}>
+            <Text className={`text-center font-semibold ${isActive ? 'text-white' : 'text-gray-600'}`}>
                 {title}
             </Text>
         </TouchableOpacity>
     );
 
-    const EmptyState = ({ message }) => (
+    const EmptyState = ({ message }: EmptyStateProps) => (
         <MotiView
             from={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -227,7 +224,16 @@ const myTicket = () => {
         </MotiView>
     );
 
-    const currentTickets = activeTab === "ongoing" ? ticketData.ongoing : ticketData.completed;
+    if (loading) {
+        return (
+            <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+                <ActivityIndicator size="large" color="#EBB22F" />
+                <Text className="text-gray-600 mt-4">Loading tickets...</Text>
+            </SafeAreaView>
+        );
+    }
+
+    const currentTickets = activeTab === "ongoing" ? tickets.ongoing : tickets.completed;
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -250,12 +256,12 @@ const myTicket = () => {
             <View className="px-4 py-4 bg-white border-b border-gray-100">
                 <View className="flex-row">
                     <TabButton
-                        title={`Ongoing (${ticketData.ongoing.length})`}
+                        title={`Ongoing (${tickets.ongoing.length})`}
                         isActive={activeTab === "ongoing"}
                         onPress={() => setActiveTab("ongoing")}
                     />
                     <TabButton
-                        title={`Completed (${ticketData.completed.length})`}
+                        title={`Completed (${tickets.completed.length})`}
                         isActive={activeTab === "completed"}
                         onPress={() => setActiveTab("completed")}
                     />
@@ -267,9 +273,16 @@ const myTicket = () => {
                 className="flex-1 px-4 py-4"
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 70 }}
+                refreshControl={
+                    <TouchableOpacity onPress={handleRefresh} className="py-4">
+                        <Text className="text-center text-[#EBB22F]">
+                            {refreshing ? 'Refreshing...' : 'Pull to refresh'}
+                        </Text>
+                    </TouchableOpacity>
+                }
             >
                 {currentTickets.length > 0 ? (
-                    currentTickets.map((ticket, index) => (
+                    currentTickets.map((ticket) => (
                         <TicketCard key={ticket.id} ticket={ticket} />
                     ))
                 ) : (
@@ -290,7 +303,6 @@ const myTicket = () => {
             <TouchableOpacity
                 className="absolute bottom-6 right-6 bg-[#EBB22F] w-14 h-14 rounded-full items-center justify-center shadow-lg"
                 onPress={() => {
-                    // Navigate to raise ticket screen
                     router.push("/ticket/raiseTicket");
                 }}
                 activeOpacity={0.8}

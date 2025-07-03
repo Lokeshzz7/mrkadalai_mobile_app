@@ -4,97 +4,69 @@ import {
 } from "react-native";
 import { MotiView, MotiText } from "moti";
 import { router, useLocalSearchParams } from "expo-router";
+import { apiRequest } from "../../utils/api";
 
-// Extended ticket data with additional fields for timeline
-const extendedTicketData = {
-    "TKT001": {
-        id: "TKT001",
-        ticketNumber: "TKT-2024-001",
-        progress: "In Progress",
-        progressPercentage: 60,
-        dateIssued: "2024-06-28",
-        description: "Unable to reset password using the forgot password feature. I have tried multiple times but the reset link is not working properly. Please help me resolve this issue as soon as possible.",
-        issueType: "Account Issues",
-        status: "open",
-        priority: "High",
-        assignedTo: "Admin Team",
-        dateAccepted: "2024-06-29",
-        resolvedDate: null
-    },
-    "TKT002": {
-        id: "TKT002",
-        ticketNumber: "TKT-2024-002",
-        progress: "Under Review",
-        progressPercentage: 30,
-        dateIssued: "2024-06-29",
-        description: "Payment failed but amount was deducted from my account. The transaction shows as successful on my bank statement but the order was not processed. I need immediate assistance to resolve this payment issue.",
-        issueType: "Payment Problems",
-        status: "open",
-        priority: "High",
-        assignedTo: "Payment Team",
-        dateAccepted: "2024-06-30",
-        resolvedDate: null
-    },
-    "TKT003": {
-        id: "TKT003",
-        ticketNumber: "TKT-2024-003",
-        progress: "Waiting for Response",
-        progressPercentage: 80,
-        dateIssued: "2024-06-30",
-        description: "Order was delivered but items are missing from the package. I ordered 5 items but only received 3. The delivery person confirmed all items were in the package but some are clearly missing. Please investigate and send the missing items.",
-        issueType: "Order Issues",
-        status: "open",
-        priority: "Medium",
-        assignedTo: "Support Team",
-        dateAccepted: "2024-06-30",
-        resolvedDate: null
-    },
-    "TKT004": {
-        id: "TKT004",
-        ticketNumber: "TKT-2024-004",
-        progress: "Resolved",
-        progressPercentage: 100,
-        dateIssued: "2024-06-25",
-        description: "App crashes when trying to view order history. Every time I try to access my order history, the app closes unexpectedly. This makes it impossible to track my previous orders and deliveries.",
-        issueType: "Technical Support",
-        status: "closed",
-        priority: "Medium",
-        assignedTo: "Tech Team",
-        dateAccepted: "2024-06-26",
-        resolvedDate: "2024-06-27"
-    },
-    "TKT005": {
-        id: "TKT005",
-        ticketNumber: "TKT-2024-005",
-        progress: "Completed",
-        progressPercentage: 100,
-        dateIssued: "2024-06-20",
-        description: "Need help updating profile information. I want to change my contact number and email address but the update button is not working properly. Please help me update my profile details.",
-        issueType: "Account Issues",
-        status: "closed",
-        priority: "Low",
-        assignedTo: "Support Team",
-        dateAccepted: "2024-06-21",
-        resolvedDate: "2024-06-22"
-    }
-};
+export interface TicketData {
+    id: string;
+    ticketNumber: string;
+    progress: string;
+    progressPercentage: number;
+    dateIssued: string;
+    description: string;
+    issueType: string;
+    status: "open" | "closed";
+    priority: "High" | "Medium" | "Low";
+    assignedTo: string;
+    dateAccepted: string | null;
+    resolvedDate: string | null;
+    title: string;
+    resolutionNote: string | null;
+}
+
+export interface TimelineItemProps {
+    step: number;
+    title: string;
+    date: string | null;
+    isCompleted: boolean;
+    isLast: boolean;
+}
 
 const viewDetailsTicket = () => {
-    const params = useLocalSearchParams();
-    const [ticketData, setTicketData] = useState(null);
+    const params = useLocalSearchParams<any>();
+    const [ticketData, setTicketData] = useState<TicketData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Get ticket ID from navigation params
-        const ticketId = params.ticketId;
-        if (ticketId && extendedTicketData[ticketId]) {
-            setTicketData(extendedTicketData[ticketId]);
-        } else {
-            // Fallback to first ticket if no ID provided
-            setTicketData(extendedTicketData["TKT001"]);
-        }
-    }, [params]);
+        const fetchTicketDetails = async () => {
+            try {
+                const ticketId = params.ticketId;
+                if (!ticketId) {
+                    setError("No ticket ID provided");
+                    return;
+                }
 
-    if (!ticketData) {
+                const response = await apiRequest(`/customer/outlets/tickets/${ticketId}`, {
+                    method: 'GET'
+                });
+
+                if (response.ticket) {
+                    setTicketData(response.ticket);
+                } else {
+                    setError("Ticket not found");
+                }
+            } catch (err: any) {
+                console.error('Error fetching ticket details:', err);
+                setError(err.message || "Failed to load ticket details");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTicketDetails();
+    }, [params.ticketId]);
+
+    if (loading) {
         return (
             <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
                 <Text className="text-lg text-gray-500">Loading ticket details...</Text>
@@ -102,7 +74,29 @@ const viewDetailsTicket = () => {
         );
     }
 
-    const formatDate = (dateString) => {
+    if (error) {
+        return (
+            <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+                <Text className="text-lg text-red-500">{error}</Text>
+                <TouchableOpacity 
+                    className="mt-4 px-6 py-2 bg-[#EBB22F] rounded-lg"
+                    onPress={() => router.back()}
+                >
+                    <Text className="text-white font-semibold">Go Back</Text>
+                </TouchableOpacity>
+            </SafeAreaView>
+        );
+    }
+
+    if (!ticketData) {
+        return (
+            <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+                <Text className="text-lg text-gray-500">No ticket data available</Text>
+            </SafeAreaView>
+        );
+    }
+
+    const formatDate = (dateString: string) => {
         if (!dateString) return null;
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
@@ -114,7 +108,7 @@ const viewDetailsTicket = () => {
         });
     };
 
-    const getStatusColor = (status) => {
+    const getStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
             case "in progress":
                 return "#3B82F6";
@@ -130,7 +124,7 @@ const viewDetailsTicket = () => {
         }
     };
 
-    const getPriorityColor = (priority) => {
+    const getPriorityColor = (priority: string) => {
         switch (priority.toLowerCase()) {
             case "high":
                 return "#EF4444";
@@ -143,7 +137,7 @@ const viewDetailsTicket = () => {
         }
     };
 
-    const TimelineItem = ({ step, title, date, isCompleted, isLast }: any) => (
+    const TimelineItem: React.FC<TimelineItemProps> = ({ step, title, date, isCompleted, isLast }: any) => (
         <View className="flex-row items-start">
             {/* Timeline Circle and Line */}
             <View className="items-center mr-4">
@@ -271,9 +265,9 @@ const viewDetailsTicket = () => {
                                 </Text>
                             </View>
                             <View className="flex-1">
-                                <Text className="text-sm text-gray-500 mb-1">Assigned To</Text>
+                                <Text className="text-sm text-gray-500 mb-1">Title</Text>
                                 <Text className="text-base font-semibold text-gray-700">
-                                    {ticketData.assignedTo}
+                                    {ticketData.title}
                                 </Text>
                             </View>
                         </View>
@@ -291,6 +285,15 @@ const viewDetailsTicket = () => {
                                 {ticketData.description}
                             </Text>
                         </View>
+
+                        {ticketData.resolutionNote && (
+                            <View>
+                                <Text className="text-sm text-gray-500 mb-2">Resolution Note</Text>
+                                <Text className="text-base text-gray-700 leading-6">
+                                    {ticketData.resolutionNote}
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </MotiView>
 
@@ -354,34 +357,6 @@ const viewDetailsTicket = () => {
                         </View>
                     </View>
                 </MotiView>
-
-                {/* Action Buttons */}
-                {!isCompleted && (
-                    <MotiView
-                        from={{ opacity: 0, translateY: 20 }}
-                        animate={{ opacity: 1, translateY: 0 }}
-                        transition={{ type: 'timing', duration: 500, delay: 400 }}
-                        className="flex-row justify-between mt-6 space-x-3"
-                    >
-                        <TouchableOpacity
-                            className="flex-1 bg-gray-100 py-4 rounded-xl mr-2"
-                            activeOpacity={0.8}
-                        >
-                            <Text className="text-center text-gray-700 font-semibold">
-                                Add Comment
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            className="flex-1 bg-[#EBB22F] py-4 rounded-xl ml-2"
-                            activeOpacity={0.8}
-                        >
-                            <Text className="text-center text-white font-semibold">
-                                Update Ticket
-                            </Text>
-                        </TouchableOpacity>
-                    </MotiView>
-                )}
             </ScrollView>
         </SafeAreaView>
     );

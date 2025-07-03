@@ -5,25 +5,46 @@ import {
 import { MotiView, MotiText } from "moti";
 import { router } from "expo-router";
 import * as ImagePicker from 'expo-image-picker';
+import { apiRequest } from "../../utils/api";
+
+interface IssueType {
+  id: number;
+  label: string;
+  value: string;
+  priority: string;
+}
+
+interface UploadedImage {
+  uri: string;
+  width: number;
+  height: number;
+  type: string;
+  fileName?: string;
+}
+
+interface RadioButtonProps {
+  selected: boolean;
+  onPress: () => void;
+  label: string;
+}
 
 const issueTypes = [
-    { id: 1, label: "Account Issues", value: "account" },
-    { id: 2, label: "Payment Problems", value: "payment" },
-    { id: 3, label: "Order Issues", value: "order" },
-    { id: 4, label: "Technical Support", value: "technical" },
-    { id: 5, label: "Others", value: "others" }
+    { id: 1, label: "Account Issues", value: "account", priority: "MEDIUM" },
+    { id: 2, label: "Payment Problems", value: "payment", priority: "HIGH" },
+    { id: 3, label: "Order Issues", value: "order", priority: "HIGH" },
+    { id: 4, label: "Technical Support", value: "technical", priority: "MEDIUM" },
+    { id: 5, label: "Others", value: "others", priority: "LOW" }
 ];
 
 const raiseTicket = () => {
     const [selectedIssue, setSelectedIssue] = useState("");
     const [customIssue, setCustomIssue] = useState("");
     const [description, setDescription] = useState("");
-    const [uploadedImage, setUploadedImage] = useState(null);
+    const [uploadedImage, setUploadedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleImageUpload = async () => {
         try {
-            // Request permission to access camera roll
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
             if (permissionResult.granted === false) {
@@ -31,7 +52,6 @@ const raiseTicket = () => {
                 return;
             }
 
-            // Launch image picker
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
@@ -67,18 +87,25 @@ const raiseTicket = () => {
         setIsSubmitting(true);
 
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            const selectedIssueData = issueTypes.find(issue => issue.value === selectedIssue);
+            const issueTypeLabel = selectedIssue === "others" 
+                ? customIssue.trim()
+                : selectedIssueData?.label;
 
-            // Here you would normally send the data to your API
+            const title = issueTypeLabel; // Use issue type as title
+            const priority = selectedIssue === "others" ? "LOW" : selectedIssueData?.priority;
+
             const ticketData = {
-                issueType: selectedIssue === "others" ? customIssue : issueTypes.find(issue => issue.value === selectedIssue)?.label,
-                description,
-                image: uploadedImage?.uri || null,
-                timestamp: new Date().toISOString()
+                title: title,
+                description: description.trim(),
+                priority: priority,
+                issueType: issueTypeLabel
             };
 
-            console.log("Ticket Data:", ticketData);
+            const response = await apiRequest('/customer/outlets/tickets/create', {
+                method: 'POST',
+                body: ticketData
+            });
 
             Alert.alert(
                 "Success",
@@ -90,21 +117,21 @@ const raiseTicket = () => {
                     }
                 ]
             );
-        } catch (error) {
-            Alert.alert("Error", "Failed to submit ticket. Please try again.");
+        } catch (error: any) {
+            console.error('Error creating ticket:', error);
+            Alert.alert("Error", error.message || "Failed to submit ticket. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const RadioButton = ({ selected, onPress, label }) => (
+    const RadioButton = ({ selected, onPress, label }: RadioButtonProps) => (
         <TouchableOpacity
             className="flex-row items-center mb-4"
             onPress={onPress}
             activeOpacity={0.7}
         >
-            <View className={`w-6 h-6 rounded-full border-2 mr-3 items-center justify-center ${selected ? 'border-[#EBB22F]' : 'border-gray-300'
-                }`}>
+            <View className={`w-6 h-6 rounded-full border-2 mr-3 items-center justify-center ${selected ? 'border-[#EBB22F]' : 'border-gray-300'}`}>
                 {selected && (
                     <View className="w-3 h-3 rounded-full bg-[#EBB22F]" />
                 )}
@@ -127,7 +154,7 @@ const raiseTicket = () => {
 
                 <View className="flex-row">
                     <TouchableOpacity className="p-1" onPress={() => router.push("/ticket/myTicket")}>
-                        <Text className="text-sm text-[#EBB22F] ">my TIcket</Text>
+                        <Text className="text-sm text-[#EBB22F]">My Tickets</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -243,8 +270,7 @@ const raiseTicket = () => {
                     className="mb-8"
                 >
                     <TouchableOpacity
-                        className={`bg-[#EBB22F] rounded-xl py-4 px-6 items-center justify-center shadow-lg ${isSubmitting ? 'opacity-70' : ''
-                            }`}
+                        className={`bg-[#EBB22F] rounded-xl py-4 px-6 items-center justify-center shadow-lg ${isSubmitting ? 'opacity-70' : ''}`}
                         onPress={handleSubmit}
                         disabled={isSubmitting}
                         activeOpacity={0.8}
