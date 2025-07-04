@@ -1,7 +1,5 @@
-// contexts/CartContext.tsx
-import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { Alert } from 'react-native';
-import { apiRequest } from '../utils/api';
+import React, { createContext, useContext, useReducer, useRef, useCallback } from 'react'
+import { apiRequest } from '../utils/api'
 
 // Types
 interface CartProduct {
@@ -11,6 +9,10 @@ interface CartProduct {
   price: number;
   imageUrl?: string;
   category: 'Meals' | 'Starters' | 'Desserts' | 'Beverages';
+  inventory?: {
+    quantity: number;
+    reserved: number;
+  };
 }
 
 interface CartItem {
@@ -21,396 +23,487 @@ interface CartItem {
   product: CartProduct;
 }
 
-interface CartState {
+interface CartData {
+  id: number;
+  customerId: number;
   items: CartItem[];
-  loading: boolean;
-  error: string | null;
-  lastSyncTime: number;
-  initialized: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Action types
-type CartAction =
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_CART'; payload: CartItem[] }
-  | { type: 'ADD_ITEM'; payload: { productId: number; product: CartProduct; quantity?: number } }
-  | { type: 'UPDATE_QUANTITY'; payload: { productId: number; quantity: number } }
-  | { type: 'REMOVE_ITEM'; payload: { productId: number } }
-  | { type: 'CLEAR_CART' }
-  | { type: 'SYNC_SUCCESS' }
-  | { type: 'SET_INITIALIZED' };
+interface CartState {
+  cartData: CartData | null;
+  cartItems: {[key: number]: number};
+  loading: boolean;
+  error: string | null;
+  syncInProgress: boolean;
+  updateErrors: {[key: number]: string}; // Track individual item errors
+}
 
-// Initial state
+type CartAction = 
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_CART_DATA'; payload: CartData | null }
+  | { type: 'SET_CART_ITEMS'; payload: {[key: number]: number} }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'UPDATE_ITEM_QUANTITY'; payload: { productId: number; quantity: number; product?: CartProduct } }
+  | { type: 'REMOVE_ITEM'; payload: number }
+  | { type: 'SET_SYNC_IN_PROGRESS'; payload: boolean }
+  | { type: 'SET_UPDATE_ERROR'; payload: { productId: number; error: string | null } }
+  | { type: 'CLEAR_CART' }
+  | { type: 'REFRESH_CART' }
+
 const initialState: CartState = {
-  items: [],
+  cartData: null,
+  cartItems: {},
   loading: false,
   error: null,
-  lastSyncTime: 0,
-  initialized: false,
-};
+  syncInProgress: false,
+  updateErrors: {},
+}
 
-// Reducer
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'SET_LOADING':
-      return { ...state, loading: action.payload };
+      return { ...state, loading: action.payload }
+    
+    case 'SET_CART_DATA':
+      return { ...state, cartData: action.payload }
+    
+    case 'SET_CART_ITEMS':
+      return { ...state, cartItems: action.payload }
     
     case 'SET_ERROR':
-      return { ...state, error: action.payload, loading: false };
+      return { ...state, error: action.payload }
     
-    case 'SET_CART':
-      return { 
-        ...state, 
-        items: Array.isArray(action.payload) ? action.payload : [], 
-        loading: false, 
-        error: null,
-        lastSyncTime: Date.now(),
-        initialized: true
-      };
-    
-    case 'SET_INITIALIZED':
-      return { ...state, initialized: true, loading: false };
-    
-    case 'ADD_ITEM': {
-      const { productId, product, quantity = 1 } = action.payload;
-      
-      if (!product || !productId) {
-        console.warn('Invalid product data for ADD_ITEM');
-        return state;
-      }
-      
-      const existingItem = state.items.find(item => item.productId === productId);
-      
-      if (existingItem) {
-        return {
-          ...state,
-          items: state.items.map(item =>
-            item.productId === productId
-              ? { ...item, quantity: Math.max(0, item.quantity + quantity) }
-              : item
-          ),
-        };
+    case 'SET_UPDATE_ERROR':
+      const newUpdateErrors = { ...state.updateErrors }
+      if (action.payload.error) {
+        newUpdateErrors[action.payload.productId] = action.payload.error
       } else {
-        const newItem: CartItem = {
-          id: Date.now() + Math.random(), // More unique ID
-          cartId: 1,
-          productId,
-          quantity: Math.max(0, quantity),
-          product,
-        };
-        return {
-          ...state,
-          items: [...state.items, newItem],
-        };
+        delete newUpdateErrors[action.payload.productId]
       }
-    }
+      return { ...state, updateErrors: newUpdateErrors }
     
-    case 'UPDATE_QUANTITY': {
-      const { productId, quantity } = action.payload;
+    case 'UPDATE_ITEM_QUANTITY':
+      const { productId, quantity, product } = action.payload
+      const newCartItems = { ...state.cartItems }
       
       if (quantity <= 0) {
-        return {
-          ...state,
-          items: state.items.filter(item => item.productId !== productId),
-        };
+        delete newCartItems[productId]
+      } else {
+        newCartItems[productId] = quantity
       }
-      
-      return {
-        ...state,
-        items: state.items.map(item =>
-          item.productId === productId
-            ? { ...item, quantity: Math.max(0, quantity) }
-            : item
-        ),
-      };
-    }
+
+      // Update cartData if it exists
+      let newCartData = state.cartData
+      if (newCartData && product) {
+        const existingItemIndex = newCartData.items.findIndex(item => item.productId === productId)
+        
+        if (existingItemIndex >= 0) {
+          if (quantity <= 0) {
+            // Remove item
+            newCartData = {
+              ...newCartData,
+              items: newCartData.items.filter(item => item.productId !== productId)
+            }
+          } else {
+            // Update quantity
+            newCartData = {
+              ...newCartData,
+              items: newCartData.items.map(item => 
+                item.productId === productId 
+                  ? { ...item, quantity }
+                  : item
+              )
+            }
+          }
+        } else if (quantity > 0) {
+          // Add new item
+          const newItem: CartItem = {
+            id: Date.now(),
+            cartId: newCartData.id || 1,
+            productId,
+            quantity,
+            product
+          }
+          newCartData = {
+            ...newCartData,
+            items: [...newCartData.items, newItem]
+          }
+        }
+      }
+
+      return { 
+        ...state, 
+        cartItems: newCartItems,
+        cartData: newCartData
+      }
     
     case 'REMOVE_ITEM':
-      return {
-        ...state,
-        items: state.items.filter(item => item.productId !== action.payload.productId),
-      };
+      const filteredCartItems = { ...state.cartItems }
+      delete filteredCartItems[action.payload]
+      
+      const filteredCartData = state.cartData ? {
+        ...state.cartData,
+        items: state.cartData.items.filter(item => item.productId !== action.payload)
+      } : null
+
+      return { 
+        ...state, 
+        cartItems: filteredCartItems,
+        cartData: filteredCartData
+      }
+    
+    case 'SET_SYNC_IN_PROGRESS':
+      return { ...state, syncInProgress: action.payload }
     
     case 'CLEAR_CART':
       return {
         ...state,
-        items: [],
-      };
+        cartData: null,
+        cartItems: {},
+        error: null,
+        updateErrors: {},
+      }
     
-    case 'SYNC_SUCCESS':
+    case 'REFRESH_CART':
       return {
         ...state,
-        lastSyncTime: Date.now(),
         error: null,
-      };
+        updateErrors: {},
+      }
     
     default:
-      return state;
+      return state
   }
-};
+}
 
-// Context
-interface CartContextType {
+const CartContext = createContext<{
   state: CartState;
-  addToCart: (product: CartProduct, quantity?: number) => Promise<void>;
-  updateQuantity: (productId: number, quantity: number) => Promise<void>;
-  removeFromCart: (productId: number) => Promise<void>;
-  clearCart: () => Promise<void>;
-  refreshCart: () => Promise<void>;
-  getCartTotal: () => number;
-  getCartItemCount: () => number;
+  fetchCartData: () => Promise<void>;
+  updateItemQuantity: (productId: number, change: number, product?: CartProduct, maxStock?: number) => Promise<boolean>;
+  removeItem: (productId: number) => Promise<void>;
+  getTotalCartItems: () => number;
   getItemQuantity: (productId: number) => number;
+  canAddMore: (productId: number, currentStock: number) => boolean;
+  clearCart: () => void;
+  getTotalPrice: () => number;
+  isItemUpdating: (productId: number) => boolean;
+  refreshCart: () => Promise<void>;
+  getItemError: (productId: number) => string | null;
+  validateCartStock: () => Promise<boolean>;
+  refreshProducts: () => Promise<void>;
+} | null>(null)
+
+export const useCart = () => {
+  const context = useContext(CartContext)
+  if (!context) {
+    throw new Error('useCart must be used within a CartProvider')
+  }
+  return context
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [state, dispatch] = useReducer(cartReducer, initialState)
+  
+  // Background sync queue
+  const syncQueue = useRef<Map<number, { oldQuantity: number; newQuantity: number }>>(new Map())
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isUpdatingRef = useRef<Set<number>>(new Set())
 
-// Provider component
-interface CartProviderProps {
-  children: ReactNode;
-}
-
-export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
-  const [state, dispatch] = useReducer(cartReducer, initialState);
-  const isMountedRef = useRef(true);
-  const initializationPromiseRef = useRef<Promise<void> | null>(null);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  // Safe dispatch that checks if component is mounted
-  const safeDispatch = useCallback((action: CartAction) => {
-    if (isMountedRef.current) {
-      dispatch(action);
-    }
-  }, []);
-
-  // Fetch cart function with better error handling
-  const fetchCart = useCallback(async (): Promise<void> => {
-    if (!isMountedRef.current) return;
-
+  const fetchCartData = useCallback(async () => {
     try {
-      safeDispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_LOADING', payload: true })
+      dispatch({ type: 'SET_ERROR', payload: null })
       
       const response = await apiRequest('/customer/outlets/get-cart', {
         method: 'GET'
-      });
+      })
       
-      if (!isMountedRef.current) return;
-      
-      if (response?.cart?.items && Array.isArray(response.cart.items)) {
-        safeDispatch({ type: 'SET_CART', payload: response.cart.items });
-      } else if (Array.isArray(response)) {
-        safeDispatch({ type: 'SET_CART', payload: response });
+      if (response.cart) {
+        dispatch({ type: 'SET_CART_DATA', payload: response.cart })
+        
+        // Convert to cartItems format
+        const cartMap: {[key: number]: number} = {}
+        response.cart.items.forEach((item: CartItem) => {
+          cartMap[item.productId] = item.quantity
+        })
+        dispatch({ type: 'SET_CART_ITEMS', payload: cartMap })
       } else {
-        safeDispatch({ type: 'SET_CART', payload: [] });
+        dispatch({ type: 'SET_CART_DATA', payload: null })
+        dispatch({ type: 'SET_CART_ITEMS', payload: {} })
       }
     } catch (error) {
-      console.error('Error fetching cart:', error);
-      if (isMountedRef.current) {
-        safeDispatch({ type: 'SET_ERROR', payload: 'Failed to fetch cart' });
-        safeDispatch({ type: 'SET_INITIALIZED' });
-      }
+      console.error('Error fetching cart:', error)
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch cart data' })
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false })
     }
-  }, [safeDispatch]);
+  }, [])
 
-  // Initialize cart only once
-  useEffect(() => {
-    if (!state.initialized && !initializationPromiseRef.current) {
-      initializationPromiseRef.current = fetchCart();
-    }
-  }, [state.initialized, fetchCart]);
+  const validateCartStock = useCallback(async () => {
+  try {
+    // Re-fetch cart data to get latest stock info
+    await fetchCartData()
+    return true
+  } catch (error) {
+    console.error('Error validating cart stock:', error)
+    return false
+  }
+}, [fetchCartData])
 
-  // Optimistic update with background sync
-  const syncWithBackend = useCallback(async (
-    operation: () => Promise<void>, 
-    fallback: () => void
-  ) => {
+const refreshProducts = useCallback(async () => {
+  try {
+    // This should refresh product data - you might need to implement this
+    // based on your product context/API
+    await fetchCartData() // For now, just refresh cart
+  } catch (error) {
+    console.error('Error refreshing products:', error)
+  }
+}, [fetchCartData])
+
+  const syncPendingChanges = useCallback(async () => {
+    if (syncQueue.current.size === 0 || state.syncInProgress) return
+    
+    dispatch({ type: 'SET_SYNC_IN_PROGRESS', payload: true })
+    
     try {
-      await operation();
-      if (isMountedRef.current) {
-        safeDispatch({ type: 'SYNC_SUCCESS' });
-      }
-    } catch (error) {
-      console.error('Sync failed:', error);
-      if (isMountedRef.current) {
-        fallback();
-        // Don't show alert if component is unmounted
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            Alert.alert('Error', 'Failed to sync with server. Please try again.');
+      // Process each item in the queue
+      for (const [productId, { oldQuantity, newQuantity }] of syncQueue.current.entries()) {
+        try {
+          dispatch({ type: 'SET_UPDATE_ERROR', payload: { productId, error: null } })
+          
+          if (newQuantity === 0) {
+            // Remove all items
+            await apiRequest('/customer/outlets/update-cart-item', {
+              method: 'PUT',
+              body: {
+                productId: productId,
+                quantity: oldQuantity, // Remove all existing quantity
+                action: 'remove'
+              }
+            })
+          } else if (oldQuantity === 0) {
+            // Add new items
+            await apiRequest('/customer/outlets/update-cart-item', {
+              method: 'PUT',
+              body: {
+                productId: productId,
+                quantity: newQuantity,
+                action: 'add'
+              }
+            })
+          } else if (newQuantity > oldQuantity) {
+            // Add more items
+            const addQuantity = newQuantity - oldQuantity
+            await apiRequest('/customer/outlets/update-cart-item', {
+              method: 'PUT',
+              body: {
+                productId: productId,
+                quantity: addQuantity,
+                action: 'add'
+              }
+            })
+          } else if (newQuantity < oldQuantity) {
+            // Remove some items
+            const removeQuantity = oldQuantity - newQuantity
+            await apiRequest('/customer/outlets/update-cart-item', {
+              method: 'PUT',
+              body: {
+                productId: productId,
+                quantity: removeQuantity,
+                action: 'remove'
+              }
+            })
           }
-        }, 100);
-      }
-    }
-  }, [safeDispatch]);
-
-  const addToCart = useCallback(async (product: CartProduct, quantity: number = 1) => {
-    if (!product || !product.id) {
-      console.warn('Invalid product for addToCart');
-      return;
-    }
-
-    // Optimistic update
-    safeDispatch({ type: 'ADD_ITEM', payload: { productId: product.id, product, quantity } });
-    
-    // Background sync
-    await syncWithBackend(
-      () => apiRequest('/customer/outlets/add-product-cart', {
-        method: 'POST',
-        body: { productId: product.id, quantity }
-      }),
-      () => {
-        // Revert: remove the added item
-        const currentQty = getItemQuantity(product.id);
-        if (currentQty <= quantity) {
-          safeDispatch({ type: 'REMOVE_ITEM', payload: { productId: product.id } });
-        } else {
-          safeDispatch({ type: 'UPDATE_QUANTITY', payload: { productId: product.id, quantity: currentQty - quantity } });
+        } catch (error: any) {
+          console.error(`Error syncing item ${productId}:`, error)
+          
+          // Handle specific stock errors
+          if (error.message?.includes('stock') || error.message?.includes('inventory')) {
+            dispatch({ type: 'SET_UPDATE_ERROR', payload: { 
+              productId, 
+              error: 'Insufficient stock available' 
+            }})
+            
+            // Revert the quantity to what's actually available
+            // This will trigger a re-fetch to get current stock
+            await fetchCartData()
+          } else {
+            dispatch({ type: 'SET_UPDATE_ERROR', payload: { 
+              productId, 
+              error: 'Failed to update item' 
+            }})
+          }
         }
       }
-    );
-  }, [safeDispatch, syncWithBackend]);
-
-  const updateQuantity = useCallback(async (productId: number, quantity: number) => {
-    if (!productId) {
-      console.warn('Invalid productId for updateQuantity');
-      return;
+      
+      // Clear the queue after processing
+      syncQueue.current.clear()
+      
+    } catch (error) {
+      console.error('Error syncing cart changes:', error)
+    } finally {
+      dispatch({ type: 'SET_SYNC_IN_PROGRESS', payload: false })
     }
+  }, [state.syncInProgress, fetchCartData])
 
-    const oldQuantity = getItemQuantity(productId);
+// Fixed updateItemQuantity in CartContext
+const updateItemQuantity = useCallback(async (productId: number, change: number, product?: CartProduct, maxStock?: number): Promise<boolean> => {
+    const currentQuantity = state.cartItems[productId] || 0
+    const newQuantity = currentQuantity + change
     
-    // Optimistic update
-    safeDispatch({ type: 'UPDATE_QUANTITY', payload: { productId, quantity } });
-    
-    // Background sync
-    const quantityDiff = quantity - oldQuantity;
-    await syncWithBackend(
-      async () => {
-        if (quantity <= 0) {
-          await apiRequest('/customer/outlets/delete-product-cart', {
-            method: 'DELETE',
-            body: { productId }
-          });
-        } else {
-          await apiRequest('/customer/outlets/add-product-cart', {
-            method: 'POST',
-            body: { productId, quantity: quantityDiff }
-          });
-        }
-      },
-      () => {
-        // Revert to old quantity
-        safeDispatch({ type: 'UPDATE_QUANTITY', payload: { productId, quantity: oldQuantity } });
-      }
-    );
-  }, [safeDispatch, syncWithBackend]);
+    // Calculate available stock correctly if product is provided
+    let availableStock = maxStock || 0
+if (product && product.inventory) {
+  const totalStock = product.inventory.quantity || 0
+  const reservedStock = product.inventory.reserved || 0
+  const currentQuantity = state.cartItems[productId] || 0
+  availableStock = Math.max(0, totalStock - reservedStock - currentQuantity)
+}
 
-  const removeFromCart = useCallback(async (productId: number) => {
-    if (!productId) {
-      console.warn('Invalid productId for removeFromCart');
-      return;
-    }
-
-    const removedItem = state.items.find(item => item.productId === productId);
     
-    // Optimistic update
-    safeDispatch({ type: 'REMOVE_ITEM', payload: { productId } });
+    console.log(`CartContext update for product ${productId}:`, {
+        currentQuantity,
+        change,
+        newQuantity,
+        availableStock,
+        maxStock
+    })
     
-    // Background sync
-    await syncWithBackend(
-      () => apiRequest('/customer/outlets/delete-product-cart', {
-        method: 'DELETE',
-        body: { productId }
-      }),
-      () => {
-        // Revert: add item back
-        if (removedItem) {
-          safeDispatch({ type: 'ADD_ITEM', payload: { 
+    // Validate stock limits
+    if (change > 0 && availableStock > 0 && newQuantity > availableStock) {
+        dispatch({ type: 'SET_UPDATE_ERROR', payload: { 
             productId, 
-            product: removedItem.product, 
-            quantity: removedItem.quantity 
-          } });
+            error: `Only ${availableStock} items available` 
+        }})
+        return false
+    }
+    
+    // Don't allow negative quantities
+    if (newQuantity < 0) {
+        return false
+    }
+    
+    // Clear any existing errors for this item
+    dispatch({ type: 'SET_UPDATE_ERROR', payload: { productId, error: null } })
+    
+    // Store the old quantity before update for sync
+    const oldQuantity = currentQuantity
+    
+    // Mark as updating
+    isUpdatingRef.current.add(productId)
+    
+    // INSTANT UI UPDATE
+    dispatch({ type: 'UPDATE_ITEM_QUANTITY', payload: { productId, quantity: newQuantity, product } })
+    
+    // Add to background sync queue
+    syncQueue.current.set(productId, { oldQuantity, newQuantity })
+    
+    // Debounced background sync
+    if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current)
+    }
+    
+    syncTimeoutRef.current = setTimeout(async () => {
+        await syncPendingChanges()
+        isUpdatingRef.current.delete(productId)
+    }, 800)
+    
+    return true
+}, [state.cartItems, syncPendingChanges])
+
+// Fixed canAddMore function
+const canAddMore = useCallback((productId: number, currentStock: number) => {
+    const currentQuantity = state.cartItems[productId] || 0
+    // currentStock should be available stock (total - reserved)
+    return currentQuantity < currentStock && currentStock > 0
+}, [state.cartItems])
+
+  const removeItem = useCallback(async (productId: number) => {
+    const currentQuantity = state.cartItems[productId] || 0
+    
+    // Clear any existing errors
+    dispatch({ type: 'SET_UPDATE_ERROR', payload: { productId, error: null } })
+    
+    // INSTANT UI UPDATE
+    dispatch({ type: 'REMOVE_ITEM', payload: productId })
+    
+    // Background sync - immediate for removals
+    try {
+      await apiRequest('/customer/outlets/update-cart-item', {
+        method: 'PUT',
+        body: {
+          productId: productId,
+          quantity: currentQuantity,
+          action: 'remove'
         }
-      }
-    );
-  }, [state.items, safeDispatch, syncWithBackend]);
+      })
+    } catch (error) {
+      console.error('Error removing item:', error)
+      // Revert if failed
+      dispatch({ type: 'UPDATE_ITEM_QUANTITY', payload: { productId, quantity: currentQuantity } })
+    }
+  }, [state.cartItems])
 
-  const clearCart = useCallback(async () => {
-    const oldItems = [...state.items];
-    
-    // Optimistic update
-    safeDispatch({ type: 'CLEAR_CART' });
-    
-    // Background sync
-    await syncWithBackend(
-      () => apiRequest('/customer/outlets/clear-cart', {
-        method: 'DELETE'
-      }),
-      () => {
-        // Revert: restore all items
-        safeDispatch({ type: 'SET_CART', payload: oldItems });
-      }
-    );
-  }, [state.items, safeDispatch, syncWithBackend]);
-
-  const refreshCart = useCallback(async () => {
-    await fetchCart();
-  }, [fetchCart]);
-
-  // Memoized calculations
-  const getCartTotal = useCallback(() => {
-    if (!state.items || !Array.isArray(state.items)) return 0;
-    return state.items.reduce((total, item) => {
-      if (!item || !item.product || typeof item.product.price !== 'number' || typeof item.quantity !== 'number') {
-        return total;
-      }
-      return total + (item.product.price * item.quantity);
-    }, 0);
-  }, [state.items]);
-
-  const getCartItemCount = useCallback(() => {
-    if (!state.items || !Array.isArray(state.items)) return 0;
-    return state.items.reduce((total, item) => {
-      if (!item || typeof item.quantity !== 'number') return total;
-      return total + item.quantity;
-    }, 0);
-  }, [state.items]);
+  const getTotalCartItems = useCallback(() => {
+    return Object.values(state.cartItems).reduce((total, quantity) => total + quantity, 0)
+  }, [state.cartItems])
 
   const getItemQuantity = useCallback((productId: number) => {
-    if (!productId || !state.items || !Array.isArray(state.items)) return 0;
-    const item = state.items.find(item => item && item.productId === productId);
-    return item?.quantity || 0;
-  }, [state.items]);
+    return state.cartItems[productId] || 0
+  }, [state.cartItems])
 
-  const value: CartContextType = {
-    state,
-    addToCart,
-    updateQuantity,
-    removeFromCart,
-    clearCart,
-    refreshCart,
-    getCartTotal,
-    getCartItemCount,
-    getItemQuantity,
-  };
+  const getTotalPrice = useCallback(() => {
+    if (!state.cartData) return 0
+    return state.cartData.items.reduce((total, item) => {
+      const quantity = state.cartItems[item.productId] || item.quantity
+      return total + (item.product.price * quantity)
+    }, 0)
+  }, [state.cartData, state.cartItems])
+
+  const clearCart = useCallback(() => {
+    dispatch({ type: 'CLEAR_CART' })
+    syncQueue.current.clear()
+    isUpdatingRef.current.clear()
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current)
+    }
+  }, [])
+
+  const refreshCart = useCallback(async () => {
+    dispatch({ type: 'REFRESH_CART' })
+    await fetchCartData()
+  }, [fetchCartData])
+
+  const isItemUpdating = useCallback((productId: number) => {
+    return isUpdatingRef.current.has(productId)
+  }, [])
+
+  const getItemError = useCallback((productId: number) => {
+    return state.updateErrors[productId] || null
+  }, [state.updateErrors])
 
   return (
-    <CartContext.Provider value={value}>
+    <CartContext.Provider value={{
+      state,
+      fetchCartData,
+      updateItemQuantity,
+      removeItem,
+      getTotalCartItems,
+      getItemQuantity,
+      canAddMore,
+      clearCart,
+      getTotalPrice,
+      isItemUpdating,
+      refreshCart,
+      getItemError,
+      validateCartStock,
+      refreshProducts,
+    }}>
       {children}
     </CartContext.Provider>
-  );
-};
+  )
+}
 
-// Custom hook
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
-};
+export default CartProvider
