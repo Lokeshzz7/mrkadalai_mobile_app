@@ -108,7 +108,7 @@
 
 
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   FlatList,
   Text,
@@ -121,16 +121,51 @@ import {
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
 import { useAuth } from '@/context/AuthContext'
+import { apiRequest } from '../../../utils/api'
+import { router } from 'expo-router'
 
 const Profile = () => {
   const { user, logout } = useAuth()
 
   const [userDetails, setUserDetails] = useState({
-    name: 'Sandy Johnson',
-    phoneNumber: '+1 (555) 123-4567',
-    email: 'sandy.johnson@email.com',
+    name: '',
+    phone: '',
+    email: '',
+    bio: '',
+    yearOfStudy: 0,
+    degree: '',
     profileImage: '👤'
   })
+
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchUserProfile()
+  }, [])
+
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true)
+      const response = await apiRequest('/customer/outlets/get-profile', {
+        method: 'GET'
+      })
+      
+      setUserDetails({
+        name: response.name || '',
+        phone: response.phone || '',
+        email: response.email || '',
+        bio: response.bio || '',
+        yearOfStudy: response.yearOfStudy || 0,
+        degree: response.degree || '',
+        profileImage: '👤'
+      })
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+      Alert.alert('Error', 'Failed to load profile information')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const profileMenuItems = [
     {
@@ -138,29 +173,31 @@ const Profile = () => {
       title: 'Profile Info',
       icon: '👤',
       description: 'Edit your personal information',
-      hasNotification: false
+      hasNotification: false,
+      action: 'edit_profile'
     },
     {
       id: 2,
       title: 'College',
       icon: '🎓',
       description: 'Your college details and preferences',
-      hasNotification: false
+      hasNotification: false,
+      action: 'college'
     },
     {
       id: 3,
       title: 'Cart',
       icon: '🛒',
       description: 'View items in your cart',
-      hasNotification: true,
-      notificationCount: 3
+      action: 'cart'
     },
     {
       id: 4,
       title: 'Favorites',
       icon: '❤️',
       description: 'Your favorite food items',
-      hasNotification: false
+      hasNotification: false,
+      action: 'favorites'
     },
     {
       id: 5,
@@ -168,26 +205,53 @@ const Profile = () => {
       icon: '🔔',
       description: 'Manage your notification preferences',
       hasNotification: true,
-      notificationCount: 5
+      notificationCount: 5,
+      action: 'notifications'
     },
     {
       id: 6,
       title: 'FAQ',
       icon: '❓',
       description: 'Frequently asked questions',
-      hasNotification: false
+      hasNotification: false,
+      action: 'faq'
     },
     {
       id: 7,
       title: 'Settings',
       icon: '⚙️',
       description: 'App settings and preferences',
-      hasNotification: false
+      hasNotification: false,
+      action: 'settings'
     }
   ]
 
   const handleMenuItemPress = (item: any) => {
-    Alert.alert(item.title, `Navigate to ${item.title} page`)
+    switch (item.action) {
+      case 'edit_profile':
+        router.push('/profile/EditProfile')
+        break
+      case 'cart':
+        router.push('/cart')
+        break
+      case 'favorites':
+        Alert.alert('Favorites', 'Favorites will be available soon')
+        break
+      case 'notifications':
+        Alert.alert('Notifications', 'Notifications will be available soon')
+        break
+      case 'college':
+        Alert.alert('College Info', 'College details will be available soon')
+        break
+      case 'faq':
+        router.push('/ticket/faq')
+        break
+      case 'settings':
+        Alert.alert('Settings', 'Settings will be available soon')
+        break
+      default:
+        Alert.alert(item.title, `Navigate to ${item.title} page`)
+    }
   }
 
   const handleHeaderButtonPress = (buttonType: any) => {
@@ -248,11 +312,19 @@ const Profile = () => {
     </TouchableOpacity>
   )
 
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 justify-center items-center">
+        <Text className="text-lg text-gray-600">Loading profile...</Text>
+      </SafeAreaView>
+    )
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100">
-        <TouchableOpacity className="p-2">
+        <TouchableOpacity className="p-2" onPress={() => router.back()}>
           <Text className="text-2xl">←</Text>
         </TouchableOpacity>
 
@@ -271,7 +343,7 @@ const Profile = () => {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 70 }} // Add padding for tab bar
+        contentContainerStyle={{ paddingBottom: 70 }}
       >
         {/* User Profile Card */}
         <MotiView
@@ -288,14 +360,19 @@ const Profile = () => {
 
               <View className="flex-1">
                 <Text className="text-2xl font-bold text-gray-900 mb-2">
-                  {userDetails.name}
+                  {userDetails.name || 'User Name'}
                 </Text>
                 <Text className="text-gray-600 text-base mb-1">
-                  📞 {userDetails.phoneNumber}
+                  📞 {userDetails.phone || 'Phone not provided'}
                 </Text>
                 <Text className="text-gray-600 text-base">
-                  📧 {userDetails.email}
+                  📧 {userDetails.email || 'Email not provided'}
                 </Text>
+                {userDetails.bio && (
+                  <Text className="text-gray-600 text-sm mt-2">
+                    {userDetails.bio}
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -313,6 +390,14 @@ const Profile = () => {
                 <Text className="text-sm text-gray-600">Rating</Text>
               </View>
             </View>
+            
+            {userDetails.degree && (
+              <View className="mt-4 pt-4 border-t border-gray-100">
+                <Text className="text-sm text-gray-600">
+                  🎓 {userDetails.degree} - Year {userDetails.yearOfStudy}
+                </Text>
+              </View>
+            )}
           </View>
         </MotiView>
 
