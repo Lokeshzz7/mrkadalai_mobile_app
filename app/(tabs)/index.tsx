@@ -41,31 +41,35 @@ const RestaurantHome = () => {
   const [error, setError] = useState<string | null>(null)
 
   // Use cart context
-  const { 
-    state: cartState, 
-    fetchCartData, 
-    updateItemQuantity, 
-    getTotalCartItems, 
-    getItemQuantity, 
-    canAddMore 
+  const {
+    state: cartState,
+    fetchCartData,
+    updateItemQuantity,
+    getTotalCartItems,
+    getItemQuantity,
+    canAddMore
   } = useCart()
 
   // Memoize dates to prevent re-calculation
   const dates = useMemo(() => {
     const dateList = []
-    for (let i = 0; i < 3; i++) {
-      const date = new Date()
-      date.setDate(date.getDate() + i)
+    const today = new Date()
+
+    for (let i = 0; i < 20; i++) {
+      const date = new Date(today)
+      date.setDate(today.getDate() + i)
       dateList.push({
         id: i,
         day: date.toLocaleDateString('en-US', { weekday: 'short' }),
         date: date.getDate(),
         month: date.toLocaleDateString('en-US', { month: 'short' }),
-        fullDate: date
+        fullDate: date,
       })
     }
+
     return dateList
   }, [])
+
 
   // Category mapping with icons
   const categoryMapping = useMemo(() => ({
@@ -100,17 +104,17 @@ const RestaurantHome = () => {
     try {
       setLoading(true)
       setError(null)
-      
+
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Request timeout')), 10000)
       )
-      
+
       const apiPromise = apiRequest('/customer/outlets/get-product/', {
         method: 'GET'
       })
-      
+
       const response: ApiResponse = await Promise.race([apiPromise, timeoutPromise]) as ApiResponse
-      
+
       if (response && response.products && Array.isArray(response.products)) {
         setProducts(response.products)
       } else if (response && Array.isArray(response)) {
@@ -119,7 +123,7 @@ const RestaurantHome = () => {
         console.warn('Unexpected API response structure:', response)
         setProducts([])
       }
-      
+
     } catch (err) {
       console.error('Error fetching products:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch products')
@@ -158,21 +162,21 @@ const RestaurantHome = () => {
   // ⭐ FIX: Enhanced stock validation
   const validateStock = useCallback((product: Product, requestedQuantity: number) => {
     if (!product.inventory) return true
-    
+
     const currentCartQuantity = getItemQuantity(product.id)
     const availableStock = product.inventory.quantity
     const totalAfterAdd = currentCartQuantity + requestedQuantity
-    
+
     // Check if we have enough stock
     if (totalAfterAdd > availableStock) {
       Alert.alert(
-        'Insufficient Stock', 
+        'Insufficient Stock',
         `Only ${availableStock} items available. You already have ${currentCartQuantity} in cart.`,
         [{ text: 'OK' }]
       )
       return false
     }
-    
+
     return true
   }, [getItemQuantity])
 
@@ -182,12 +186,12 @@ const RestaurantHome = () => {
       Alert.alert('Out of Stock', 'This item is currently out of stock.')
       return
     }
-    
+
     // Validate stock before adding
     if (!validateStock(product, 1)) {
       return
     }
-    
+
     const availableStock = product.inventory?.quantity || 0
     updateItemQuantity(product.id, 1, product, availableStock)
   }, [isProductAvailable, validateStock, updateItemQuantity])
@@ -200,14 +204,15 @@ const RestaurantHome = () => {
         return
       }
     }
-    
+
     const availableStock = product.inventory?.quantity || 0
     updateItemQuantity(product.id, change, product, availableStock)
   }, [validateStock, updateItemQuantity])
 
   // Memoized DateCard component
   const DateCard = React.memo(({ date, index, isSelected, onPress }: any) => (
-    <TouchableOpacity onPress={onPress} style={{ width: '27%' }}>
+    <TouchableOpacity onPress={onPress} style={{ width: 80, marginRight: 12 }}>
+
       <MotiView
         animate={{
           backgroundColor: isSelected ? '#FCD34D' : '#FFFFFF',
@@ -255,7 +260,7 @@ const RestaurantHome = () => {
     const isAvailable = isProductAvailable(item)
     const availableStock = item.inventory ? item.inventory.quantity : 0
     const cartQuantity = getItemQuantity(item.id)
-    
+
     // ⭐ FIX: Better stock calculation
     const remainingStock = availableStock - cartQuantity
     const canAddMoreItems = remainingStock > 0 && isAvailable
@@ -279,7 +284,7 @@ const RestaurantHome = () => {
               </Text>
             </View>
           </View>
-          
+
           <View className="flex flex-col gap-4">
             <View className="w-20 h-20 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
               <Text className="text-3xl">{getCategoryIcon(item.category)}</Text>
@@ -302,9 +307,8 @@ const RestaurantHome = () => {
 
                 <TouchableOpacity
                   onPress={() => handleQuantityChange(item, 1)}
-                  className={`w-8 h-8 rounded-full items-center justify-center ${
-                    canAddMoreItems ? 'bg-green-500' : 'bg-gray-400'
-                  }`}
+                  className={`w-8 h-8 rounded-full items-center justify-center ${canAddMoreItems ? 'bg-green-500' : 'bg-gray-400'
+                    }`}
                   activeOpacity={0.7}
                   disabled={!canAddMoreItems}
                 >
@@ -312,17 +316,15 @@ const RestaurantHome = () => {
                 </TouchableOpacity>
               </View>
             ) : (
-              <TouchableOpacity 
-                className={`px-4 py-2 w-20 rounded-full items-center ${
-                  isAvailable ? 'bg-yellow-400' : 'bg-gray-300'
-                }`}
+              <TouchableOpacity
+                className={`px-4 py-2 w-20 rounded-full items-center ${isAvailable ? 'bg-yellow-400' : 'bg-gray-300'
+                  }`}
                 activeOpacity={0.7}
                 disabled={!isAvailable}
                 onPress={() => handleAddToCart(item)}
               >
-                <Text className={`font-semibold text-xs ${
-                  isAvailable ? 'text-gray-900' : 'text-gray-500'
-                }`}>
+                <Text className={`font-semibold text-xs ${isAvailable ? 'text-gray-900' : 'text-gray-500'
+                  }`}>
                   {isAvailable ? 'Add' : 'Out'}
                 </Text>
               </TouchableOpacity>
@@ -340,7 +342,7 @@ const RestaurantHome = () => {
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#FCD34D" />
           <Text className="mt-4 text-gray-600">Loading products...</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             className="mt-4 bg-yellow-400 px-6 py-3 rounded-full"
             onPress={() => {
               setLoading(false)
@@ -360,7 +362,7 @@ const RestaurantHome = () => {
       <SafeAreaView className="flex-1 bg-white">
         <View className="flex-1 justify-center items-center px-4">
           <Text className="text-red-500 text-center mb-4">{error}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             className="bg-yellow-400 px-6 py-3 rounded-full"
             onPress={fetchProducts}
           >
@@ -382,11 +384,11 @@ const RestaurantHome = () => {
           <Text className="text-2xl font-bold text-gray-900">
             Hello Moto !
           </Text>
-          
+
           <View className="flex-row items-center gap-3">
             {/* Cart Button - Instant Updates */}
             {totalCartItems > 0 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="flex-row items-center bg-green-500 px-4 py-2 rounded-full"
                 onPress={() => router.push("/(tabs)/cart")}
                 activeOpacity={0.8}
@@ -399,9 +401,9 @@ const RestaurantHome = () => {
                 </View>
               </TouchableOpacity>
             )}
-            
+
             {/* FAQ Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               className="bg-yellow-400 px-4 py-2 rounded-full"
               onPress={() => router.push("/ticket/faq")}
             >
@@ -412,7 +414,11 @@ const RestaurantHome = () => {
 
         {/* Date Selection */}
         <View className="my-6">
-          <View className="flex-row justify-between px-4">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16 }}
+          >
             {dates.map((date, index) => (
               <DateCard
                 key={date.id}
@@ -422,8 +428,9 @@ const RestaurantHome = () => {
                 onPress={() => setSelectedDate(index)}
               />
             ))}
-          </View>
+          </ScrollView>
         </View>
+
 
         {/* Categories Header */}
         <View className="flex-row justify-between items-center px-4 mb-4">
@@ -475,7 +482,7 @@ const RestaurantHome = () => {
           <Text className="text-gray-400 text-sm mt-2">
             {selectedCategory !== 'All' ? `No ${selectedCategory.toLowerCase()} found` : 'No products in this outlet'}
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             className="mt-4 bg-yellow-400 px-6 py-3 rounded-full"
             onPress={fetchProducts}
           >

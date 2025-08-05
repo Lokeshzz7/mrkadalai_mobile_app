@@ -11,7 +11,7 @@ import {
 import { MotiView } from 'moti'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { apiRequest } from '../../../utils/api'
-import { useAuth } from '../../../context/AuthContext'; 
+import { useAuth } from '../../../context/AuthContext';
 
 interface CartProduct {
     id: number;
@@ -114,7 +114,7 @@ const OrderPayment = () => {
             const response = await apiRequest('/customer/outlets/get-wallet-details', {
                 method: 'GET'
             })
-            
+
             if (response.wallet) {
                 setWalletData(response.wallet)
             }
@@ -160,13 +160,13 @@ const OrderPayment = () => {
 
         try {
             setLoading(true)
-            
+
             // Prepare order data
             const orderData = {
                 totalAmount: finalTotalAmount,
                 paymentMethod: selectedPaymentMethod,
                 deliverySlot: selectedTimeSlot,
-                outletId:outletId,
+                outletId: outletId,
                 items: cartData.items.map(item => ({
                     productId: item.productId,
                     quantity: item.quantity,
@@ -185,8 +185,8 @@ const OrderPayment = () => {
                     `Your order has been placed successfully.\nOrder ID: ${response.order.id}\nDelivery Time: ${selectedTimeSlotDisplay}`,
                     [
                         {
-                            text: 'View Orders',
-                            onPress: () => router.push('/(tabs)/orders')
+                            text: 'Ok',
+                            onPress: () => router.back()
                         }
                     ]
                 )
@@ -238,13 +238,12 @@ const OrderPayment = () => {
             onPress={onPress}
             activeOpacity={0.7}
             disabled={disabled}
-            className={`mb-4 p-4 rounded-xl border-2 ${
-                disabled 
-                    ? 'bg-gray-100 border-gray-200'
-                    : selectedPaymentMethod === type
+            className={`mb-4 p-4 rounded-xl border-2 ${disabled
+                ? 'bg-gray-100 border-gray-200'
+                : selectedPaymentMethod === type
                     ? 'bg-yellow-50 border-yellow-400'
                     : 'bg-white border-gray-200'
-            }`}
+                }`}
         >
             <View className="flex-row items-center">
                 <View className="w-12 h-12 bg-blue-100 rounded-xl items-center justify-center mr-4">
@@ -258,11 +257,10 @@ const OrderPayment = () => {
                         {subtitle}
                     </Text>
                 </View>
-                <View className={`w-6 h-6 rounded-full border-2 ${
-                    selectedPaymentMethod === type
-                        ? 'bg-yellow-400 border-yellow-400'
-                        : 'border-gray-300'
-                }`}>
+                <View className={`w-6 h-6 rounded-full border-2 ${selectedPaymentMethod === type
+                    ? 'bg-yellow-400 border-yellow-400'
+                    : 'border-gray-300'
+                    }`}>
                     {selectedPaymentMethod === type && (
                         <View className="flex-1 items-center justify-center">
                             <Text className="text-white text-xs font-bold">✓</Text>
@@ -377,7 +375,7 @@ const OrderPayment = () => {
                         <PaymentOption
                             type="WALLET"
                             title="Pay by Wallet"
-                            subtitle={walletData 
+                            subtitle={walletData
                                 ? `Available Balance: ${formatCurrency(walletData.balance)}`
                                 : 'Loading wallet balance...'
                             }
@@ -406,9 +404,8 @@ const OrderPayment = () => {
                                     </View>
                                     <View className="flex-row justify-between items-center border-t border-blue-200 pt-2 mt-2">
                                         <Text className="text-base font-semibold text-gray-900">Balance After Payment</Text>
-                                        <Text className={`text-base font-bold ${
-                                            walletData.balance - finalTotalAmount >= 0 ? 'text-green-600' : 'text-red-600'
-                                        }`}>
+                                        <Text className={`text-base font-bold ${walletData.balance - finalTotalAmount >= 0 ? 'text-green-600' : 'text-red-600'
+                                            }`}>
                                             {formatCurrency(walletData.balance - finalTotalAmount)}
                                         </Text>
                                     </View>
@@ -438,11 +435,10 @@ const OrderPayment = () => {
                     <TouchableOpacity
                         onPress={handlePayment}
                         activeOpacity={0.8}
-                        className={`py-4 rounded-xl ${
-                            selectedPaymentMethod && !loading
-                                ? 'bg-yellow-400'
-                                : 'bg-gray-300'
-                        }`}
+                        className={`py-4 rounded-xl ${selectedPaymentMethod && !loading
+                            ? 'bg-yellow-400'
+                            : 'bg-gray-300'
+                            }`}
                         disabled={!selectedPaymentMethod || loading}
                     >
                         <View className="flex-row items-center justify-center">
@@ -451,11 +447,10 @@ const OrderPayment = () => {
                             ) : (
                                 <>
                                     <Text className="text-xl mr-2">💳</Text>
-                                    <Text className={`text-lg font-bold ${
-                                        selectedPaymentMethod
-                                            ? 'text-gray-900'
-                                            : 'text-gray-500'
-                                    }`}>
+                                    <Text className={`text-lg font-bold ${selectedPaymentMethod
+                                        ? 'text-gray-900'
+                                        : 'text-gray-500'
+                                        }`}>
                                         {loading ? 'Processing...' : `Pay Now • ${formatCurrency(finalTotalAmount)}`}
                                     </Text>
                                 </>
