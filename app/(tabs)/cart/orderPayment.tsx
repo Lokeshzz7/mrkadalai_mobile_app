@@ -6,10 +6,12 @@ import {
     TouchableOpacity,
     ScrollView,
     Alert,
-    ActivityIndicator
+    ActivityIndicator,
+    Vibration
 } from 'react-native'
 import { MotiView } from 'moti'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import RazorpayCheckout from 'react-native-razorpay';
 import { apiRequest } from '../../../utils/api'
 import { useAuth } from '../../../context/AuthContext';
 
@@ -137,6 +139,347 @@ const OrderPayment = () => {
 
     const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`
 
+    // ✅ ENHANCED SUCCESS ALERT
+    const showSuccessAlert = (orderData: any, paymentId: string) => {
+        const orderNumber = `#${String(orderData.id).padStart(6, '0')}`
+        const amount = formatCurrency(finalTotalAmount)
+
+        Alert.alert(
+            '🎉 Order Confirmed!',
+            `Congratulations! Your delicious meal is on its way!\n\n` +
+            `📋 Order: ${orderNumber}\n` +
+            `💳 Payment: ${amount}\n` +
+            `🕐 Delivery: ${selectedTimeSlotDisplay}\n` +
+            `📱 Payment ID: ${paymentId.substring(0, 12)}...\n\n` +
+            `Thank you for choosing us! 😊`,
+            [
+                {
+                    text: '🛍️ Continue Shopping',
+                    style: 'cancel',
+                    onPress: () => {
+                        router.push('/menu')
+                    }
+                },
+                {
+                    text: '📋 View Orders',
+                    onPress: () => {
+                        router.push('/orders')
+                    }
+                },
+                {
+                    text: '🏠 Go Home',
+                    onPress: () => {
+                        router.push('/(tabs)')
+                    }
+                }
+            ],
+            {
+                cancelable: false
+            }
+        )
+    }
+
+    // ✅ PAYMENT CANCELLED ALERT
+    const showCancelledAlert = () => {
+        Alert.alert(
+            '😔 Payment Cancelled',
+            `No worries! Your delicious food is still waiting for you.\n\nWould you like to try a different payment method?`,
+            [
+                {
+                    text: 'Try Again',
+                    onPress: () => {
+                        setSelectedPaymentMethod(null)
+                    }
+                },
+                {
+                    text: 'Maybe Later',
+                    style: 'cancel',
+                    onPress: () => router.back()
+                }
+            ]
+        )
+    }
+
+    // ✅ ERROR ALERT
+    const showErrorAlert = (title: string, message: string) => {
+        Alert.alert(
+            `❌ ${title}`,
+            `${message}\n\nDon't worry, we're here to help!`,
+            [
+                {
+                    text: 'Contact Support',
+                    onPress: () => {
+                        Alert.alert('Contact Support', 'Call: +91-XXXXX-XXXXX\nEmail: support@restaurant.com')
+                    }
+                },
+                {
+                    text: 'Try Again',
+                    style: 'default',
+                    onPress: () => {
+                        setSelectedPaymentMethod(null)
+                    }
+                }
+            ]
+        )
+    }
+
+    // ✅ WALLET SUCCESS ALERT
+    const showWalletSuccessAlert = (orderData: any) => {
+        const orderNumber = `#${String(orderData.id).padStart(6, '0')}`
+        const amount = formatCurrency(finalTotalAmount)
+
+        Alert.alert(
+            '🎉 Order Placed Successfully!',
+            `Your wallet payment was successful!\n\n` +
+            `📋 Order: ${orderNumber}\n` +
+            `💳 Amount: ${amount}\n` +
+            `🕐 Delivery: ${selectedTimeSlotDisplay}\n\n` +
+            `Thank you for using your wallet! 😊`,
+            [
+                {
+                    text: '🛍️ Continue Shopping',
+                    style: 'cancel',
+                    onPress: () => {
+                        router.push('/menu')
+                    }
+                },
+                {
+                    text: '📋 View Orders',
+                    onPress: () => {
+                        router.push('/orders')
+                    }
+                },
+                {
+                    text: '🏠 Go Home',
+                    onPress: () => {
+                        router.push('/(tabs)')
+                    }
+                }
+            ],
+            {
+                cancelable: false
+            }
+        )
+    }
+
+    // Create Razorpay order
+    const createRazorpayOrder = async (amount: number) => {
+        try {
+            console.log('Creating Razorpay order for amount:', amount)
+
+            const response = await apiRequest('/customer/outlets/create-razorpay-order', {
+                method: 'POST',
+                body: {
+                    amount: Math.round(amount * 100), // Convert to paise
+                    currency: 'INR',
+                    receipt: `order_${new Date().getTime()}`
+                }
+            })
+
+            console.log('Order creation response:', response)
+
+            if (!response.order || !response.order.id) {
+                throw new Error('Invalid order response from server')
+            }
+
+            return response.order
+        } catch (error) {
+            console.error('Error creating Razorpay order:', error)
+            throw new Error('Failed to create payment order: ' + error.message)
+        }
+    }
+
+    // ✅ ENHANCED RAZORPAY PAYMENT HANDLER
+    const handleRazorpayPayment = async () => {
+        try {
+            setLoading(true)
+            console.log('Starting payment process...')
+            console.log('Final amount:', finalTotalAmount)
+
+            // Create order on your backend
+            const razorpayOrder = await createRazorpayOrder(finalTotalAmount)
+            console.log('Razorpay order created:', razorpayOrder)
+
+            const options = {
+                description: 'Food Order Payment',
+                currency: 'INR',
+                key: 'rzp_test_CqJOLIOhHoCry6', // ✅ Your actual key
+                amount: razorpayOrder.amount, // ✅ Use amount from backend (already in paise)
+                order_id: razorpayOrder.id,
+                name: 'Delicious Bites Restaurant',
+                prefill: {
+                    email: user?.email || 'customer@restaurant.com',
+                    name: user?.name || 'Valued Customer'
+                    // ✅ NO contact field - removes phone requirement
+                },
+                theme: {
+                    color: '#FCD34D'
+                },
+                // ✅ Better UX options
+                modal: {
+                    backdropclose: false,
+                    escape: true,
+                    handleback: true,
+                    ondismiss: () => {
+                        console.log('Payment modal dismissed')
+                        setLoading(false)
+                    }
+                }
+            }
+
+            console.log('Payment options (masked):', {
+                ...options,
+                key: options.key.substring(0, 8) + '****'
+            })
+
+            RazorpayCheckout.open(options)
+                .then(async (paymentData) => {
+                    console.log('✅ Payment successful:', paymentData)
+
+                    // ✅ Success vibration
+                    Vibration.vibrate([100, 200, 100])
+
+                    await verifyPaymentAndCreateOrder(paymentData)
+                })
+                .catch((error) => {
+                    console.log('❌ Payment error:', error)
+                    setLoading(false)
+
+                    // Handle different error types
+                    if (error.description && error.description.includes('cancelled')) {
+                        showCancelledAlert()
+                    } else if (error.code === 'BAD_REQUEST_ERROR') {
+                        showErrorAlert('Invalid Request', 'There was an issue with the payment setup. Please try again.')
+                    } else {
+                        showErrorAlert('Payment Failed', error.description || 'An unexpected error occurred. Please try again.')
+                    }
+
+                    console.error('Detailed Razorpay error:', JSON.stringify(error, null, 2))
+                })
+
+        } catch (error) {
+            console.error('Payment setup error:', error)
+            setLoading(false)
+            showErrorAlert('Setup Error', 'Failed to initialize payment. Please try again.')
+        }
+    }
+
+    // ✅ ENHANCED VERIFY PAYMENT FUNCTION
+    const verifyPaymentAndCreateOrder = async (paymentData: any) => {
+        try {
+            console.log('Verifying payment and creating order...')
+
+            const orderData = {
+                totalAmount: finalTotalAmount,
+                paymentMethod: 'UPI',
+                deliverySlot: selectedTimeSlot,
+                outletId: outletId,
+                items: cartData!.items.map(item => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    unitPrice: item.product.price
+                })),
+                paymentDetails: {
+                    razorpay_order_id: paymentData.razorpay_order_id,
+                    razorpay_payment_id: paymentData.razorpay_payment_id,
+                    razorpay_signature: paymentData.razorpay_signature
+                }
+            }
+
+            const response = await apiRequest('/customer/outlets/customer-order', {
+                method: 'POST',
+                body: orderData
+            })
+
+            if (response.order) {
+                setLoading(false)
+
+                // ✅ Success vibration
+                Vibration.vibrate([200, 100, 200])
+
+                // ✅ Show beautiful success alert
+                setTimeout(() => {
+                    showSuccessAlert(response.order, paymentData.razorpay_payment_id)
+                }, 500)
+
+            } else {
+                throw new Error('Invalid response from server')
+            }
+        } catch (error) {
+            console.error('Order creation error:', error)
+            setLoading(false)
+
+            // Payment successful but order failed
+            Alert.alert(
+                '⚠️ Order Processing Issue',
+                `Your payment of ${formatCurrency(finalTotalAmount)} was successful!\n\n` +
+                `Payment ID: ${paymentData.razorpay_payment_id}\n\n` +
+                `However, there was an issue processing your order. Our team has been notified and will contact you shortly.\n\n` +
+                `Please save your Payment ID for reference.`,
+                [
+                    {
+                        text: 'Contact Support',
+                        onPress: () => {
+                            Alert.alert('Emergency Support', 'Call: +91-XXXXX-XXXXX\nEmail: urgent@restaurant.com')
+                        }
+                    },
+                    {
+                        text: 'OK',
+                        onPress: () => router.back()
+                    }
+                ],
+                { cancelable: false }
+            )
+        }
+    }
+
+    // ✅ ENHANCED WALLET PAYMENT
+    const handleWalletPayment = async () => {
+        try {
+            setLoading(true)
+
+            // Prepare order data
+            const orderData = {
+                totalAmount: finalTotalAmount,
+                paymentMethod: 'WALLET',
+                deliverySlot: selectedTimeSlot,
+                outletId: outletId,
+                items: cartData!.items.map(item => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    unitPrice: item.product.price
+                }))
+            }
+
+            const response = await apiRequest('/customer/outlets/customer-order', {
+                method: 'POST',
+                body: orderData
+            })
+
+            if (response.order) {
+                setLoading(false)
+
+                // ✅ Success vibration
+                Vibration.vibrate([200, 100, 200])
+
+                // ✅ Show wallet success alert
+                setTimeout(() => {
+                    showWalletSuccessAlert(response.order)
+                }, 500)
+            }
+        } catch (error) {
+            console.error('Wallet payment error:', error);
+            setLoading(false)
+
+            if (error instanceof Error) {
+                showErrorAlert('Wallet Payment Failed', error.message);
+            } else {
+                showErrorAlert('Payment Error', 'Failed to process wallet payment');
+            }
+        }
+    }
+
+    // Main payment handler
     const handlePayment = async () => {
         if (!selectedPaymentMethod) {
             Alert.alert('Select Payment Method', 'Please choose how you want to pay')
@@ -153,54 +496,14 @@ const OrderPayment = () => {
             return
         }
 
-        if (selectedPaymentMethod === 'WALLET' && walletData && walletData.balance < finalTotalAmount) {
-            Alert.alert('Insufficient Balance', 'Your wallet balance is insufficient for this order')
-            return
-        }
-
-        try {
-            setLoading(true)
-
-            // Prepare order data
-            const orderData = {
-                totalAmount: finalTotalAmount,
-                paymentMethod: selectedPaymentMethod,
-                deliverySlot: selectedTimeSlot,
-                outletId: outletId,
-                items: cartData.items.map(item => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    unitPrice: item.product.price
-                }))
+        if (selectedPaymentMethod === 'WALLET') {
+            if (walletData && walletData.balance < finalTotalAmount) {
+                Alert.alert('Insufficient Balance', 'Your wallet balance is insufficient for this order')
+                return
             }
-
-            const response = await apiRequest('/customer/outlets/customer-order', {
-                method: 'POST',
-                body: orderData
-            })
-
-            if (response.order) {
-                Alert.alert(
-                    'Order Placed Successfully!',
-                    `Your order has been placed successfully.\nOrder ID: ${response.order.id}\nDelivery Time: ${selectedTimeSlotDisplay}`,
-                    [
-                        {
-                            text: 'Ok',
-                            onPress: () => router.back()
-                        }
-                    ]
-                )
-            }
-        } catch (error) {
-            console.error('Recharge error:', error);
-
-            if (error instanceof Error) {
-                Alert.alert('Error', error.message);
-            } else {
-                Alert.alert('Error', 'Failed to recharge wallet');
-            }
-        } finally {
-            setLoading(false)
+            await handleWalletPayment()
+        } else if (selectedPaymentMethod === 'UPI') {
+            await handleRazorpayPayment()
         }
     }
 
@@ -423,10 +726,41 @@ const OrderPayment = () => {
                         <PaymentOption
                             type="UPI"
                             title="Pay by Online Transaction"
-                            subtitle="UPI, Card, Net Banking"
+                            subtitle="UPI, Card, Net Banking via Razorpay"
                             icon="🌐"
                             onPress={() => setSelectedPaymentMethod('UPI')}
                         />
+
+                        {/* Online Payment Details */}
+                        {selectedPaymentMethod === 'UPI' && (
+                            <MotiView
+                                from={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                transition={{ type: 'timing', duration: 300 }}
+                                className="bg-green-50 rounded-xl p-4 mb-4 border border-green-200"
+                            >
+                                <Text className="text-base font-semibold text-gray-900 mb-3">Online Payment Details</Text>
+                                <View className="space-y-2">
+                                    <View className="flex-row justify-between">
+                                        <Text className="text-gray-700">Payment Amount</Text>
+                                        <Text className="text-gray-900 font-medium">{formatCurrency(finalTotalAmount)}</Text>
+                                    </View>
+                                    <View className="flex-row justify-between">
+                                        <Text className="text-gray-700">Payment Gateway</Text>
+                                        <Text className="text-gray-900 font-medium">Razorpay</Text>
+                                    </View>
+                                    <View className="flex-row justify-between">
+                                        <Text className="text-gray-700">Accepted Methods</Text>
+                                        <Text className="text-gray-900 font-medium">UPI, Cards, Net Banking</Text>
+                                    </View>
+                                </View>
+                                <View className="mt-3 p-2 bg-green-100 rounded-lg">
+                                    <Text className="text-green-700 text-sm font-medium">
+                                        ✓ Secure payment powered by Razorpay. Your payment information is encrypted and secure.
+                                    </Text>
+                                </View>
+                            </MotiView>
+                        )}
                     </View>
                 </MotiView>
 
@@ -443,7 +777,12 @@ const OrderPayment = () => {
                     >
                         <View className="flex-row items-center justify-center">
                             {loading ? (
-                                <ActivityIndicator size="small" color="#374151" />
+                                <>
+                                    <ActivityIndicator size="small" color="#374151" />
+                                    <Text className="text-lg font-bold text-gray-900 ml-2">
+                                        {selectedPaymentMethod === 'UPI' ? 'Opening Payment Gateway...' : 'Processing...'}
+                                    </Text>
+                                </>
                             ) : (
                                 <>
                                     <Text className="text-xl mr-2">💳</Text>
@@ -451,7 +790,10 @@ const OrderPayment = () => {
                                         ? 'text-gray-900'
                                         : 'text-gray-500'
                                         }`}>
-                                        {loading ? 'Processing...' : `Pay Now • ${formatCurrency(finalTotalAmount)}`}
+                                        {selectedPaymentMethod === 'UPI'
+                                            ? `Pay Online • ${formatCurrency(finalTotalAmount)}`
+                                            : `Pay Now • ${formatCurrency(finalTotalAmount)}`
+                                        }
                                     </Text>
                                 </>
                             )}
