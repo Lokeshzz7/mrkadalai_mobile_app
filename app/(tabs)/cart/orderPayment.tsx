@@ -62,6 +62,7 @@ const OrderPayment = () => {
     const [loading, setLoading] = useState(false)
     const [walletLoading, setWalletLoading] = useState(true)
     const [cartData, setCartData] = useState<CartData | null>(null)
+    const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
 
     const { user } = useAuth();
 
@@ -79,13 +80,25 @@ const OrderPayment = () => {
                 router.back()
             }
         }
-    }, [params.cartData])
+
+        // Parse applied coupon
+        if (params.appliedCoupon) {
+            try {
+                const parsedCoupon = JSON.parse(params.appliedCoupon as string)
+                setAppliedCoupon(parsedCoupon)
+            } catch (error) {
+                console.error('Error parsing coupon data:', error)
+            }
+        }
+    }, [params.cartData, params.appliedCoupon])
 
     // Get order details from params or cart data
     const selectedTimeSlot = params.selectedTimeSlot as string
     const selectedTimeSlotDisplay = params.selectedTimeSlotDisplay as string
-    const totalAmount = cartData ? calculateTotal() : parseFloat(params.totalAmount as string || '0')
-    const totalItems = cartData ? calculateTotalItems() : parseInt(params.totalItems as string || '0')
+    const subtotalAmount = parseFloat(params.subtotalAmount as string || '0')
+    const discountAmount = parseFloat(params.discountAmount as string || '0')
+    const orderTotalAmount = parseFloat(params.totalAmount as string || '0') 
+    const totalItems = parseInt(params.totalItems as string || '0')
 
     // Get category icon based on product category
     const getCategoryIcon = (category: string) => {
@@ -135,7 +148,7 @@ const OrderPayment = () => {
     // Additional fees
     const deliveryFee = 2.99
     const serviceFee = 1.50
-    const finalTotalAmount = totalAmount + deliveryFee + serviceFee
+    const finalTotalAmount = orderTotalAmount + deliveryFee + serviceFee
 
     const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`
 
@@ -634,7 +647,7 @@ const OrderPayment = () => {
                         {/* Order Items */}
                         <View className="mb-4">
                             <Text className="text-lg font-bold text-gray-900 mb-3">Items Ordered</Text>
-                            {cartData.items.map((item) => (
+                            {cartData?.items.map((item) => (
                                 <OrderItem key={item.id} item={item} />
                             ))}
                         </View>
@@ -646,16 +659,39 @@ const OrderPayment = () => {
                             <View className="space-y-2">
                                 <View className="flex-row justify-between">
                                     <Text className="text-gray-700">Item Total</Text>
-                                    <Text className="text-gray-900 font-medium">{formatCurrency(totalAmount)}</Text>
+                                    <Text className="text-gray-900 font-medium">{formatCurrency(subtotalAmount)}</Text>
                                 </View>
+
+                                {/* Show applied coupon discount */}
+                                {appliedCoupon && discountAmount > 0 && (
+                                    <View className="bg-green-50 rounded-lg p-3 my-2 border border-green-200">
+                                        <View className="flex-row items-center justify-between mb-1">
+                                            <View className="flex-row items-center">
+                                                <Text className="text-lg mr-2">🎫</Text>
+                                                <Text className="text-green-700 font-semibold">{appliedCoupon.code}</Text>
+                                            </View>
+                                            <Text className="text-green-700 font-bold">-{formatCurrency(discountAmount)}</Text>
+                                        </View>
+                                        <Text className="text-sm text-green-600">{appliedCoupon.description}</Text>
+                                        <Text className="text-sm font-medium text-green-700">You saved {formatCurrency(discountAmount)}!</Text>
+                                    </View>
+                                )}
+
+                                <View className="flex-row justify-between">
+                                    <Text className="text-gray-700">Subtotal After Discount</Text>
+                                    <Text className="text-gray-900 font-medium">{formatCurrency(orderTotalAmount)}</Text>
+                                </View>
+
                                 <View className="flex-row justify-between">
                                     <Text className="text-gray-700">Delivery Fee</Text>
                                     <Text className="text-gray-900 font-medium">{formatCurrency(deliveryFee)}</Text>
                                 </View>
+
                                 <View className="flex-row justify-between">
                                     <Text className="text-gray-700">Service Fee</Text>
                                     <Text className="text-gray-900 font-medium">{formatCurrency(serviceFee)}</Text>
                                 </View>
+
                                 <View className="flex-row justify-between items-center border-t border-gray-200 pt-3 mt-3">
                                     <Text className="text-lg font-bold text-gray-900">Total Amount</Text>
                                     <Text className="text-lg font-bold text-yellow-600">{formatCurrency(finalTotalAmount)}</Text>
