@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Local development: 'http://localhost:3000/api' or 'http://192.168.1.100:3000/api'
 // Production: 'https://your-domain.com/api'
 // Make sure your backend server is running and accessible
-const API_BASE_URL = 'http://192.168.137.120:5500/api'; // Update this to your backend URL
+const API_BASE_URL = 'http://172.16.17.218:5500/api'; // Update this to your backend URL
 
 // 7 days in milliseconds
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
@@ -107,6 +107,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         await AsyncStorage.setItem('token', token);
       }
 
+      if (userData.outletId) {
+        await AsyncStorage.setItem('outletId', String(userData.outletId));
+      }
+
       console.log('✅ User session saved:', {
         email: userData.email,
         timestamp: loginTimestamp,
@@ -134,7 +138,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log('Response status:', response.status);
 
-      // Get response text first to see what we're actually receiving
       const responseText = await response.text();
       console.log('Response text:', responseText);
 
@@ -151,13 +154,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error(data.message || `Login failed with status: ${response.status}`);
       }
 
-      // Save user session with timestamp
-      await saveUserSession(data.user, data.token);
+      // Ensure outletId is always set
+      const normalizedUser = {
+        ...data.user,
+        outletId: data.user.outletId ?? null, // fallback if backend doesn't send it
+      };
 
-      setUser(data.user);
+      // Save user session with timestamp
+      await saveUserSession(normalizedUser, data.token);
+
+      setUser(normalizedUser);
       router.replace('/');
 
-      console.log('✅ Login successful for:', data.user.email);
+      console.log('✅ Login successful for:', normalizedUser.email);
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -165,6 +174,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(false);
     }
   };
+
 
   const signup = async (name: string, email: string, phoneNumber: string, college: string, yearOfStudy: string, password: string) => {
     setIsLoading(true);

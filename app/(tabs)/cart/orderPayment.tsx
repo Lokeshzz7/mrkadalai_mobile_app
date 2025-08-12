@@ -97,7 +97,7 @@ const OrderPayment = () => {
     const selectedTimeSlotDisplay = params.selectedTimeSlotDisplay as string
     const subtotalAmount = parseFloat(params.subtotalAmount as string || '0')
     const discountAmount = parseFloat(params.discountAmount as string || '0')
-    const orderTotalAmount = parseFloat(params.totalAmount as string || '0') 
+    const orderTotalAmount = parseFloat(params.totalAmount as string || '0')
     const totalItems = parseInt(params.totalItems as string || '0')
 
     // Get category icon based on product category
@@ -387,6 +387,7 @@ const OrderPayment = () => {
                 paymentMethod: 'UPI',
                 deliverySlot: selectedTimeSlot,
                 outletId: outletId,
+                couponCode: appliedCoupon.code,
                 items: cartData!.items.map(item => ({
                     productId: item.productId,
                     quantity: item.quantity,
@@ -398,6 +399,9 @@ const OrderPayment = () => {
                     razorpay_signature: paymentData.razorpay_signature
                 }
             }
+
+
+            console.error(orderData);
 
             const response = await apiRequest('/customer/outlets/customer-order', {
                 method: 'POST',
@@ -457,6 +461,8 @@ const OrderPayment = () => {
                 paymentMethod: 'WALLET',
                 deliverySlot: selectedTimeSlot,
                 outletId: outletId,
+                couponCode: appliedCoupon.code,
+
                 items: cartData!.items.map(item => ({
                     productId: item.productId,
                     quantity: item.quantity,
@@ -464,6 +470,7 @@ const OrderPayment = () => {
                 }))
             }
 
+            console.error(orderData);
             const response = await apiRequest('/customer/outlets/customer-order', {
                 method: 'POST',
                 body: orderData

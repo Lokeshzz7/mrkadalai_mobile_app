@@ -70,21 +70,21 @@ const Cart: React.FC = () => {
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null)
     const [refreshing, setRefreshing] = useState(false)
     const [lastOrderCheck, setLastOrderCheck] = useState<string>('')
-    
+
     // Coupon related states
     const [couponCode, setCouponCode] = useState<string>('')
     const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
     const [couponLoading, setCouponLoading] = useState<boolean>(false)
     const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([])
     const [showCoupons, setShowCoupons] = useState<boolean>(false)
-    
+
     // Use cart context
-    const { 
-        state: cartState, 
-        fetchCartData, 
-        updateItemQuantity, 
+    const {
+        state: cartState,
+        fetchCartData,
+        updateItemQuantity,
         removeItem,
-        getTotalCartItems, 
+        getTotalCartItems,
         getItemQuantity,
         canAddMore,
         getTotalPrice,
@@ -131,11 +131,14 @@ const Cart: React.FC = () => {
             return
         }
 
+        const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
+
         setCouponLoading(true)
         try {
             const currentTotal = getTotalPrice()
-            const outletId = cartState.cartData?.items[0]?.product?.outletId || 1 // Get from first item or default
 
+
+            console.log(outletId)
             const response = await apiRequest('/customer/outlets/apply-coupon', {
                 method: 'POST',
                 body: {
@@ -147,18 +150,19 @@ const Cart: React.FC = () => {
 
             // Find the coupon details for description
             const couponDetails = availableCoupons.find(c => c.code.toUpperCase() === code.toUpperCase())
-            
+
             setAppliedCoupon({
                 code: code.toUpperCase(),
                 discount: response.discount,
                 description: couponDetails?.description || 'Discount Applied'
             })
-            
+
             setCouponCode('')
             setShowCoupons(false)
             Alert.alert('Success', `Coupon applied successfully! You saved $${response.discount.toFixed(2)}`)
         } catch (error) {
             Alert.alert('Coupon Error', error.message || 'Failed to apply coupon')
+            console.error(outletId);
             console.error('Error applying coupon:', error)
         } finally {
             setCouponLoading(false)
@@ -193,7 +197,7 @@ const Cart: React.FC = () => {
                 console.error('Error checking order completion:', error)
             }
         }
-        
+
         checkOrderCompletion()
     }, [fetchCartData, refreshProducts, lastOrderCheck])
 
@@ -266,7 +270,7 @@ const Cart: React.FC = () => {
             const totalStock = item.product.inventory?.quantity || 0
             const reservedStock = item.product.inventory?.reserved || 0
             const availableStock = Math.max(0, totalStock - reservedStock)
-            
+
             console.log(`${item.product.name}:`)
             console.log(`  - Current in cart: ${currentQuantity}`)
             console.log(`  - Total stock: ${totalStock}`)
@@ -285,8 +289,8 @@ const Cart: React.FC = () => {
             'Remove this item from cart?',
             [
                 { text: 'Cancel', style: 'cancel' },
-                { 
-                    text: 'Remove', 
+                {
+                    text: 'Remove',
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -301,66 +305,67 @@ const Cart: React.FC = () => {
         )
     }, [removeItem])
 
-const handleCheckout = useCallback(async () => {
-    if (!cartState.cartData || cartState.cartData.items.length === 0) {
-        Alert.alert('Empty Cart', 'Please add items to your cart first')
-        return
-    }
-    if (!selectedTimeSlot) {
-        Alert.alert('Select Time Slot', 'Please select a delivery time slot')
-        return
-    }
+    const handleCheckout = useCallback(async () => {
+        if (!cartState.cartData || cartState.cartData.items.length === 0) {
+            Alert.alert('Empty Cart', 'Please add items to your cart first')
+            return
+        }
+        if (!selectedTimeSlot) {
+            Alert.alert('Select Time Slot', 'Please select a delivery time slot')
+            return
+        }
 
-    // Final stock validation before checkout
-    try {
-        const stockValid = await validateCartStock()
-        if (!stockValid) {
+        // Final stock validation before checkout
+        try {
+            const stockValid = await validateCartStock()
+            if (!stockValid) {
+                Alert.alert(
+                    'Stock Updated',
+                    'Some items in your cart are no longer available or have limited stock. Please review your cart.',
+                    [
+                        { text: 'OK', onPress: () => handleRefresh() }
+                    ]
+                )
+                return
+            }
+        } catch (error) {
+            console.error('Error validating stock:', error)
             Alert.alert(
-                'Stock Updated',
-                'Some items in your cart are no longer available or have limited stock. Please review your cart.',
+                'Validation Error',
+                'Unable to validate stock. Please try again.',
                 [
-                    { text: 'OK', onPress: () => handleRefresh() }
+                    { text: 'Retry', onPress: () => handleCheckout() },
+                    { text: 'Cancel', style: 'cancel' }
                 ]
             )
             return
         }
-    } catch (error) {
-        console.error('Error validating stock:', error)
-        Alert.alert(
-            'Validation Error',
-            'Unable to validate stock. Please try again.',
-            [
-                { text: 'Retry', onPress: () => handleCheckout() },
-                { text: 'Cancel', style: 'cancel' }
-            ]
-        )
-        return
-    }
 
-    const selectedSlot = timeSlots.find(slot => slot.id === selectedTimeSlot)
-    
-    // Set flag for order completion tracking
-    await AsyncStorage.setItem('orderInProgress', 'true')
-    
-    // Calculate all amounts
-    const subtotalAmount = getTotalPrice()
-    const discountAmount = appliedCoupon?.discount || 0
-    const finalTotalAmount = subtotalAmount - discountAmount
-    
-    router.push({
-        pathname: '/(tabs)/cart/orderPayment',
-        params: {
-            cartData: JSON.stringify(cartState.cartData),
-            selectedTimeSlot: selectedSlot?.slot || '',
-            selectedTimeSlotDisplay: selectedSlot?.time || '',
-            subtotalAmount: subtotalAmount.toFixed(2),
-            discountAmount: discountAmount.toFixed(2),
-            totalAmount: finalTotalAmount.toFixed(2), // This is the final amount after discount
-            appliedCoupon: appliedCoupon ? JSON.stringify(appliedCoupon) : '',
-            totalItems: getTotalCartItems().toString()
-        }
-    })
-}, [cartState.cartData, selectedTimeSlot, getTotalPrice, appliedCoupon, getTotalCartItems, router, validateCartStock, handleRefresh])
+        const selectedSlot = timeSlots.find(slot => slot.id === selectedTimeSlot)
+
+        // Set flag for order completion tracking
+        await AsyncStorage.setItem('orderInProgress', 'true')
+
+        // Calculate all amounts
+        const subtotalAmount = getTotalPrice()
+        const discountAmount = appliedCoupon?.discount || 0
+        const finalTotalAmount = subtotalAmount - discountAmount
+        const payCoupon = appliedCoupon ? JSON.stringify(appliedCoupon) : ''
+        setAppliedCoupon(null);
+        router.push({
+            pathname: '/(tabs)/cart/orderPayment',
+            params: {
+                cartData: JSON.stringify(cartState.cartData),
+                selectedTimeSlot: selectedSlot?.slot || '',
+                selectedTimeSlotDisplay: selectedSlot?.time || '',
+                subtotalAmount: subtotalAmount.toFixed(2),
+                discountAmount: discountAmount.toFixed(2),
+                totalAmount: finalTotalAmount.toFixed(2), // This is the final amount after discount
+                appliedCoupon: payCoupon,
+                totalItems: getTotalCartItems().toString()
+            }
+        })
+    }, [cartState.cartData, selectedTimeSlot, getTotalPrice, appliedCoupon, getTotalCartItems, router, validateCartStock, handleRefresh])
 
     const CartItem = React.memo<{ item: CartItem; index: number }>(({ item, index }) => {
         const inventory = item.product.inventory
@@ -373,13 +378,13 @@ const handleCheckout = useCallback(async () => {
         const isOutOfStock = availableStock <= 0
         const isLowStock = availableStock > 0 && availableStock <= 5
         const canAddMoreItems = availableStock > 0
-        
+
         console.log(`${item.product.name}:`, {
             totalStock,
-            reservedStock, 
+            reservedStock,
             canAddMoreItems
         })
-        
+
         return (
             <View className="bg-white mx-4 mb-1 px-4 py-4 flex-row items-center">
                 <View className="w-16 h-16 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
@@ -399,7 +404,7 @@ const handleCheckout = useCallback(async () => {
                         <Text className="text-lg font-bold text-green-600">
                             ${item.product.price.toFixed(2)}
                         </Text>
-                        
+
                         <View className="flex-row items-center">
                             {isOutOfStock ? (
                                 <View className="bg-red-100 px-2 py-1 rounded-full mr-2">
@@ -438,9 +443,8 @@ const handleCheckout = useCallback(async () => {
 
                         <TouchableOpacity
                             onPress={() => handleQuantityChange(item.productId, 1, item.product)}
-                            className={`w-8 h-8 rounded-full items-center justify-center ${
-                                canAddMoreItems ? 'bg-green-500' : 'bg-gray-400'
-                            }`}
+                            className={`w-8 h-8 rounded-full items-center justify-center ${canAddMoreItems ? 'bg-green-500' : 'bg-gray-400'
+                                }`}
                             activeOpacity={0.7}
                             disabled={!canAddMoreItems}
                         >
@@ -546,7 +550,7 @@ const handleCheckout = useCallback(async () => {
                 <Text className="text-xl font-bold text-gray-900">Cart</Text>
 
                 <View className="flex-row items-center">
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         onPress={handleRefresh}
                         className="p-2 mr-2"
                         disabled={refreshing}
@@ -561,8 +565,8 @@ const handleCheckout = useCallback(async () => {
                 </View>
             </View>
 
-            <ScrollView 
-                className="flex-1" 
+            <ScrollView
+                className="flex-1"
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 70 }}
                 refreshControl={
@@ -575,44 +579,6 @@ const handleCheckout = useCallback(async () => {
                 }
             >
                 {/* Cart Summary */}
-                <View className="mx-4 mt-6 mb-6">
-                    <View className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-                        <View className="flex-row items-center justify-between mb-4">
-                            <Text className="text-xl font-bold text-gray-900">Order Summary</Text>
-                            <View className="bg-yellow-100 px-3 py-1 rounded-full">
-                                <Text className="text-yellow-800 text-sm font-medium">
-                                    {totalItems} items
-                                </Text>
-                            </View>
-                        </View>
-
-                        {/* Breakdown */}
-                        <View className="space-y-2">
-                            <View className="flex-row justify-between items-center">
-                                <Text className="text-base text-gray-600">Subtotal</Text>
-                                <Text className="text-base font-medium text-gray-900">
-                                    ${subtotal.toFixed(2)}
-                                </Text>
-                            </View>
-                            
-                            {appliedCoupon && (
-                                <View className="flex-row justify-between items-center">
-                                    <Text className="text-base text-green-600">Discount ({appliedCoupon.code})</Text>
-                                    <Text className="text-base font-medium text-green-600">
-                                        -${discount.toFixed(2)}
-                                    </Text>
-                                </View>
-                            )}
-
-                            <View className="flex-row justify-between items-center pt-4 border-t border-gray-100">
-                                <Text className="text-lg font-semibold text-gray-700">Total Amount</Text>
-                                <Text className="text-2xl font-bold text-green-600">
-                                    ${finalTotal.toFixed(2)}
-                                </Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
 
                 {/* Cart Items */}
                 {cartItems.length > 0 ? (
@@ -731,6 +697,45 @@ const handleCheckout = useCallback(async () => {
                         </View>
                     </View>
                 )}
+
+                <View className="mx-4 mt-6 mb-6">
+                    <View className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                        <View className="flex-row items-center justify-between mb-4">
+                            <Text className="text-xl font-bold text-gray-900">Order Summary</Text>
+                            <View className="bg-yellow-100 px-3 py-1 rounded-full">
+                                <Text className="text-yellow-800 text-sm font-medium">
+                                    {totalItems} items
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* Breakdown */}
+                        <View className="space-y-2">
+                            <View className="flex-row justify-between items-center">
+                                <Text className="text-base text-gray-600">Subtotal</Text>
+                                <Text className="text-base font-medium text-gray-900">
+                                    ${subtotal.toFixed(2)}
+                                </Text>
+                            </View>
+
+                            {appliedCoupon && (
+                                <View className="flex-row justify-between items-center">
+                                    <Text className="text-base text-green-600">Discount ({appliedCoupon.code})</Text>
+                                    <Text className="text-base font-medium text-green-600">
+                                        -${discount.toFixed(2)}
+                                    </Text>
+                                </View>
+                            )}
+
+                            <View className="flex-row justify-between items-center pt-4 border-t border-gray-100">
+                                <Text className="text-lg font-semibold text-gray-700">Total Amount</Text>
+                                <Text className="text-2xl font-bold text-green-600">
+                                    ${finalTotal.toFixed(2)}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
 
                 {/* Delivery Time Selection */}
                 {cartItems.length > 0 && (
