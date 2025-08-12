@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE_URL = "http://172.16.17.218:5500/api";
+const API_BASE_URL = "http://192.168.137.1:5500/api";
 
 interface RequestOptions extends RequestInit {
   body?: any;
@@ -18,7 +18,7 @@ export const apiRequest = async (
     method: options.method,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+
       ...(options.headers || {}),
     },
     ...options,

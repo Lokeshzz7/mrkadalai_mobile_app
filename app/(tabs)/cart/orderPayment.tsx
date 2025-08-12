@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import RazorpayCheckout from 'react-native-razorpay';
 import { apiRequest } from '../../../utils/api'
 import { useAuth } from '../../../context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface CartProduct {
     id: number;
@@ -99,6 +100,17 @@ const OrderPayment = () => {
     const discountAmount = parseFloat(params.discountAmount as string || '0')
     const orderTotalAmount = parseFloat(params.totalAmount as string || '0')
     const totalItems = parseInt(params.totalItems as string || '0')
+    const [selectedDate, setSelectedDate] = useState(null);
+
+    useEffect(() => {
+        const fetchSelectedDate = async () => {
+            const storedDate = await AsyncStorage.getItem('Date');
+            if (storedDate) {
+                setSelectedDate(JSON.parse(storedDate));
+            }
+        };
+        fetchSelectedDate();
+    }, []);
 
     // Get category icon based on product category
     const getCategoryIcon = (category: string) => {
@@ -387,7 +399,8 @@ const OrderPayment = () => {
                 paymentMethod: 'UPI',
                 deliverySlot: selectedTimeSlot,
                 outletId: outletId,
-                couponCode: appliedCoupon.code,
+                couponCode: appliedCoupon?.code || "",
+                deliveryDate: selectedDate?.fullDate ? new Date(selectedDate.fullDate) : null,
                 items: cartData!.items.map(item => ({
                     productId: item.productId,
                     quantity: item.quantity,
@@ -461,7 +474,8 @@ const OrderPayment = () => {
                 paymentMethod: 'WALLET',
                 deliverySlot: selectedTimeSlot,
                 outletId: outletId,
-                couponCode: appliedCoupon.code,
+                couponCode: appliedCoupon?.code || "",
+                deliveryDate: selectedDate?.fullDate ? new Date(selectedDate.fullDate) : null,
 
                 items: cartData!.items.map(item => ({
                     productId: item.productId,
@@ -647,8 +661,22 @@ const OrderPayment = () => {
                                 </View>
                             </View>
                             <Text className="text-sm text-gray-600">
-                                Delivery Time: {selectedTimeSlotDisplay}
+
+                                Delivery Time:
+                                {selectedTimeSlotDisplay}
                             </Text>
+                            <Text className="text-sm text-gray-600">
+                                Selected Date:{" "}
+                                {selectedDate?.fullDate
+                                    ? new Date(selectedDate.fullDate).toLocaleDateString("en-US", {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
+                                    })
+                                    : "Not selected"}
+                            </Text>
+
+
                         </View>
 
                         {/* Order Items */}

@@ -14,6 +14,7 @@ import { router } from 'expo-router'
 import { apiRequest } from '../../utils/api'
 import { useFocusEffect } from '@react-navigation/native'
 import { useCart } from '../../context/CartContext'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Types
 interface Product {
@@ -51,24 +52,44 @@ const RestaurantHome = () => {
   } = useCart()
 
   // Memoize dates to prevent re-calculation
-  const dates = useMemo(() => {
-    const dateList = []
-    const today = new Date()
+  const [dates, setDates] = useState([]);
 
-    for (let i = 0; i < 20; i++) {
-      const date = new Date(today)
-      date.setDate(today.getDate() + i)
-      dateList.push({
-        id: i,
-        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        date: date.getDate(),
-        month: date.toLocaleDateString('en-US', { month: 'short' }),
-        fullDate: date,
-      })
-    }
+  useEffect(() => {
+    const fetchDates = async () => {
+      try {
+        const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
+        const response = await apiRequest(`/customer/outlets/get-appdates/${outletId}`, {
+          method: 'GET'
+        });
 
-    return dateList
-  }, [])
+        console.log("Full API response:", response);
+        console.log("Dates array:", response.data?.data);
+
+
+        const dateList = response.data.map((item, index) => {
+          const dateObj = new Date(item.date);
+          return {
+            id: index,
+            day: dateObj.toLocaleDateString('en-US', { weekday: 'short' }),
+            date: dateObj.getDate(),
+            month: dateObj.toLocaleDateString('en-US', { month: 'short' }),
+            fullDate: dateObj,
+            availableSlots: item.availableSlots
+          };
+        });
+
+        setDates(dateList);
+        if (dateList.length > 0) {
+          await AsyncStorage.setItem("Date", JSON.stringify(dateList[0]));
+          console.log("Default date saved:", dateList[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching available dates:", error);
+      }
+    };
+
+    fetchDates();
+  }, []);
 
 
   // Category mapping with icons
@@ -425,7 +446,15 @@ const RestaurantHome = () => {
                 date={date}
                 index={index}
                 isSelected={selectedDate === index}
-                onPress={() => setSelectedDate(index)}
+                onPress={async () => {
+                  setSelectedDate(index);
+                  try {
+                    await AsyncStorage.setItem('Date', JSON.stringify(date));
+                    console.log('Date saved:', date);
+                  } catch (error) {
+                    console.error('Error saving date', error);
+                  }
+                }}
               />
             ))}
           </ScrollView>

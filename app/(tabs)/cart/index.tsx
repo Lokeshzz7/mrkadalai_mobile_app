@@ -114,8 +114,9 @@ const Cart: React.FC = () => {
 
     // Fetch available coupons
     const fetchCoupons = useCallback(async () => {
+        const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
         try {
-            const coupons = await apiRequest('/customer/outlets/coupons', {
+            const coupons = await apiRequest(`/customer/outlets/coupons/${outletId}`, {
                 method: 'GET'
             })
             setAvailableCoupons(coupons)
