@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "554584672665",
+    "project_id": "mrkadalai-16fdc",
+    "storage_bucket": "mrkadalai-16fdc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:554584672665:android:4078a81fa88a80af16ab08",
+        "android_client_info": {
+          "package_name": "com.anonymous.mobile_movie_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDryYRkiKVEHeg9xh6dx6Mg7l4cMNyJo7I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 type User = {
   id: string;
@@ -40,7 +41,8 @@ const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Start as true
+  const { registerForPushNotifications, unregisterForPushNotifications } = usePushNotifications();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -55,58 +57,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           loginTimestamp
         });
 
+
+
         if (userString) {
           const currentTime = Date.now();
           const loginTime = loginTimestamp ? parseInt(loginTimestamp) : 0;
           const timeDifference = currentTime - loginTime;
 
-          console.log('Time check:', {
-            currentTime,
-            loginTime,
-            timeDifference,
-            sessionDuration: SESSION_DURATION,
-            isExpired: timeDifference > SESSION_DURATION
-          });
-
-          // Check if session is still valid (within 7 days)
           if (loginTime && timeDifference <= SESSION_DURATION) {
             const userData = JSON.parse(userString);
             setUser(userData);
             console.log('✅ User session is valid, auto-logging in:', userData.email);
             router.replace('/');
+
+            registerForPushNotifications();
           } else {
             console.log('❌ User session expired, clearing data');
             // Session expired, clear data
             await AsyncStorage.multiRemove(['user', 'token', 'loginTimestamp']);
             router.replace('/auth/login');
+
           }
         } else {
           console.log('❌ No user data found, redirecting to login');
           router.replace('/auth/login');
+
         }
       } catch (error) {
         console.error('Failed to load user:', error);
         // On error, redirect to login
         router.replace('/auth/login');
+
       } finally {
         setIsLoading(false);
       }
     };
-
     loadUser();
   }, []);
 
   const saveUserSession = async (userData: User, token?: string) => {
+    // This function remains the same
     try {
       const loginTimestamp = Date.now().toString();
-
       await AsyncStorage.setItem('user', JSON.stringify(userData));
       await AsyncStorage.setItem('loginTimestamp', loginTimestamp);
-
       if (token) {
         await AsyncStorage.setItem('token', token);
       }
-
       if (userData.outletId) {
         await AsyncStorage.setItem('outletId', String(userData.outletId));
       }
@@ -116,68 +113,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         timestamp: loginTimestamp,
         expiresAt: new Date(Date.now() + SESSION_DURATION).toISOString()
       });
-    } catch (error) {
-      console.error('Failed to save user session:', error);
-      throw error;
+
+
+    } catch (e) {
+      console.error("Failed to save session", e);
     }
   };
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
+    // Note: No setIsLoading(true) here, isLoading is handled by the RootLayout
     try {
-      console.log('Login request URL:', `${API_BASE_URL}/auth/signin`);
-      console.log('Login request body:', { email, password: '***' });
-
       const response = await fetch(`${API_BASE_URL}/auth/signin`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Login failed');
 
-      console.log('Response status:', response.status);
-
-      const responseText = await response.text();
-      console.log('Response text:', responseText);
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-        console.error('Response was:', responseText);
-        throw new Error(`Server returned invalid response. Status: ${response.status}. Please check if the server is running and the URL is correct.`);
-      }
-
-      if (!response.ok) {
-        throw new Error(data.message || `Login failed with status: ${response.status}`);
-      }
-
-      // Ensure outletId is always set
-      const normalizedUser = {
-        ...data.user,
-        outletId: data.user.outletId ?? null, // fallback if backend doesn't send it
-      };
-
-      // Save user session with timestamp
+      const normalizedUser = { ...data.user, outletId: data.user.outletId ?? null };
       await saveUserSession(normalizedUser, data.token);
 
+      // Update state, which will trigger the layout to navigate
       setUser(normalizedUser);
-      router.replace('/');
 
+      await registerForPushNotifications();
+
+      router.replace('/');
       console.log('✅ Login successful for:', normalizedUser.email);
+
+
     } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
+      console.error('Login error:', error);
+      throw error; // Re-throw the error so the login page can display it
     }
   };
 
-
   const signup = async (name: string, email: string, phoneNumber: string, college: string, yearOfStudy: string, password: string) => {
     setIsLoading(true);
+
     try {
       // Map college names to IDs
       const collegeMap: { [key: string]: number } = {
@@ -214,49 +188,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         yearOfStudy: yearOfStudyNumber
       };
 
-      console.log('Signup request URL:', `${API_BASE_URL}/auth/signup`);
       console.log('Signup request body:', requestBody);
 
-      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+
+      // ... (Your signup mapping logic)
+      const response = await fetch(`${API_BASE_URL}/auth/signup`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
 
       console.log('Response status:', response.status);
       console.log('Response headers:', response.headers);
 
-      // Get response text first to see what we're actually receiving
-      const responseText = await response.text();
-      console.log('Response text:', responseText);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Signup failed');
 
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-        console.error('Response was:', responseText);
-        throw new Error(`Server returned invalid response. Status: ${response.status}. Please check if the server is running and the URL is correct.`);
-      }
-
-      if (!response.ok) {
-        throw new Error(data.message || `Signup failed with status: ${response.status}`);
-      }
-
-      // Save user session with timestamp
       await saveUserSession(data.user, data.token);
 
+      // Update state, which will trigger the layout to navigate
       setUser(data.user);
+
+      await registerForPushNotifications();
+
+
       router.replace('/');
 
-      console.log('✅ Signup successful for:', data.user.email);
     } catch (error) {
-      console.error('Signup failed:', error);
+      console.error('Signup error:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -265,7 +228,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const token = await AsyncStorage.getItem('token');
 
       if (token) {
-        // Try to logout from server, but don't wait for it
         fetch(`${API_BASE_URL}/auth/logout`, {
           method: 'POST',
           headers: {
@@ -275,16 +237,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }).catch(console.error);
       }
 
-      // Clear all auth data including timestamp
-      await AsyncStorage.multiRemove(['user', 'token', 'loginTimestamp']);
-      setUser(null);
-      router.replace('/auth/login');
 
-      console.log('✅ User logged out successfully');
-    } catch (error) {
+      await unregisterForPushNotifications();
+      await AsyncStorage.multiRemove(['user', 'token', 'loginTimestamp']);
+      // Update state, which will trigger the layout to navigate
+      setUser(null);
+
+      router.replace('/auth/login');
+    }
+    catch (error) {
       console.error('Logout failed:', error);
     }
   };
+
 
   // Function to check if user session is still valid
   const checkSessionValidity = async () => {
