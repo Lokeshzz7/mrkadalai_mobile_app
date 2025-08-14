@@ -14,41 +14,54 @@ import {
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
 import { apiRequest } from '../../../utils/api'
+import RazorpayCheckout from 'react-native-razorpay';
 
 interface RequestOptions extends RequestInit {
-  body?: any;
+    body?: any;
 }
 
 // Wallet API Services
 const walletAPI = {
-  // 1. Recharge wallet
-  rechargeWallet: async (amount: number, paymentMethod: string) => {
-    return apiRequest('/customer/outlets/recharge-wallet', {
-      method: 'POST',
-      body: { amount, paymentMethod }
-    });
-  },
+    // 1. Create a Razorpay order before payment
+    createRechargeOrder: async (amount: number) => {
+        return apiRequest('/customer/outlets/create-wallet-recharge-order', {
+            method: 'POST',
+            body: { amount }
+        });
+    },
 
-  // 2. Get recent transactions (all transactions)
-  getRecentTransactions: async () => {
-    return apiRequest('/customer/outlets/get-recent-recharge', {
-      method: 'GET'
-    });
-  },
+    // 2. Verify the payment after the user completes it on Razorpay
+    verifyRechargePayment: async (paymentData: {
+        razorpay_order_id: string;
+        razorpay_payment_id: string;
+        razorpay_signature: string;
+    }) => {
+        return apiRequest('/customer/outlets/verify-wallet-recharge', {
+            method: 'POST',
+            body: paymentData
+        });
+    },
 
-  // 3. Get wallet details
-  getWalletDetails: async () => {
-    return apiRequest('/customer/outlets/get-wallet-details', {
-      method: 'GET'
-    });
-  },
+    // 3. Get recent transactions (all transactions)
+    getRecentTransactions: async () => {
+        return apiRequest('/customer/outlets/get-recent-recharge', {
+            method: 'GET'
+        });
+    },
 
-  // 4. Get recharge history only
-  getRechargeHistory: async () => {
-    return apiRequest('/customer/outlets/get-recharge-history', {
-      method: 'GET'
-    });
-  }
+    // 4. Get wallet details
+    getWalletDetails: async () => {
+        return apiRequest('/customer/outlets/get-wallet-details', {
+            method: 'GET'
+        });
+    },
+
+    // 5. Get recharge history only
+    getRechargeHistory: async () => {
+        return apiRequest('/customer/outlets/get-recharge-history', {
+            method: 'GET'
+        });
+    }
 };
 
 type RechargeHistoryItem = {
@@ -108,14 +121,14 @@ const Wallet = () => {
         const date = new Date(transaction.createdAt);
         return {
             id: transaction.id.toString(),
-            amount: transaction.amount,
+            amount: transaction.walletAmount || 0,
             date: date.toISOString().split('T')[0],
             time: date.toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
                 hour12: true
             }),
-            status: transaction.status === 'RECHARGE' ? 'successful' : 'pending',
+            status: 'successful',
             transactionId: `TXN${transaction.id}`,
             method: transaction.method,
             createdAt: transaction.createdAt
@@ -126,7 +139,7 @@ const Wallet = () => {
         const date = new Date(transaction.createdAt);
         return {
             id: transaction.id.toString(),
-            amount: transaction.amount,
+            amount: transaction.amount || 0,
             date: date.toISOString().split('T')[0],
             time: date.toLocaleTimeString('en-US', {
                 hour: '2-digit',
@@ -147,7 +160,7 @@ const Wallet = () => {
         try {
             setIsLoading(true);
             const response = await walletAPI.getWalletDetails();
-            
+
             if (response.wallet) {
                 setWalletBalance(response.wallet.balance || 0);
                 setTotalRecharged(response.wallet.totalRecharged || 0);
@@ -167,7 +180,7 @@ const Wallet = () => {
     const fetchRechargeHistory = async () => {
         try {
             const response = await walletAPI.getRechargeHistory();
-            
+
             if (response.rechargeHistory) {
                 const transformedHistory = response.rechargeHistory.map(transformRechargeTransaction);
                 setRechargeHistory(transformedHistory);
@@ -182,7 +195,7 @@ const Wallet = () => {
     const fetchAllTransactions = async () => {
         try {
             const response = await walletAPI.getRecentTransactions();
-            
+
             if (response.transactions) {
                 const transformedTransactions = response.transactions.map(transformAllTransactions);
                 setTransactionHistory(transformedTransactions);
@@ -249,44 +262,80 @@ const Wallet = () => {
     }
 
     const handleRecharge = async () => {
-        if (!rechargeAmount || parseFloat(rechargeAmount) <= 0) {
-            Alert.alert('Invalid Amount', 'Please enter a valid amount');
+        const amount = parseFloat(rechargeAmount);
+        if (isNaN(amount) || amount <= 0) {
+            Alert.alert('Invalid Amount', 'Please enter a valid amount greater than 0.');
             return;
         }
 
+        setIsRecharging(true);
+
         try {
-            setIsRecharging(true);
-            
-            const response = await walletAPI.rechargeWallet(
-                parseFloat(rechargeAmount), 
-                selectedPaymentMethod
-            );
+            // Step 1: Create an order from your backend
+            const orderResponse = await walletAPI.createRechargeOrder(amount);
 
-            if (response.wallet) {
-                // Update wallet balance
-                setWalletBalance(response.wallet.balance);
-                setTotalRecharged(response.wallet.totalRecharged || 0);
-                
-                // Refresh data
-                await Promise.all([
-                    fetchRechargeHistory(),
-                    fetchAllTransactions()
-                ]);
+            if (!orderResponse.order || !orderResponse.order.id) {
+                throw new Error(orderResponse.message || 'Failed to create payment order.');
             }
 
-            setRechargeAmount('');
-            setShowOptionsModal(false);
-            Alert.alert('Success', 'Wallet recharged successfully!');
-            
-        } catch (error) {
-            console.error('Recharge error:', error);
+            const { id: order_id, amount: payableAmount } = orderResponse.order; // amount is in paise
+            const { serviceCharge } = orderResponse.breakdown;
 
-            if (error instanceof Error) {
-                Alert.alert('Error', error.message);
-            } else {
-                Alert.alert('Error', 'Failed to recharge wallet');
-            }
-        } finally {
+            // Prepare options for Razorpay Checkout
+            const options = {
+                description: `Recharge for ₹${amount} (+ ₹${serviceCharge} fee)`,
+                currency: 'INR',
+                key: 'rzp_test_CqJOLIOhHoCry6', // IMPORTANT: Replace with your actual Razorpay Key ID
+                amount: payableAmount, // Amount in paise, from your backend response
+                name: 'Delicious Bites Restaurant', // Your application's name
+                order_id: order_id, // The unique order_id from your backend
+                prefill: {
+                    email: 'customer@restaurant.com',
+                    name: 'Valued Customer'
+                },
+                theme: { color: '#FCD34D' }, // Match your app's theme color
+            };
+
+            // Step 2: Open Razorpay Checkout and handle the response
+            RazorpayCheckout.open(options).then(async (data) => {
+                // This block runs when the payment is successful on Razorpay's end
+                try {
+                    // Step 3: Verify the payment on your backend for security
+                    const verificationData = {
+                        razorpay_order_id: data.razorpay_order_id,
+                        razorpay_payment_id: data.razorpay_payment_id,
+                        razorpay_signature: data.razorpay_signature,
+                    };
+
+                    const verifyResponse = await walletAPI.verifyRechargePayment(verificationData);
+
+                    if (verifyResponse.wallet) {
+                        Alert.alert('Success', 'Wallet recharged successfully!');
+                        setRechargeAmount('');
+
+                        // Refresh all wallet data to show the new balance and transaction history
+                        await loadInitialData();
+                    } else {
+                        // Handle cases where verification fails on the server
+                        throw new Error(verifyResponse.message || 'Payment verification failed. Please contact support.');
+                    }
+                } catch (verificationError) {
+                    console.error('Verification Error:', verificationError);
+                    Alert.alert('Verification Failed', verificationError.message);
+                } finally {
+                    setIsRecharging(false);
+                }
+            }).catch((error) => {
+                // This block runs if the user cancels or the payment fails
+                console.log(`Razorpay Error: ${error.code} | ${error.description}`);
+                Alert.alert('Payment Failed', 'The payment was not completed. Please try again.');
+                setIsRecharging(false);
+            });
+
+        } catch (apiError) {
+            // This block catches errors from your API (e.g., failing to create the order)
+            console.error('Recharge initiation error:', apiError);
+            Alert.alert('Error', apiError.message || 'Could not initiate the recharge process.');
             setIsRecharging(false);
         }
     };
@@ -436,9 +485,9 @@ const Wallet = () => {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView 
-                className="flex-1" 
-                showsVerticalScrollIndicator={false} 
+            <ScrollView
+                className="flex-1"
+                showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 70 }}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -534,18 +583,16 @@ const Wallet = () => {
                             {quickRechargeAmounts.map((amount) => (
                                 <TouchableOpacity
                                     key={amount}
-                                    className={`px-4 py-2 rounded-xl flex-1 mx-1 ${
-                                        rechargeAmount === amount.toString() 
-                                            ? 'bg-yellow-400 border-yellow-500' 
-                                            : 'bg-yellow-100 border-yellow-200'
-                                    } border`}
+                                    className={`px-4 py-2 rounded-xl flex-1 mx-1 ${rechargeAmount === amount.toString()
+                                        ? 'bg-yellow-400 border-yellow-500'
+                                        : 'bg-yellow-100 border-yellow-200'
+                                        } border`}
                                     onPress={() => setRechargeAmount(amount.toString())}
                                 >
-                                    <Text className={`text-center font-medium ${
-                                        rechargeAmount === amount.toString() 
-                                            ? 'text-gray-900' 
-                                            : 'text-gray-800'
-                                    }`}>
+                                    <Text className={`text-center font-medium ${rechargeAmount === amount.toString()
+                                        ? 'text-gray-900'
+                                        : 'text-gray-800'
+                                        }`}>
                                         ₹{amount}
                                     </Text>
                                 </TouchableOpacity>
@@ -572,18 +619,16 @@ const Wallet = () => {
                                 {paymentMethods.map((method) => (
                                     <TouchableOpacity
                                         key={method}
-                                        className={`px-3 py-2 rounded-lg mr-2 mb-2 border ${
-                                            selectedPaymentMethod === method 
-                                                ? 'bg-yellow-400 border-yellow-500' 
-                                                : 'bg-gray-100 border-gray-200'
-                                        }`}
+                                        className={`px-3 py-2 rounded-lg mr-2 mb-2 border ${selectedPaymentMethod === method
+                                            ? 'bg-yellow-400 border-yellow-500'
+                                            : 'bg-gray-100 border-gray-200'
+                                            }`}
                                         onPress={() => setSelectedPaymentMethod(method)}
                                     >
-                                        <Text className={`text-sm font-medium ${
-                                            selectedPaymentMethod === method 
-                                                ? 'text-gray-900' 
-                                                : 'text-gray-600'
-                                        }`}>
+                                        <Text className={`text-sm font-medium ${selectedPaymentMethod === method
+                                            ? 'text-gray-900'
+                                            : 'text-gray-600'
+                                            }`}>
                                             {method}
                                         </Text>
                                     </TouchableOpacity>
@@ -664,14 +709,14 @@ const Wallet = () => {
                         <Text className="text-lg font-bold text-gray-900">
                             {activeTab === 'recharge' ? 'Recent Recharges' : 'Recent Transactions'}
                         </Text>
-                        {((activeTab === 'recharge' && rechargeHistory.length > 3) || 
-                          (activeTab === 'transaction' && transactionHistory.length > 3)) && (
-                            <TouchableOpacity onPress={handleSeeAll}>
-                                <Text className="text-yellow-600 font-medium">
-                                    {getCurrentShowAll() ? 'Show Less' : 'See All'}
-                                </Text>
-                            </TouchableOpacity>
-                        )}
+                        {((activeTab === 'recharge' && rechargeHistory.length > 3) ||
+                            (activeTab === 'transaction' && transactionHistory.length > 3)) && (
+                                <TouchableOpacity onPress={handleSeeAll}>
+                                    <Text className="text-yellow-600 font-medium">
+                                        {getCurrentShowAll() ? 'Show Less' : 'See All'}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
                     </View>
 
                     {getCurrentData().length === 0 ? (

@@ -10,7 +10,7 @@ import {
     Vibration
 } from 'react-native'
 import { MotiView } from 'moti'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router'
 import RazorpayCheckout from 'react-native-razorpay';
 import { apiRequest } from '../../../utils/api'
 import { useAuth } from '../../../context/AuthContext';
@@ -56,6 +56,7 @@ interface WalletData {
 
 const OrderPayment = () => {
     const router = useRouter()
+    const navigation = useNavigation();
     const params = useLocalSearchParams()
     const { clearCart } = useCart()
     // States
@@ -180,24 +181,10 @@ const OrderPayment = () => {
             `Thank you for choosing us! 😊`,
             [
                 {
-                    text: '🛍️ Continue Shopping',
-                    style: 'cancel',
-                    onPress: () => {
-                        clearCart();
-                        router.replace('/menu')
-                    }
-                },
-                {
-                    text: '📋 View Orders',
-                    onPress: () => {
-                        clearCart();
-                        router.replace('/orders')
-                    }
-                },
-                {
                     text: '🏠 Go Home',
                     onPress: () => {
                         clearCart();
+                        navigation.popToTop();
                         router.replace('/(tabs)')
                     }
                 }
@@ -266,24 +253,11 @@ const OrderPayment = () => {
             `Thank you for using your wallet! 😊`,
             [
                 {
-                    text: '🛍️ Continue Shopping',
-                    style: 'cancel',
-                    onPress: () => {
-                        clearCart();
-                        router.replace('/menu')
-                    }
-                },
-                {
-                    text: '📋 View Orders',
-                    onPress: () => {
-                        clearCart();
-                        router.replace('/orders')
-                    }
-                },
-                {
                     text: '🏠 Go Home',
                     onPress: () => {
                         clearCart();
+                        navigation.popToTop();
+
                         router.replace('/(tabs)')
                     }
                 }
