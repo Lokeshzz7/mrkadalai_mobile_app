@@ -34,7 +34,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Local development: 'http://localhost:3000/api' or 'http://192.168.1.100:3000/api'
 // Production: 'https://your-domain.com/api'
 // Make sure your backend server is running and accessible
-const API_BASE_URL = 'http://192.168.137.1:5500/api'; // Update this to your backend URL
+const API_BASE_URL = 'http://192.168.137.228:5500/api'; // Update this to your backend URL
 
 // 7 days in milliseconds
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;

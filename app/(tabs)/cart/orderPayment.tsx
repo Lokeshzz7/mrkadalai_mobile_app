@@ -15,6 +15,7 @@ import RazorpayCheckout from 'react-native-razorpay';
 import { apiRequest } from '../../../utils/api'
 import { useAuth } from '../../../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCart } from '@/context/CartContext';
 
 interface CartProduct {
     id: number;
@@ -56,7 +57,7 @@ interface WalletData {
 const OrderPayment = () => {
     const router = useRouter()
     const params = useLocalSearchParams()
-
+    const { clearCart } = useCart()
     // States
     const [walletData, setWalletData] = useState<WalletData | null>(null)
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'WALLET' | 'UPI' | null>(null)
@@ -182,19 +183,22 @@ const OrderPayment = () => {
                     text: '🛍️ Continue Shopping',
                     style: 'cancel',
                     onPress: () => {
-                        router.push('/menu')
+                        clearCart();
+                        router.replace('/menu')
                     }
                 },
                 {
                     text: '📋 View Orders',
                     onPress: () => {
-                        router.push('/orders')
+                        clearCart();
+                        router.replace('/orders')
                     }
                 },
                 {
                     text: '🏠 Go Home',
                     onPress: () => {
-                        router.push('/(tabs)')
+                        clearCart();
+                        router.replace('/(tabs)')
                     }
                 }
             ],
@@ -265,19 +269,22 @@ const OrderPayment = () => {
                     text: '🛍️ Continue Shopping',
                     style: 'cancel',
                     onPress: () => {
-                        router.push('/menu')
+                        clearCart();
+                        router.replace('/menu')
                     }
                 },
                 {
                     text: '📋 View Orders',
                     onPress: () => {
-                        router.push('/orders')
+                        clearCart();
+                        router.replace('/orders')
                     }
                 },
                 {
                     text: '🏠 Go Home',
                     onPress: () => {
-                        router.push('/(tabs)')
+                        clearCart();
+                        router.replace('/(tabs)')
                     }
                 }
             ],

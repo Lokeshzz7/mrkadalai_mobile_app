@@ -12,7 +12,7 @@ import {
 } from 'react-native'
 import { MotiView } from 'moti'
 import { useRouter } from 'expo-router'
-import { useFocusEffect } from '@react-navigation/native'
+import { useFocusEffect, useIsFocused } from '@react-navigation/native'
 import { useCart } from '../../../context/CartContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiRequest } from '../../../utils/api' // Import your API utility
@@ -67,6 +67,7 @@ interface AppliedCoupon {
 
 const Cart: React.FC = () => {
     const router = useRouter()
+    const isFocused = useIsFocused();
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null)
     const [refreshing, setRefreshing] = useState(false)
     const [lastOrderCheck, setLastOrderCheck] = useState<string>('')
@@ -524,6 +525,14 @@ const Cart: React.FC = () => {
             </View>
         </TouchableOpacity>
     ))
+
+    if (!isFocused) {
+        return (
+            <SafeAreaView className="flex-1 bg-gray-50 justify-center items-center">
+                <ActivityIndicator size="large" color="#FCD34D" />
+            </SafeAreaView>
+        );
+    }
 
     // Initial loading state
     if (cartState.loading) {
