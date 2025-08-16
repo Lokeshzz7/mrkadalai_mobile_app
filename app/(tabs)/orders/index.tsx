@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import {
     FlatList,
     Text,
@@ -9,7 +9,8 @@ import {
     Image,
     Modal,
     ActivityIndicator,
-    Alert
+    Alert,
+    RefreshControl
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
 import { useRouter } from 'expo-router'
@@ -17,7 +18,6 @@ import { apiRequest } from '../../../utils/api'
 import Receipt from './receipt'
 import Cancel from './cancel'
 
-// Define the OrderItem type based on backend response
 interface OrderItem {
     id: number;
     quantity: number;
@@ -30,7 +30,6 @@ interface OrderItem {
     };
 }
 
-// Define the Order type based on backend response
 interface Order {
     id: number;
     status: string;
@@ -47,7 +46,6 @@ interface Order {
     };
 }
 
-// Transform backend order to frontend format
 interface TransformedOrderItem {
     id: number;
     foodName: string;
@@ -73,6 +71,292 @@ interface TransformedOrder {
     };
 }
 
+interface OngoingOrderCardProps {
+    item: TransformedOrder;
+    index: number;
+    onViewReceipt: (item: TransformedOrder) => void;
+    onCancel: (item: TransformedOrder) => void;
+}
+
+interface HistoryOrderCardProps {
+    item: TransformedOrder;
+    index: number;
+    onViewReceipt: (item: TransformedOrder) => void;
+}
+
+interface TabButtonProps {
+    title: string;
+    isActive: boolean;
+    onPress: () => void
+}
+
+interface CancelConfirmationModalProps {
+    visible: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    order: TransformedOrder | null;
+    loading: boolean;
+}
+
+const getStatusColor = (status: string) => {
+    switch (status) {
+        case 'pending':
+            return 'bg-blue-100 text-blue-800'
+        case 'processing':
+            return 'bg-yellow-100 text-yellow-800'
+        case 'completed':
+            return 'bg-green-100 text-green-800'
+        case 'cancelled':
+            return 'bg-red-100 text-red-800'
+        default:
+            return 'bg-gray-100 text-gray-800'
+    }
+}
+
+const getStatusText = (status: string) => {
+    switch (status) {
+        case 'pending':
+            return 'Order Placed'
+        case 'processing':
+            return 'On Processing'
+        case 'completed':
+            return 'Completed'
+        case 'cancelled':
+            return 'Cancelled'
+        default:
+            return 'Unknown'
+    }
+}
+
+const OngoingOrderCard = React.memo(({ item, index, onViewReceipt, onCancel }: OngoingOrderCardProps) => (
+    <View
+        className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100"
+    >
+        {/* Order Number and Time */}
+        <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-sm font-bold text-gray-900">{item.orderNumber}</Text>
+            <Text className="text-xs text-gray-500">{item.orderTime}</Text>
+        </View>
+
+        {/* Order Items Preview */}
+        <View className="mb-4">
+            <View className="flex-row mb-3">
+                {/* Display first 3 item images */}
+                <View className="flex-row">
+                    {item.items.slice(0, 3).map((orderItem, idx) => (
+                        <View
+                            key={orderItem.id}
+                            className={`w-12 h-12 bg-yellow-100 rounded-xl items-center justify-center ${idx > 0 ? '-ml-2' : ''}`}
+                            style={{ zIndex: 3 - idx }}
+                        >
+                            <Text className="text-lg">{orderItem.image}</Text>
+                        </View>
+                    ))}
+                    {item.items.length > 3 && (
+                        <View className="w-12 h-12 bg-gray-200 rounded-xl items-center justify-center -ml-2">
+                            <Text className="text-xs font-bold text-gray-600">+{item.items.length - 3}</Text>
+                        </View>
+                    )}
+                </View>
+
+                <View className="flex-1 ml-3">
+                    <Text className="text-base font-bold text-gray-900 mb-1">
+                        {item.items.length} item{item.items.length > 1 ? 's' : ''}
+                    </Text>
+                    <Text className="text-sm text-gray-600 mb-1">
+                        {item.items.slice(0, 2).map(orderItem => orderItem.foodName).join(', ')}
+                        {item.items.length > 2 && ` +${item.items.length - 2} more`}
+                    </Text>
+                    <Text className="text-lg font-bold text-yellow-600">{item.totalPrice}</Text>
+                </View>
+            </View>
+
+            <Text className="text-xs text-gray-500">Est. {item.estimatedTime}</Text>
+        </View>
+
+        {/* Status and Action Buttons */}
+        <View className="flex-row items-center justify-between">
+            <View className={`px-3 py-1 rounded-full ${getStatusColor(item.status)}`}>
+                <Text className="text-xs font-medium">{getStatusText(item.status)}</Text>
+            </View>
+
+            <View className="flex-row">
+                <TouchableOpacity
+                    className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
+                    onPress={() => onViewReceipt(item)}
+                >
+                    <Text className="text-xs font-medium text-gray-700">View Receipt</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    className="bg-red-100 px-3 py-2 rounded-lg"
+                    onPress={() => onCancel(item)}
+                >
+                    <Text className="text-xs font-medium text-red-700">Cancel</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    </View>
+));
+
+const HistoryOrderCard = React.memo(({ item, index, onViewReceipt }: HistoryOrderCardProps) => (
+    <View
+        // from={{ opacity: 0, translateY: 50 }}
+        // animate={{ opacity: 1, translateY: 0 }}
+        // transition={{
+        //     type: 'timing',
+        //     duration: 300,
+        //     delay: index * 100,
+        // }}
+        className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100"
+    >
+        {/* Order Number and Date */}
+        <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-sm font-bold text-gray-900">{item.orderNumber}</Text>
+            <Text className="text-xs text-gray-500">{item.orderDate}</Text>
+        </View>
+
+        {/* Order Items Preview */}
+        <View className="mb-4">
+            <View className="flex-row mb-3">
+                {/* Display first 3 item images */}
+                <View className="flex-row">
+                    {item.items.slice(0, 3).map((orderItem, idx) => (
+                        <View
+                            key={orderItem.id}
+                            className={`w-12 h-12 bg-yellow-100 rounded-xl items-center justify-center ${idx > 0 ? '-ml-2' : ''}`}
+                            style={{ zIndex: 3 - idx }}
+                        >
+                            <Text className="text-lg">{orderItem.image}</Text>
+                        </View>
+                    ))}
+                    {item.items.length > 3 && (
+                        <View className="w-12 h-12 bg-gray-200 rounded-xl items-center justify-center -ml-2">
+                            <Text className="text-xs font-bold text-gray-600">+{item.items.length - 3}</Text>
+                        </View>
+                    )}
+                </View>
+
+                <View className="flex-1 ml-3">
+                    <Text className="text-base font-bold text-gray-900 mb-1">
+                        {item.items.length} item{item.items.length > 1 ? 's' : ''}
+                    </Text>
+                    <Text className="text-sm text-gray-600 mb-1">
+                        {item.items.slice(0, 2).map(orderItem => orderItem.foodName).join(', ')}
+                        {item.items.length > 2 && ` +${item.items.length - 2} more`}
+                    </Text>
+                    <Text className="text-lg font-bold text-yellow-600">{item.totalPrice}</Text>
+                </View>
+            </View>
+
+            <Text className="text-xs text-gray-500">Completed at {item.completedTime}</Text>
+        </View>
+
+        {/* Status and Action Buttons */}
+        <View className="flex-row items-center justify-between">
+            <View className={`px-3 py-1 rounded-full ${getStatusColor(item.status)}`}>
+                <Text className="text-xs font-medium">{getStatusText(item.status)}</Text>
+            </View>
+
+            <View className="flex-row">
+                <TouchableOpacity
+                    className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
+                    onPress={() => onViewReceipt(item)}
+                >
+                    <Text className="text-xs font-medium text-gray-700">View Receipt</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="bg-yellow-400 px-3 py-2 rounded-lg">
+                    <Text className="text-xs font-medium text-gray-900">Re-order</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    </View>
+));
+
+const TabButton = React.memo(({ title, isActive, onPress }: TabButtonProps) => (
+    <TouchableOpacity onPress={onPress} className="flex-1">
+        <MotiView
+            animate={{
+                backgroundColor: isActive ? '#FCD34D' : '#F9FAFB',
+            }}
+            transition={{
+                type: 'timing',
+                duration: 200,
+            }}
+            className={`py-3 rounded-xl mx-1 border ${isActive ? 'border-yellow-400' : 'border-gray-200'
+                }`}
+        >
+            <Text className={`text-center font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'
+                }`}>
+                {title}
+            </Text>
+        </MotiView>
+    </TouchableOpacity>
+))
+
+// This component should only use props passed to it, not functions from the parent.
+const CancelConfirmationModal = React.memo(({ visible, onClose, onConfirm, order, loading }: CancelConfirmationModalProps) => (
+    <Modal
+        visible={visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={onClose} // ✅ FIX: Use the 'onClose' prop
+    >
+        <View className="flex-1 bg-black/50 justify-center items-center px-4">
+            <MotiView
+                from={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'timing', duration: 200 }}
+                className="bg-white rounded-2xl p-6 w-full max-w-sm"
+            >
+                {/* Modal Header */}
+                <View className="items-center mb-4">
+                    <Text className="text-4xl mb-2">⚠️</Text>
+                    <Text className="text-xl font-bold text-gray-900">Cancel Order</Text>
+                    <Text className="text-sm text-gray-600 text-center mt-2">
+                        Are you sure you want to cancel this order?
+                    </Text>
+                </View>
+
+                {/* ✅ FIX: Use the 'order' prop, not 'selectedOrder' */}
+                {order && order.items && order.items.length > 0 && (
+                    <View className="bg-gray-50 rounded-xl p-4 mb-6">
+                        <View className="flex-row items-center justify-between mb-2">
+                            <Text className="font-bold text-gray-900">{order.orderNumber}</Text>
+                            <Text className="text-sm font-medium text-yellow-600">{order.totalPrice}</Text>
+                        </View>
+                        <Text className="text-sm text-gray-600">
+                            {order.items.length} item{order.items.length > 1 ? 's' : ''}
+                        </Text>
+                        <Text className="text-xs text-gray-500 mt-1">
+                            {order.items.slice(0, 2).map(item => item.foodName).join(', ')}
+                            {order.items.length > 2 && ` +${order.items.length - 2} more`}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Action Buttons */}
+                <View className="flex-row space-x-3">
+                    <TouchableOpacity
+                        className="flex-1 bg-gray-100 py-3 rounded-xl"
+                        onPress={onClose} // ✅ FIX: Use the 'onClose' prop
+                    >
+                        <Text className="text-center font-medium text-gray-700">Keep Order</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        className="flex-1 bg-red-500 py-3 rounded-xl"
+                        onPress={onConfirm} // ✅ FIX: Use the 'onConfirm' prop
+                        disabled={loading}
+                    >
+                        <Text className="text-center font-medium text-white">
+                            {loading ? 'Cancelling...' : 'Yes, Cancel'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </MotiView>
+        </View>
+    </Modal>
+));
+
 const MyOrders = () => {
     const [activeTab, setActiveTab] = useState('ongoing')
     const [showCancelModal, setShowCancelModal] = useState(false)
@@ -84,26 +368,31 @@ const MyOrders = () => {
     const router = useRouter()
 
     // Get random food emoji for items
-    const getFoodEmoji = () => {
-        const emojis = ['🍖', '🥗', '🧃', '🍔', '🍟', '🥤', '🍕', '🍗', '🍞', '🍝', '🍰', '☕', '🐟', '🥬', '🍋', '🍣', '🍜', '🍵', '🫘']
-        return emojis[Math.floor(Math.random() * emojis.length)]
-    }
+    const emojis = ['🍖', '🥗', '🧃', '🍔', '🍟', '🥤', '🍕', '🍗', '🍞', '🍝', '🍰', '☕', '🐟', '🥬', '🍋', '🍣', '🍜', '🍵', '🫘']
+    const getStableFoodEmoji = (foodName: string) => {
+        let hash = 0;
+        for (let i = 0; i < foodName.length; i++) {
+            hash = foodName.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const index = Math.abs(hash % emojis.length);
+        return emojis[index];
+    };
 
     // Transform backend order to frontend format
-    const transformOrder = (order: Order): TransformedOrder => {
+    const transformOrder = useCallback((order: Order): TransformedOrder => {
         const transformedItems: TransformedOrderItem[] = order.items.map(item => ({
             id: item.id,
             foodName: item.product.name,
             price: `${item.product.price.toFixed(2)}`,
             quantity: item.quantity,
-            image: getFoodEmoji()
+            image: getStableFoodEmoji(item.product.name)
         }))
 
         const orderDate = new Date(order.createdAt)
         const now = new Date()
         const diffTime = Math.abs(now.getTime() - orderDate.getTime())
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-        
+
         let displayDate = ''
         if (diffDays === 0) {
             displayDate = orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -125,10 +414,10 @@ const MyOrders = () => {
             completedTime: new Date(order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             outlet: order.outlet
         }
-    }
+    }, []);
 
     // Fetch ongoing orders
-    const fetchOngoingOrders = async () => {
+    const fetchOngoingOrders = useCallback(async () => {
         try {
             const data = await apiRequest('/customer/outlets/customer-ongoing-order/', {
                 method: 'GET',
@@ -144,10 +433,10 @@ const MyOrders = () => {
                 Alert.alert('Error', 'An unexpected error occurred.');
             }
         }
-    }
+    }, [transformOrder]);
 
     // Fetch order history
-    const fetchOrderHistory = async () => {
+    const fetchOrderHistory = useCallback(async () => {
         try {
             const data = await apiRequest('/customer/outlets/customer-order-history/', {
                 method: 'GET',
@@ -163,12 +452,12 @@ const MyOrders = () => {
                 Alert.alert('Error', 'An unexpected error occurred.');
             }
         }
-    }
+    }, [transformOrder]);
 
     // Load orders based on active tab
-    const loadOrders = async (showLoader = true) => {
+    const loadOrders = useCallback(async (showLoader = true) => {
         if (showLoader) setLoading(true)
-        
+
         try {
             if (activeTab === 'ongoing') {
                 await fetchOngoingOrders()
@@ -178,348 +467,86 @@ const MyOrders = () => {
         } finally {
             if (showLoader) setLoading(false)
         }
-    }
+    }, [activeTab, fetchOngoingOrders, fetchOrderHistory]);
 
     // Refresh orders
-    const onRefresh = async () => {
+    const onRefresh = useCallback(async () => {
         setRefreshing(true)
         await loadOrders(false)
         setRefreshing(false)
-    }
+    }, [loadOrders]);
 
     // Load orders when component mounts or tab changes
     useEffect(() => {
         loadOrders()
-    }, [activeTab])
+    }, [loadOrders])
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'pending':
-                return 'bg-blue-100 text-blue-800'
-            case 'processing':
-                return 'bg-yellow-100 text-yellow-800'
-            case 'completed':
-                return 'bg-green-100 text-green-800'
-            case 'cancelled':
-                return 'bg-red-100 text-red-800'
-            default:
-                return 'bg-gray-100 text-gray-800'
-        }
-    }
-
-    const getStatusText = (status: string) => {
-        switch (status) {
-            case 'pending':
-                return 'Order Placed'
-            case 'processing':
-                return 'On Processing'
-            case 'completed':
-                return 'Completed'
-            case 'cancelled':
-                return 'Cancelled'
-            default:
-                return 'Unknown'
-        }
-    }
-
-    const navigateToReceipt = (item: TransformedOrder) => {
+    const navigateToReceipt = useCallback((item: TransformedOrder) => {
         router.push({
             pathname: '/(tabs)/orders/receipt',
             params: {
                 orderData: JSON.stringify(item)
             }
         })
-    }
+    }, [router])
 
-    const handleCancelPress = (item: TransformedOrder) => {
+    const handleCancelPress = useCallback((item: TransformedOrder) => {
         setSelectedOrder(item)
         setShowCancelModal(true)
-    }
+    }, []);
 
-    const handleCancelConfirm = async () => {
-    if (!selectedOrder) return;
+    const handleCancelConfirm = useCallback(async () => {
+        if (!selectedOrder) return;
 
-    try {
-        setLoading(true)
-        
-        // Call the backend cancel API
-        const response = await apiRequest(`/customer/outlets/customer-cancel-order/${selectedOrder.id}`, {
-            method: 'PUT',
-        })
+        try {
+            setLoading(true)
 
-        setShowCancelModal(false)
-        
-        // Show success message
-        Alert.alert(
-            'Order Cancelled',
-            `Order ${selectedOrder.orderNumber} has been cancelled successfully. ${response.refundAmount ? `$${response.refundAmount.toFixed(2)} has been refunded to your ${response.refundMethod === 'CASH' ? 'account' : 'wallet'}.` : ''}`,
-            [
-                {
-                    text: 'OK',
-                    onPress: () => {
-                        // Navigate to cancel page with updated order data
-                        const cancelledOrder = { ...selectedOrder, status: 'cancelled' }
-                        router.push({
-                            pathname: '/(tabs)/orders/cancel',
-                            params: {
-                                orderData: JSON.stringify(cancelledOrder)
-                            }
-                        })
+            // Call the backend cancel API
+            const response = await apiRequest(`/customer/outlets/customer-cancel-order/${selectedOrder.id}`, {
+                method: 'PUT',
+            })
+
+            setShowCancelModal(false)
+
+            // Show success message
+            Alert.alert(
+                'Order Cancelled',
+                `Order ${selectedOrder.orderNumber} has been cancelled successfully. ${response.refundAmount ? `$${response.refundAmount.toFixed(2)} has been refunded to your ${response.refundMethod === 'CASH' ? 'account' : 'wallet'}.` : ''}`,
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            // Navigate to cancel page with updated order data
+                            const cancelledOrder = { ...selectedOrder, status: 'cancelled' }
+                            router.push({
+                                pathname: '/(tabs)/orders/cancel',
+                                params: {
+                                    orderData: JSON.stringify(cancelledOrder)
+                                }
+                            })
+                        }
                     }
-                }
-            ]
-        )
-        
-        // Refresh the orders list
-        await loadOrders(false)
-        
-    } catch (error) {
-        console.error('Error cancelling order:', error)
-        Alert.alert(
-            'Cancellation Failed', 
-            error instanceof Error ? error.message : 'Failed to cancel order. Please try again.'
-        )
-    } finally {
-        setLoading(false)
-    }
-}
+                ]
+            )
 
-    const CancelConfirmationModal = () => (
-        <Modal
-            visible={showCancelModal}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setShowCancelModal(false)}
-        >
-            <View className="flex-1 bg-white opacity-90  justify-center items-center px-4">
-                <MotiView
-                    from={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'timing', duration: 200 }}
-                    className="bg-white rounded-2xl p-6 w-full max-w-sm"
-                >
-                    {/* Modal Header */}
-                    <View className="items-center mb-4">
-                        <Text className="text-4xl mb-2">⚠️</Text>
-                        <Text className="text-xl font-bold text-gray-900">Cancel Order</Text>
-                        <Text className="text-sm text-gray-600 text-center mt-2">
-                            Are you sure you want to cancel this order?
-                        </Text>
-                    </View>
+            // Refresh the orders list
+            await loadOrders(false)
 
-                    {/* Order Info - Only render if selectedOrder exists and has items */}
-                    {selectedOrder && selectedOrder.items && selectedOrder.items.length > 0 && (
-                        <View className="bg-gray-50 rounded-xl p-4 mb-6">
-                            <View className="flex-row items-center justify-between mb-2">
-                                <Text className="font-bold text-gray-900">{selectedOrder.orderNumber}</Text>
-                                <Text className="text-sm font-medium text-yellow-600">{selectedOrder.totalPrice}</Text>
-                            </View>
-                            <Text className="text-sm text-gray-600">
-                                {selectedOrder.items.length} item{selectedOrder.items.length > 1 ? 's' : ''}
-                            </Text>
-                            <Text className="text-xs text-gray-500 mt-1">
-                                {selectedOrder.items.slice(0, 2).map(item => item.foodName).join(', ')}
-                                {selectedOrder.items.length > 2 && ` +${selectedOrder.items.length - 2} more`}
-                            </Text>
-                        </View>
-                    )}
+        } catch (error) {
+            console.error('Error cancelling order:', error)
+            Alert.alert(
+                'Cancellation Failed',
+                error instanceof Error ? error.message : 'Failed to cancel order. Please try again.'
+            )
+        } finally {
+            setLoading(false)
+        }
+    }, [selectedOrder, router, loadOrders]);
 
-                    {/* Action Buttons */}
-                    <View className="flex-row space-x-3">
-                        <TouchableOpacity
-                            className="flex-1 bg-gray-100 py-3 rounded-xl"
-                            onPress={() => setShowCancelModal(false)}
-                        >
-                            <Text className="text-center font-medium text-gray-700">Keep Order</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            className="flex-1 bg-red-500 py-3 rounded-xl"
-                            onPress={handleCancelConfirm}
-                            disabled={loading}
-                        >
-                            <Text className="text-center font-medium text-white">
-                                {loading ? 'Cancelling...' : 'Yes, Cancel'}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </MotiView>
-            </View>
-        </Modal>
-    )
-
-    const OngoingOrderCard = ({ item, index }: { item: TransformedOrder; index: number }) => (
-        <MotiView
-            from={{ opacity: 0, translateY: 50 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{
-                type: 'timing',
-                duration: 300,
-                delay: index * 100,
-            }}
-            className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100"
-        >
-            {/* Order Number and Time */}
-            <View className="flex-row justify-between items-center mb-3">
-                <Text className="text-sm font-bold text-gray-900">{item.orderNumber}</Text>
-                <Text className="text-xs text-gray-500">{item.orderTime}</Text>
-            </View>
-
-            {/* Order Items Preview */}
-            <View className="mb-4">
-                <View className="flex-row mb-3">
-                    {/* Display first 3 item images */}
-                    <View className="flex-row">
-                        {item.items.slice(0, 3).map((orderItem, idx) => (
-                            <View
-                                key={orderItem.id}
-                                className={`w-12 h-12 bg-yellow-100 rounded-xl items-center justify-center ${idx > 0 ? '-ml-2' : ''}`}
-                                style={{ zIndex: 3 - idx }}
-                            >
-                                <Text className="text-lg">{orderItem.image}</Text>
-                            </View>
-                        ))}
-                        {item.items.length > 3 && (
-                            <View className="w-12 h-12 bg-gray-200 rounded-xl items-center justify-center -ml-2">
-                                <Text className="text-xs font-bold text-gray-600">+{item.items.length - 3}</Text>
-                            </View>
-                        )}
-                    </View>
-
-                    <View className="flex-1 ml-3">
-                        <Text className="text-base font-bold text-gray-900 mb-1">
-                            {item.items.length} item{item.items.length > 1 ? 's' : ''}
-                        </Text>
-                        <Text className="text-sm text-gray-600 mb-1">
-                            {item.items.slice(0, 2).map(orderItem => orderItem.foodName).join(', ')}
-                            {item.items.length > 2 && ` +${item.items.length - 2} more`}
-                        </Text>
-                        <Text className="text-lg font-bold text-yellow-600">{item.totalPrice}</Text>
-                    </View>
-                </View>
-
-                <Text className="text-xs text-gray-500">Est. {item.estimatedTime}</Text>
-            </View>
-
-            {/* Status and Action Buttons */}
-            <View className="flex-row items-center justify-between">
-                <View className={`px-3 py-1 rounded-full ${getStatusColor(item.status)}`}>
-                    <Text className="text-xs font-medium">{getStatusText(item.status)}</Text>
-                </View>
-
-                <View className="flex-row">
-                    <TouchableOpacity
-                        className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
-                        onPress={() => navigateToReceipt(item)}
-                    >
-                        <Text className="text-xs font-medium text-gray-700">View Receipt</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        className="bg-red-100 px-3 py-2 rounded-lg"
-                        onPress={() => handleCancelPress(item)}
-                    >
-                        <Text className="text-xs font-medium text-red-700">Cancel</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </MotiView>
-    )
-
-    const HistoryOrderCard = ({ item, index }: { item: TransformedOrder; index: number }) => (
-        <MotiView
-            from={{ opacity: 0, translateY: 50 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{
-                type: 'timing',
-                duration: 300,
-                delay: index * 100,
-            }}
-            className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100"
-        >
-            {/* Order Number and Date */}
-            <View className="flex-row justify-between items-center mb-3">
-                <Text className="text-sm font-bold text-gray-900">{item.orderNumber}</Text>
-                <Text className="text-xs text-gray-500">{item.orderDate}</Text>
-            </View>
-
-            {/* Order Items Preview */}
-            <View className="mb-4">
-                <View className="flex-row mb-3">
-                    {/* Display first 3 item images */}
-                    <View className="flex-row">
-                        {item.items.slice(0, 3).map((orderItem, idx) => (
-                            <View
-                                key={orderItem.id}
-                                className={`w-12 h-12 bg-yellow-100 rounded-xl items-center justify-center ${idx > 0 ? '-ml-2' : ''}`}
-                                style={{ zIndex: 3 - idx }}
-                            >
-                                <Text className="text-lg">{orderItem.image}</Text>
-                            </View>
-                        ))}
-                        {item.items.length > 3 && (
-                            <View className="w-12 h-12 bg-gray-200 rounded-xl items-center justify-center -ml-2">
-                                <Text className="text-xs font-bold text-gray-600">+{item.items.length - 3}</Text>
-                            </View>
-                        )}
-                    </View>
-
-                    <View className="flex-1 ml-3">
-                        <Text className="text-base font-bold text-gray-900 mb-1">
-                            {item.items.length} item{item.items.length > 1 ? 's' : ''}
-                        </Text>
-                        <Text className="text-sm text-gray-600 mb-1">
-                            {item.items.slice(0, 2).map(orderItem => orderItem.foodName).join(', ')}
-                            {item.items.length > 2 && ` +${item.items.length - 2} more`}
-                        </Text>
-                        <Text className="text-lg font-bold text-yellow-600">{item.totalPrice}</Text>
-                    </View>
-                </View>
-
-                <Text className="text-xs text-gray-500">Completed at {item.completedTime}</Text>
-            </View>
-
-            {/* Status and Action Buttons */}
-            <View className="flex-row items-center justify-between">
-                <View className={`px-3 py-1 rounded-full ${getStatusColor(item.status)}`}>
-                    <Text className="text-xs font-medium">{getStatusText(item.status)}</Text>
-                </View>
-
-                <View className="flex-row">
-                    <TouchableOpacity
-                        className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
-                        onPress={() => navigateToReceipt(item)}
-                    >
-                        <Text className="text-xs font-medium text-gray-700">View Receipt</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity className="bg-yellow-400 px-3 py-2 rounded-lg">
-                        <Text className="text-xs font-medium text-gray-900">Re-order</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </MotiView>
-    )
-
-    const TabButton = ({ title, isActive, onPress }: { title: string; isActive: boolean; onPress: () => void }) => (
-        <TouchableOpacity onPress={onPress} className="flex-1">
-            <MotiView
-                animate={{
-                    backgroundColor: isActive ? '#FCD34D' : '#F9FAFB',
-                }}
-                transition={{
-                    type: 'timing',
-                    duration: 200,
-                }}
-                className={`py-3 rounded-xl mx-1 border ${isActive ? 'border-yellow-400' : 'border-gray-200'
-                    }`}
-            >
-                <Text className={`text-center font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'
-                    }`}>
-                    {title}
-                </Text>
-            </MotiView>
-        </TouchableOpacity>
-    )
-
-    const currentOrders = activeTab === 'ongoing' ? ongoingOrders : orderHistory
+    const currentOrders = useMemo(() =>
+        activeTab === 'ongoing' ? ongoingOrders : orderHistory,
+        [activeTab, ongoingOrders, orderHistory]
+    );
 
     return (
         <SafeAreaView className="flex-1 bg-white">
@@ -558,42 +585,47 @@ const MyOrders = () => {
 
             {/* Orders List */}
             {!loading && (
-                <View className="flex-1">
-                    <FlatList
-                        data={currentOrders}
-                        renderItem={({ item, index }) => (
-                            activeTab === 'ongoing' ? 
-                            <OngoingOrderCard item={item} index={index} /> :
-                            <HistoryOrderCard item={item} index={index} />
-                        )}
-                        keyExtractor={(item) => item.id.toString()}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 70 }}
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        ListEmptyComponent={() => (
-                            <MotiView
-                                from={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ type: 'timing', duration: 400 }}
-                                className="flex-1 items-center justify-center px-8 py-20"
-                            >
-                                <Text className="text-6xl mb-4">🍽️</Text>
-                                <Text className="text-xl font-bold text-gray-900 mb-2">No Orders Found</Text>
-                                <Text className="text-gray-600 text-center">
-                                    {activeTab === 'ongoing'
-                                        ? "You don't have any ongoing orders right now."
-                                        : "You haven't placed any orders yet."
-                                    }
-                                </Text>
-                            </MotiView>
-                        )}
-                    />
-                </View>
+                <FlatList
+                    data={currentOrders}
+                    renderItem={({ item, index }) => (
+                        activeTab === 'ongoing' ?
+                            <OngoingOrderCard item={item} index={index} onViewReceipt={navigateToReceipt} onCancel={handleCancelPress} /> :
+                            <HistoryOrderCard item={item} index={index} onViewReceipt={navigateToReceipt} />
+                    )}
+                    keyExtractor={(item) => item.id.toString()}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 70 }}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                    ListEmptyComponent={() => (
+                        <MotiView
+                            from={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ type: 'timing', duration: 400 }}
+                            className="flex-1 items-center justify-center px-8 py-20"
+                        >
+                            <Text className="text-6xl mb-4">🍽️</Text>
+                            <Text className="text-xl font-bold text-gray-900 mb-2">No Orders Found</Text>
+                            <Text className="text-gray-600 text-center">
+                                {activeTab === 'ongoing'
+                                    ? "You don't have any ongoing orders right now."
+                                    : "You haven't placed any orders yet."
+                                }
+                            </Text>
+                        </MotiView>
+                    )}
+                />
+
             )}
 
-            {/* Cancel Confirmation Modal */}
-            <CancelConfirmationModal />
+            <CancelConfirmationModal
+                visible={showCancelModal}
+                onClose={() => setShowCancelModal(false)}
+                onConfirm={handleCancelConfirm}
+                order={selectedOrder}
+                loading={loading}
+            />
         </SafeAreaView>
     )
 }
