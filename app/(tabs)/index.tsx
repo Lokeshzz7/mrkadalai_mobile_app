@@ -29,10 +29,154 @@ interface Product {
     reserved: number;
   };
 }
+interface DateItem {
+  id: number;
+  day: string;
+  date: number;
+  month: string;
+  fullDate: Date;
+  availableSlots: any; // Or a more specific type if you know it
+}
 
 interface ApiResponse {
   products: Product[];
 }
+
+interface FoodItemCardProps {
+  item: Product;
+  index: number;
+  getItemQuantity: (id: number) => number;
+  onAddToCart: (product: Product) => void;
+  onQuantityChange: (product: Product, change: number) => void;
+  getCategoryIcon: (category: string) => string;
+  isProductAvailable: (product: Product) => boolean;
+}
+
+const DateCard = React.memo(({ date, index, isSelected, onPress }: any) => (
+  <TouchableOpacity onPress={onPress} style={{ width: 80, marginRight: 12 }}>
+
+    <MotiView
+      animate={{
+        backgroundColor: isSelected ? '#FCD34D' : '#FFFFFF',
+        scale: isSelected ? 1.05 : 1,
+      }}
+      transition={{ type: 'timing', duration: 100 }}
+      className={`px-3 py-3 rounded-2xl border-2 ${isSelected ? 'border-yellow-400' : 'border-gray-200'} shadow-sm`}
+    >
+      <Text className={`text-center text-sm font-medium ${isSelected ? 'text-gray-800' : 'text-gray-600'}`}>
+        {date.day}
+      </Text>
+      <Text className={`text-center text-lg font-bold ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>
+        {date.date}
+      </Text>
+      <Text className={`text-center text-xs ${isSelected ? 'text-gray-700' : 'text-gray-500'}`}>
+        {date.month}
+      </Text>
+    </MotiView>
+  </TouchableOpacity>
+))
+
+// Memoized CategoryCard component
+const CategoryCard = React.memo(({ category, isSelected, onPress }: any) => (
+  <TouchableOpacity onPress={onPress} className="mr-3">
+    <MotiView
+      animate={{
+        backgroundColor: isSelected ? '#FCD34D' : '#F9FAFB',
+        scale: isSelected ? 1.05 : 1,
+      }}
+      transition={{ type: 'timing', duration: 200 }}
+      className={`px-6 py-3 rounded-full border ${isSelected ? 'border-yellow-400' : 'border-gray-200'}`}
+    >
+      <View className="flex-row items-center">
+        <Text className="text-lg mr-2">{category.icon}</Text>
+        <Text className={`font-medium ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+          {category.name}
+        </Text>
+      </View>
+    </MotiView>
+  </TouchableOpacity>
+))
+
+//  FIX: Enhanced FoodItemCard with better stock handling
+const FoodItemCard = React.memo(({ item, index, getItemQuantity, onAddToCart, onQuantityChange, getCategoryIcon, isProductAvailable }: FoodItemCardProps) => {
+
+  const isAvailable = isProductAvailable(item)
+  const availableStock = item.inventory ? item.inventory.quantity : 0
+  const cartQuantity = getItemQuantity(item.id)
+
+  // ⭐ FIX: Better stock calculation
+  const remainingStock = availableStock - cartQuantity
+  const canAddMoreItems = remainingStock > 0 && isAvailable
+
+  return (
+    <View className={`bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100 ${!isAvailable ? 'opacity-60' : ''}`}>
+      <View className="flex-row">
+        <View className="flex-1 gap-3">
+          <Text className="text-lg font-bold text-gray-900 mb-1">{item.name}</Text>
+          {item.description && (
+            <Text className="text-sm text-gray-600 mb-2">{item.description}</Text>
+          )}
+          <View className="flex-row items-center mb-2">
+            <Text className="text-sm text-gray-500">
+              {item.inventory ? `Stock: ${availableStock}${cartQuantity > 0 ? ` (${remainingStock} available)` : ''}` : 'Available'}
+            </Text>
+          </View>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-xl font-bold text-yellow-600">
+              ${item.price.toFixed(2)}
+            </Text>
+          </View>
+        </View>
+
+        <View className="flex flex-col gap-4">
+          <View className="w-20 h-20 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
+            <Text className="text-3xl">{getCategoryIcon(item.category)}</Text>
+          </View>
+
+          {/* Cart Controls - INSTANT UPDATES, NO LOADING */}
+          {cartQuantity > 0 ? (
+            <View className="flex-row items-center bg-gray-100 rounded-full px-1">
+              <TouchableOpacity
+                onPress={() => onQuantityChange(item, -1)}
+                className="w-8 h-8 bg-red-500 rounded-full items-center justify-center"
+                activeOpacity={0.7}
+              >
+                <Text className="text-white font-bold text-sm">−</Text>
+              </TouchableOpacity>
+
+              <Text className="mx-3 text-sm font-bold text-gray-900 min-w-6 text-center">
+                {cartQuantity}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => onQuantityChange(item, 1)}
+                className={`w-8 h-8 rounded-full items-center justify-center ${canAddMoreItems ? 'bg-green-500' : 'bg-gray-400'
+                  }`}
+                activeOpacity={0.7}
+                disabled={!canAddMoreItems}
+              >
+                <Text className="text-white font-bold text-sm">+</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              className={`px-4 py-2 w-20 rounded-full items-center ${isAvailable ? 'bg-yellow-400' : 'bg-gray-300'
+                }`}
+              activeOpacity={0.7}
+              disabled={!isAvailable}
+              onPress={() => onAddToCart(item)}
+            >
+              <Text className={`font-semibold text-xs ${isAvailable ? 'text-gray-900' : 'text-gray-500'
+                }`}>
+                {isAvailable ? 'Add' : 'Out'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </View>
+  )
+})
 
 const RestaurantHome = () => {
   const [selectedDate, setSelectedDate] = useState(0)
@@ -52,8 +196,7 @@ const RestaurantHome = () => {
   } = useCart()
 
   // Memoize dates to prevent re-calculation
-  const [dates, setDates] = useState([]);
-
+  const [dates, setDates] = useState<DateItem[]>([]);
   useEffect(() => {
     const fetchDates = async () => {
       try {
@@ -66,7 +209,7 @@ const RestaurantHome = () => {
         console.log("Dates array:", response.data?.data);
 
 
-        const dateList = response.data.map((item, index) => {
+        const dateList = response.data.map((item: any, index: any) => {
           const dateObj = new Date(item.date);
           return {
             id: index,
@@ -230,131 +373,17 @@ const RestaurantHome = () => {
     updateItemQuantity(product.id, change, product, availableStock)
   }, [validateStock, updateItemQuantity])
 
+  const handleDateSelect = useCallback(async (date: any, index: number) => {
+    setSelectedDate(index);
+    try {
+      AsyncStorage.setItem('Date', JSON.stringify(date));
+    } catch (error) {
+      console.error('Error saving date', error);
+    }
+  }, []);
+
   // Memoized DateCard component
-  const DateCard = React.memo(({ date, index, isSelected, onPress }: any) => (
-    <TouchableOpacity onPress={onPress} style={{ width: 80, marginRight: 12 }}>
 
-      <MotiView
-        animate={{
-          backgroundColor: isSelected ? '#FCD34D' : '#FFFFFF',
-          scale: isSelected ? 1.05 : 1,
-        }}
-        transition={{ type: 'timing', duration: 100 }}
-        className={`px-3 py-3 rounded-2xl border-2 ${isSelected ? 'border-yellow-400' : 'border-gray-200'} shadow-sm`}
-      >
-        <Text className={`text-center text-sm font-medium ${isSelected ? 'text-gray-800' : 'text-gray-600'}`}>
-          {date.day}
-        </Text>
-        <Text className={`text-center text-lg font-bold ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>
-          {date.date}
-        </Text>
-        <Text className={`text-center text-xs ${isSelected ? 'text-gray-700' : 'text-gray-500'}`}>
-          {date.month}
-        </Text>
-      </MotiView>
-    </TouchableOpacity>
-  ))
-
-  // Memoized CategoryCard component
-  const CategoryCard = React.memo(({ category, isSelected, onPress }: any) => (
-    <TouchableOpacity onPress={onPress} className="mr-3">
-      <MotiView
-        animate={{
-          backgroundColor: isSelected ? '#FCD34D' : '#F9FAFB',
-          scale: isSelected ? 1.05 : 1,
-        }}
-        transition={{ type: 'timing', duration: 200 }}
-        className={`px-6 py-3 rounded-full border ${isSelected ? 'border-yellow-400' : 'border-gray-200'}`}
-      >
-        <View className="flex-row items-center">
-          <Text className="text-lg mr-2">{category.icon}</Text>
-          <Text className={`font-medium ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
-            {category.name}
-          </Text>
-        </View>
-      </MotiView>
-    </TouchableOpacity>
-  ))
-
-  // ⭐ FIX: Enhanced FoodItemCard with better stock handling
-  const FoodItemCard = React.memo(({ item, index }: { item: Product; index: number }) => {
-    const isAvailable = isProductAvailable(item)
-    const availableStock = item.inventory ? item.inventory.quantity : 0
-    const cartQuantity = getItemQuantity(item.id)
-
-    // ⭐ FIX: Better stock calculation
-    const remainingStock = availableStock - cartQuantity
-    const canAddMoreItems = remainingStock > 0 && isAvailable
-
-    return (
-      <View className={`bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100 ${!isAvailable ? 'opacity-60' : ''}`}>
-        <View className="flex-row">
-          <View className="flex-1 gap-3">
-            <Text className="text-lg font-bold text-gray-900 mb-1">{item.name}</Text>
-            {item.description && (
-              <Text className="text-sm text-gray-600 mb-2">{item.description}</Text>
-            )}
-            <View className="flex-row items-center mb-2">
-              <Text className="text-sm text-gray-500">
-                {item.inventory ? `Stock: ${availableStock}${cartQuantity > 0 ? ` (${remainingStock} available)` : ''}` : 'Available'}
-              </Text>
-            </View>
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xl font-bold text-yellow-600">
-                ${item.price.toFixed(2)}
-              </Text>
-            </View>
-          </View>
-
-          <View className="flex flex-col gap-4">
-            <View className="w-20 h-20 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
-              <Text className="text-3xl">{getCategoryIcon(item.category)}</Text>
-            </View>
-
-            {/* Cart Controls - INSTANT UPDATES, NO LOADING */}
-            {cartQuantity > 0 ? (
-              <View className="flex-row items-center bg-gray-100 rounded-full px-1">
-                <TouchableOpacity
-                  onPress={() => handleQuantityChange(item, -1)}
-                  className="w-8 h-8 bg-red-500 rounded-full items-center justify-center"
-                  activeOpacity={0.7}
-                >
-                  <Text className="text-white font-bold text-sm">−</Text>
-                </TouchableOpacity>
-
-                <Text className="mx-3 text-sm font-bold text-gray-900 min-w-6 text-center">
-                  {cartQuantity}
-                </Text>
-
-                <TouchableOpacity
-                  onPress={() => handleQuantityChange(item, 1)}
-                  className={`w-8 h-8 rounded-full items-center justify-center ${canAddMoreItems ? 'bg-green-500' : 'bg-gray-400'
-                    }`}
-                  activeOpacity={0.7}
-                  disabled={!canAddMoreItems}
-                >
-                  <Text className="text-white font-bold text-sm">+</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                className={`px-4 py-2 w-20 rounded-full items-center ${isAvailable ? 'bg-yellow-400' : 'bg-gray-300'
-                  }`}
-                activeOpacity={0.7}
-                disabled={!isAvailable}
-                onPress={() => handleAddToCart(item)}
-              >
-                <Text className={`font-semibold text-xs ${isAvailable ? 'text-gray-900' : 'text-gray-500'
-                  }`}>
-                  {isAvailable ? 'Add' : 'Out'}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </View>
-    )
-  })
 
   // Loading component
   if (loading) {
@@ -398,127 +427,127 @@ const RestaurantHome = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Fixed Header Section */}
-      <View className="bg-white mt-3">
-        {/* Header with greeting, cart button, and FAQ button */}
-        <View className="flex-row justify-between items-center px-4 pt-2">
-          <Text className="text-2xl font-bold text-gray-900">
-            Hello Moto !
-          </Text>
-
-          <View className="flex-row items-center gap-3">
-            {/* Cart Button - Instant Updates */}
-            {totalCartItems > 0 && (
-              <TouchableOpacity
-                className="flex-row items-center bg-green-500 px-4 py-2 rounded-full"
-                onPress={() => router.push("/(tabs)/cart")}
-                activeOpacity={0.8}
-              >
-                <Text className="text-white font-semibold mr-2">Cart</Text>
-                <View className="bg-white rounded-full min-w-6 h-6 items-center justify-center">
-                  <Text className="text-green-500 text-xs font-bold">
-                    {totalCartItems}
-                  </Text>
+      <FlatList
+        data={filteredProducts}
+        keyExtractor={(item) => item.id.toString()}
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        renderItem={({ item, index }) => (
+          <FoodItemCard
+            item={item}
+            index={index}
+            getItemQuantity={getItemQuantity}
+            onAddToCart={handleAddToCart}
+            onQuantityChange={handleQuantityChange}
+            getCategoryIcon={getCategoryIcon}
+            isProductAvailable={isProductAvailable}
+          />
+        )}
+        ListHeaderComponent={
+          <>
+            {/* --- All your header content now lives inside the FlatList --- */}
+            <View className="bg-white mt-3">
+              {/* Header with greeting, cart button, and FAQ button */}
+              <View className="flex-row justify-between items-center px-4 pt-2">
+                <Text className="text-2xl font-bold text-gray-900">
+                  Hello Moto !
+                </Text>
+                <View className="flex-row items-center gap-3">
+                  {/* Cart Button - Instant Updates */}
+                  {totalCartItems > 0 && (
+                    <TouchableOpacity
+                      className="flex-row items-center bg-green-500 px-4 py-2 rounded-full"
+                      onPress={() => router.push("/(tabs)/cart")}
+                      activeOpacity={0.8}
+                    >
+                      <Text className="text-white font-semibold mr-2">Cart</Text>
+                      <View className="bg-white rounded-full min-w-6 h-6 items-center justify-center">
+                        <Text className="text-green-500 text-xs font-bold">
+                          {totalCartItems}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  {/* FAQ Button */}
+                  <TouchableOpacity
+                    className="bg-yellow-400 px-4 py-2 rounded-full"
+                    onPress={() => router.push("/ticket/faq")}
+                  >
+                    <Text className="font-semibold text-gray-900">🎫 Faq</Text>
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
-            )}
+              </View>
 
-            {/* FAQ Button */}
+              {/* Date Selection */}
+              <View className="my-6">
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={{ paddingHorizontal: 16 }}
+                >
+                  {dates.map((date, index) => (
+                    <DateCard
+                      key={date.id}
+                      date={date}
+                      index={index}
+                      isSelected={selectedDate === index}
+                      onPress={() => handleDateSelect(date, index)} // Using the memoized handler
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Categories Header */}
+              <View className="flex-row justify-between items-center px-4 mb-4">
+                <Text className="text-lg font-semibold text-gray-900">All Categories</Text>
+                <TouchableOpacity>
+                  <Text className="text-yellow-600 font-medium">See All</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Categories */}
+              <View className="mb-4">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 16 }}>
+                  {availableCategories.map((category) => (
+                    <CategoryCard
+                      key={category.id}
+                      category={category}
+                      isSelected={selectedCategory === category.name}
+                      onPress={() => setSelectedCategory(category.name)}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* Section Title */}
+              <View className="flex-row justify-between items-center px-4 mb-4">
+                <Text className="text-lg font-semibold text-gray-900">
+                  {selectedCategory === 'All' ? 'All Products' : selectedCategory}
+                </Text>
+                <Text className="text-sm text-gray-500">
+                  {filteredProducts.length} items
+                </Text>
+              </View>
+            </View>
+          </>
+        }
+        ListEmptyComponent={
+          <View className="flex-1 justify-center items-center mt-10">
+            <Text className="text-gray-500 text-lg">No products available</Text>
+            <Text className="text-gray-400 text-sm mt-2">
+              {selectedCategory !== 'All' ? `No ${selectedCategory.toLowerCase()} found` : 'No products in this outlet'}
+            </Text>
             <TouchableOpacity
-              className="bg-yellow-400 px-4 py-2 rounded-full"
-              onPress={() => router.push("/ticket/faq")}
+              className="mt-4 bg-yellow-400 px-6 py-3 rounded-full"
+              onPress={fetchProducts}
             >
-              <Text className="font-semibold text-gray-900">🎫 Faq</Text>
+              <Text className="font-semibold text-gray-900">Refresh</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Date Selection */}
-        <View className="my-6">
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
-          >
-            {dates.map((date, index) => (
-              <DateCard
-                key={date.id}
-                date={date}
-                index={index}
-                isSelected={selectedDate === index}
-                onPress={async () => {
-                  setSelectedDate(index);
-                  try {
-                    await AsyncStorage.setItem('Date', JSON.stringify(date));
-                    console.log('Date saved:', date);
-                  } catch (error) {
-                    console.error('Error saving date', error);
-                  }
-                }}
-              />
-            ))}
-          </ScrollView>
-        </View>
-
-
-        {/* Categories Header */}
-        <View className="flex-row justify-between items-center px-4 mb-4">
-          <Text className="text-lg font-semibold text-gray-900">All Categories</Text>
-          <TouchableOpacity>
-            <Text className="text-yellow-600 font-medium">See All</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Categories */}
-        <View className="mb-4">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4">
-            {availableCategories.map((category) => (
-              <CategoryCard
-                key={category.id}
-                category={category}
-                isSelected={selectedCategory === category.name}
-                onPress={() => setSelectedCategory(category.name)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Section Title */}
-        <View className="flex-row justify-between items-center px-4 mb-4">
-          <Text className="text-lg font-semibold text-gray-900">
-            {selectedCategory === 'All' ? 'All Products' : selectedCategory}
-          </Text>
-          <Text className="text-sm text-gray-500">
-            {filteredProducts.length} items
-          </Text>
-        </View>
-      </View>
-
-      {/* Scrollable Products Section */}
-      {filteredProducts.length > 0 ? (
-        <ScrollView
-          className="flex-1"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 80 }}
-        >
-          {filteredProducts.map((item, index) => (
-            <FoodItemCard key={item.id} item={item} index={index} />
-          ))}
-        </ScrollView>
-      ) : (
-        <View className="flex-1 justify-center items-center">
-          <Text className="text-gray-500 text-lg">No products available</Text>
-          <Text className="text-gray-400 text-sm mt-2">
-            {selectedCategory !== 'All' ? `No ${selectedCategory.toLowerCase()} found` : 'No products in this outlet'}
-          </Text>
-          <TouchableOpacity
-            className="mt-4 bg-yellow-400 px-6 py-3 rounded-full"
-            onPress={fetchProducts}
-          >
-            <Text className="font-semibold text-gray-900">Refresh</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        }
+      />
     </SafeAreaView>
   )
 }
