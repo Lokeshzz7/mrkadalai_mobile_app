@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
-    View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Alert, Image
+    View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Alert, Image,
+    ActivityIndicator
 } from "react-native";
 import { MotiView, MotiText } from "moti";
 import { router } from "expo-router";
@@ -8,24 +9,24 @@ import * as ImagePicker from 'expo-image-picker';
 import { apiRequest } from "../../utils/api";
 
 interface IssueType {
-  id: number;
-  label: string;
-  value: string;
-  priority: string;
+    id: number;
+    label: string;
+    value: string;
+    priority: string;
 }
 
 interface UploadedImage {
-  uri: string;
-  width: number;
-  height: number;
-  type: string;
-  fileName?: string;
+    uri: string;
+    width: number;
+    height: number;
+    type: string;
+    fileName?: string;
 }
 
 interface RadioButtonProps {
-  selected: boolean;
-  onPress: () => void;
-  label: string;
+    selected: boolean;
+    onPress: () => void;
+    label: string;
 }
 
 const issueTypes = [
@@ -36,6 +37,23 @@ const issueTypes = [
     { id: 5, label: "Others", value: "others", priority: "LOW" }
 ];
 
+const RadioButton = React.memo(({ selected, onPress, label }: RadioButtonProps) => (
+    <TouchableOpacity
+        className="flex-row items-center mb-4"
+        onPress={onPress}
+        activeOpacity={0.7}
+    >
+        <View className={`w-6 h-6 rounded-full border-2 mr-3 items-center justify-center ${selected ? 'border-[#EBB22F]' : 'border-gray-300'}`}>
+            {selected && (
+                <View className="w-3 h-3 rounded-full bg-[#EBB22F]" />
+            )}
+        </View>
+        <Text className={`text-base ${selected ? 'text-[#EBB22F] font-semibold' : 'text-gray-700'}`}>
+            {label}
+        </Text>
+    </TouchableOpacity>
+));
+
 const raiseTicket = () => {
     const [selectedIssue, setSelectedIssue] = useState("");
     const [customIssue, setCustomIssue] = useState("");
@@ -43,7 +61,7 @@ const raiseTicket = () => {
     const [uploadedImage, setUploadedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleImageUpload = async () => {
+    const handleImageUpload = useCallback(async () => {
         try {
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -65,9 +83,9 @@ const raiseTicket = () => {
         } catch (error) {
             Alert.alert("Error", "Failed to pick image");
         }
-    };
+    }, []);
 
-    const handleSubmit = async () => {
+    const handleSubmit = useCallback(async () => {
         // Validation
         if (!selectedIssue) {
             Alert.alert("Error", "Please select an issue type");
@@ -88,7 +106,7 @@ const raiseTicket = () => {
 
         try {
             const selectedIssueData = issueTypes.find(issue => issue.value === selectedIssue);
-            const issueTypeLabel = selectedIssue === "others" 
+            const issueTypeLabel = selectedIssue === "others"
                 ? customIssue.trim()
                 : selectedIssueData?.label;
 
@@ -123,24 +141,14 @@ const raiseTicket = () => {
         } finally {
             setIsSubmitting(false);
         }
-    };
+    }, [selectedIssue, customIssue, description]);
 
-    const RadioButton = ({ selected, onPress, label }: RadioButtonProps) => (
-        <TouchableOpacity
-            className="flex-row items-center mb-4"
-            onPress={onPress}
-            activeOpacity={0.7}
-        >
-            <View className={`w-6 h-6 rounded-full border-2 mr-3 items-center justify-center ${selected ? 'border-[#EBB22F]' : 'border-gray-300'}`}>
-                {selected && (
-                    <View className="w-3 h-3 rounded-full bg-[#EBB22F]" />
-                )}
-            </View>
-            <Text className={`text-base ${selected ? 'text-[#EBB22F] font-semibold' : 'text-gray-700'}`}>
-                {label}
-            </Text>
-        </TouchableOpacity>
-    );
+    const handleIssueSelect = useCallback((issueValue: string) => {
+        setSelectedIssue(issueValue);
+        if (issueValue !== "others") {
+            setCustomIssue("");
+        }
+    }, []);
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -152,14 +160,16 @@ const raiseTicket = () => {
 
                 <Text className="text-xl font-bold text-gray-900">Raise a Ticket</Text>
 
-                <View className="flex-row">
-                    <TouchableOpacity className="p-1" onPress={() => router.push("/ticket/myTicket")}>
-                        <Text className="text-sm text-[#EBB22F]">My Tickets</Text>
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity className="p-1" onPress={() => router.push("/ticket/myTicket")}>
+                    <Text className="text-sm text-[#EBB22F] font-semibold">My Tickets</Text>
+                </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1 px-4 py-6" showsVerticalScrollIndicator={false}>
+            <ScrollView
+                className="flex-1 px-4 py-6"
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled" // Improves TextInput interaction
+            >
                 {/* Issue Type Selection */}
                 <MotiView
                     from={{ opacity: 0, translateY: 20 }}
@@ -175,12 +185,7 @@ const raiseTicket = () => {
                         <RadioButton
                             key={issue.id}
                             selected={selectedIssue === issue.value}
-                            onPress={() => {
-                                setSelectedIssue(issue.value);
-                                if (issue.value !== "others") {
-                                    setCustomIssue("");
-                                }
-                            }}
+                            onPress={() => handleIssueSelect(issue.value)}
                             label={issue.label}
                         />
                     ))}
@@ -278,7 +283,7 @@ const raiseTicket = () => {
                         {isSubmitting ? (
                             <View className="flex-row items-center">
                                 <Text className="text-white text-lg font-bold mr-2">Submitting...</Text>
-                                <Text className="text-white text-xl">⏳</Text>
+                                <ActivityIndicator color="white" />
                             </View>
                         ) : (
                             <Text className="text-white text-lg font-bold">Submit Ticket</Text>
