@@ -65,6 +65,185 @@ interface AppliedCoupon {
     description: string;
 }
 
+interface CartItemProps {
+    item: CartItem;
+    getItemQuantity: (id: number) => number;
+    getCategoryIcon: (category: string) => string;
+    handleQuantityChange: (productId: number, change: number, product: CartProduct) => void;
+    removeItemCompletely: (productId: number) => void;
+}
+
+interface TimeSlotItemProps {
+    slot: TimeSlot;
+    isSelected: boolean;
+    onSelect: (id: number) => void;
+}
+
+interface CouponItemProps {
+    coupon: Coupon;
+    onApply: (code: string) => void;
+}
+
+const CartItem = React.memo<CartItemProps>(({ item, getItemQuantity,
+    getCategoryIcon,
+    handleQuantityChange,
+    removeItemCompletely }) => {
+    const inventory = item.product.inventory
+    const totalStock = inventory?.quantity || 0
+    const reservedStock = inventory?.reserved || 0
+    const cartQuantity = getItemQuantity(item.productId)
+
+    const availableStock = Math.max(0, totalStock - reservedStock - cartQuantity)
+
+    const isOutOfStock = availableStock <= 0
+    const isLowStock = availableStock > 0 && availableStock <= 5
+    const canAddMoreItems = availableStock > 0
+
+    console.log(`${item.product.name}:`, {
+        totalStock,
+        reservedStock,
+        canAddMoreItems
+    })
+
+    return (
+        <View className="bg-white mx-4 mb-1 px-4 py-4 flex-row items-center">
+            <View className="w-16 h-16 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
+                <Text className="text-2xl">{getCategoryIcon(item.product.category)}</Text>
+            </View>
+
+            <View className="flex-1">
+                <Text className="text-lg font-semibold text-gray-900 mb-1">
+                    {item.product.name}
+                </Text>
+                {item.product.description && (
+                    <Text className="text-sm text-gray-600 mb-2">
+                        {item.product.description}
+                    </Text>
+                )}
+                <View className="flex-row items-center justify-between">
+                    <Text className="text-lg font-bold text-green-600">
+                        ${item.product.price.toFixed(2)}
+                    </Text>
+
+                    <View className="flex-row items-center">
+                        {isOutOfStock ? (
+                            <View className="bg-red-100 px-2 py-1 rounded-full mr-2">
+                                <Text className="text-red-600 text-xs font-medium">Out of Stock</Text>
+                            </View>
+                        ) : isLowStock ? (
+                            <View className="bg-orange-100 px-2 py-1 rounded-full mr-2">
+                                <Text className="text-orange-600 text-xs font-medium">Low Stock</Text>
+                            </View>
+                        ) : (
+                            <View className="bg-green-100 px-2 py-1 rounded-full mr-2">
+                                <Text className="text-green-600 text-xs font-medium">In Stock</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+                <Text className="text-sm font-medium text-gray-700 mt-1">
+                    Subtotal: ${(item.product.price * cartQuantity).toFixed(2)}
+                </Text>
+            </View>
+
+            <View className="items-center">
+                <View className="flex-row items-center bg-gray-100 rounded-full px-1 mb-2">
+                    <TouchableOpacity
+                        onPress={() => handleQuantityChange(item.productId, -1, item.product)}
+                        className="w-8 h-8 bg-red-500 rounded-full items-center justify-center"
+                        activeOpacity={0.7}
+                        disabled={cartQuantity <= 0}
+                    >
+                        <Text className="text-white font-bold text-lg">−</Text>
+                    </TouchableOpacity>
+
+                    <Text className="mx-4 text-lg font-semibold text-gray-900 min-w-8 text-center">
+                        {cartQuantity}
+                    </Text>
+
+                    <TouchableOpacity
+                        onPress={() => handleQuantityChange(item.productId, 1, item.product)}
+                        className={`w-8 h-8 rounded-full items-center justify-center ${canAddMoreItems ? 'bg-green-500' : 'bg-gray-400'
+                            }`}
+                        activeOpacity={0.7}
+                        disabled={!canAddMoreItems}
+                    >
+                        <Text className="text-white font-bold text-lg">+</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                    onPress={() => removeItemCompletely(item.productId)}
+                    className="bg-red-100 px-3 py-1 rounded-full"
+                >
+                    <Text className="text-red-600 text-xs font-medium">Remove</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    )
+})
+
+// Coupon Item Component
+const CouponItem = React.memo<CouponItemProps>(({ coupon, onApply }) => (
+    <TouchableOpacity
+        onPress={() => onApply(coupon.code)}
+        className="bg-gradient-to-r from-purple-50 to-pink-50 mx-4 mb-2 p-4 rounded-2xl border border-purple-200"
+        activeOpacity={0.7}
+    >
+        <View className="flex-row items-center justify-between">
+            <View className="flex-1">
+                <View className="flex-row items-center mb-1">
+                    <Text className="text-lg font-bold text-purple-700">{coupon.code}</Text>
+                    <View className="bg-purple-100 px-2 py-1 rounded-full ml-2">
+                        <Text className="text-purple-600 text-xs font-medium">
+                            {coupon.rewardValue < 1 ? `${(coupon.rewardValue * 100)}% OFF` : `$${coupon.rewardValue} OFF`}
+                        </Text>
+                    </View>
+                </View>
+                <Text className="text-sm text-gray-600 mb-1">{coupon.description}</Text>
+                <Text className="text-xs text-gray-500">Min order: ${coupon.minOrderValue}</Text>
+            </View>
+            <Text className="text-purple-600 text-lg">🎫</Text>
+        </View>
+    </TouchableOpacity>
+))
+
+// Memoized Time Slot Component
+const TimeSlotItem = React.memo<TimeSlotItemProps>(({ slot, isSelected, onSelect }) => (
+    <TouchableOpacity
+        onPress={() => slot.available && onSelect(slot.id)}
+        activeOpacity={0.7}
+        disabled={!slot.available}
+    >
+        <View
+            className={`mx-4 mb-2 px-4 py-3 rounded-2xl border-2 ${isSelected
+                ? 'bg-yellow-100 border-yellow-400'
+                : slot.available
+                    ? 'bg-white border-gray-200'
+                    : 'bg-gray-100 border-gray-200'
+                }`}
+        >
+            <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                    <View className={`w-4 h-4 rounded-full mr-3 ${isSelected
+                        ? 'bg-yellow-500'
+                        : slot.available
+                            ? 'bg-green-500'
+                            : 'bg-gray-400'
+                        }`} />
+                    <Text className={`text-base font-medium ${slot.available ? 'text-gray-900' : 'text-gray-500'
+                        }`}>
+                        {slot.time}
+                    </Text>
+                </View>
+                {!slot.available && (
+                    <Text className="text-sm text-red-500 font-medium">Unavailable</Text>
+                )}
+            </View>
+        </View>
+    </TouchableOpacity>
+))
+
 const Cart: React.FC = () => {
     const router = useRouter()
     const isFocused = useIsFocused();
@@ -369,162 +548,7 @@ const Cart: React.FC = () => {
         })
     }, [cartState.cartData, selectedTimeSlot, getTotalPrice, appliedCoupon, getTotalCartItems, router, validateCartStock, handleRefresh])
 
-    const CartItem = React.memo<{ item: CartItem; index: number }>(({ item, index }) => {
-        const inventory = item.product.inventory
-        const totalStock = inventory?.quantity || 0
-        const reservedStock = inventory?.reserved || 0
-        const cartQuantity = getItemQuantity(item.productId)
 
-        const availableStock = Math.max(0, totalStock - reservedStock - cartQuantity)
-
-        const isOutOfStock = availableStock <= 0
-        const isLowStock = availableStock > 0 && availableStock <= 5
-        const canAddMoreItems = availableStock > 0
-
-        console.log(`${item.product.name}:`, {
-            totalStock,
-            reservedStock,
-            canAddMoreItems
-        })
-
-        return (
-            <View className="bg-white mx-4 mb-1 px-4 py-4 flex-row items-center">
-                <View className="w-16 h-16 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
-                    <Text className="text-2xl">{getCategoryIcon(item.product.category)}</Text>
-                </View>
-
-                <View className="flex-1">
-                    <Text className="text-lg font-semibold text-gray-900 mb-1">
-                        {item.product.name}
-                    </Text>
-                    {item.product.description && (
-                        <Text className="text-sm text-gray-600 mb-2">
-                            {item.product.description}
-                        </Text>
-                    )}
-                    <View className="flex-row items-center justify-between">
-                        <Text className="text-lg font-bold text-green-600">
-                            ${item.product.price.toFixed(2)}
-                        </Text>
-
-                        <View className="flex-row items-center">
-                            {isOutOfStock ? (
-                                <View className="bg-red-100 px-2 py-1 rounded-full mr-2">
-                                    <Text className="text-red-600 text-xs font-medium">Out of Stock</Text>
-                                </View>
-                            ) : isLowStock ? (
-                                <View className="bg-orange-100 px-2 py-1 rounded-full mr-2">
-                                    <Text className="text-orange-600 text-xs font-medium">Low Stock</Text>
-                                </View>
-                            ) : (
-                                <View className="bg-green-100 px-2 py-1 rounded-full mr-2">
-                                    <Text className="text-green-600 text-xs font-medium">In Stock</Text>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-                    <Text className="text-sm font-medium text-gray-700 mt-1">
-                        Subtotal: ${(item.product.price * cartQuantity).toFixed(2)}
-                    </Text>
-                </View>
-
-                <View className="items-center">
-                    <View className="flex-row items-center bg-gray-100 rounded-full px-1 mb-2">
-                        <TouchableOpacity
-                            onPress={() => handleQuantityChange(item.productId, -1, item.product)}
-                            className="w-8 h-8 bg-red-500 rounded-full items-center justify-center"
-                            activeOpacity={0.7}
-                            disabled={cartQuantity <= 0}
-                        >
-                            <Text className="text-white font-bold text-lg">−</Text>
-                        </TouchableOpacity>
-
-                        <Text className="mx-4 text-lg font-semibold text-gray-900 min-w-8 text-center">
-                            {cartQuantity}
-                        </Text>
-
-                        <TouchableOpacity
-                            onPress={() => handleQuantityChange(item.productId, 1, item.product)}
-                            className={`w-8 h-8 rounded-full items-center justify-center ${canAddMoreItems ? 'bg-green-500' : 'bg-gray-400'
-                                }`}
-                            activeOpacity={0.7}
-                            disabled={!canAddMoreItems}
-                        >
-                            <Text className="text-white font-bold text-lg">+</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <TouchableOpacity
-                        onPress={() => removeItemCompletely(item.productId)}
-                        className="bg-red-100 px-3 py-1 rounded-full"
-                    >
-                        <Text className="text-red-600 text-xs font-medium">Remove</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        )
-    })
-
-    // Coupon Item Component
-    const CouponItem = React.memo<{ coupon: Coupon }>(({ coupon }) => (
-        <TouchableOpacity
-            onPress={() => applyCoupon(coupon.code)}
-            className="bg-gradient-to-r from-purple-50 to-pink-50 mx-4 mb-2 p-4 rounded-2xl border border-purple-200"
-            activeOpacity={0.7}
-        >
-            <View className="flex-row items-center justify-between">
-                <View className="flex-1">
-                    <View className="flex-row items-center mb-1">
-                        <Text className="text-lg font-bold text-purple-700">{coupon.code}</Text>
-                        <View className="bg-purple-100 px-2 py-1 rounded-full ml-2">
-                            <Text className="text-purple-600 text-xs font-medium">
-                                {coupon.rewardValue < 1 ? `${(coupon.rewardValue * 100)}% OFF` : `$${coupon.rewardValue} OFF`}
-                            </Text>
-                        </View>
-                    </View>
-                    <Text className="text-sm text-gray-600 mb-1">{coupon.description}</Text>
-                    <Text className="text-xs text-gray-500">Min order: ${coupon.minOrderValue}</Text>
-                </View>
-                <Text className="text-purple-600 text-lg">🎫</Text>
-            </View>
-        </TouchableOpacity>
-    ))
-
-    // Memoized Time Slot Component
-    const TimeSlotItem = React.memo<{ slot: TimeSlot; index: number }>(({ slot, index }) => (
-        <TouchableOpacity
-            onPress={() => slot.available && setSelectedTimeSlot(slot.id)}
-            activeOpacity={0.7}
-            disabled={!slot.available}
-        >
-            <View
-                className={`mx-4 mb-2 px-4 py-3 rounded-2xl border-2 ${selectedTimeSlot === slot.id
-                    ? 'bg-yellow-100 border-yellow-400'
-                    : slot.available
-                        ? 'bg-white border-gray-200'
-                        : 'bg-gray-100 border-gray-200'
-                    }`}
-            >
-                <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center">
-                        <View className={`w-4 h-4 rounded-full mr-3 ${selectedTimeSlot === slot.id
-                            ? 'bg-yellow-500'
-                            : slot.available
-                                ? 'bg-green-500'
-                                : 'bg-gray-400'
-                            }`} />
-                        <Text className={`text-base font-medium ${slot.available ? 'text-gray-900' : 'text-gray-500'
-                            }`}>
-                            {slot.time}
-                        </Text>
-                    </View>
-                    {!slot.available && (
-                        <Text className="text-sm text-red-500 font-medium">Unavailable</Text>
-                    )}
-                </View>
-            </View>
-        </TouchableOpacity>
-    ))
 
     if (!isFocused) {
         return (
@@ -595,7 +619,14 @@ const Cart: React.FC = () => {
                     <View className="bg-white rounded-2xl mx-4 mb-6 shadow-md border border-gray-100 overflow-hidden">
                         {cartItems.map((item, index) => (
                             <View key={item.id}>
-                                <CartItem item={item} index={index} />
+                                <CartItem
+                                    item={item}
+
+                                    getItemQuantity={getItemQuantity}
+                                    getCategoryIcon={getCategoryIcon}
+                                    handleQuantityChange={handleQuantityChange}
+                                    removeItemCompletely={removeItemCompletely}
+                                />
                                 {index < cartItems.length - 1 && (
                                     <View className="h-px bg-gray-200 mx-4" />
                                 )}
@@ -692,7 +723,11 @@ const Cart: React.FC = () => {
                                     <View className="max-h-60">
                                         <ScrollView showsVerticalScrollIndicator={false}>
                                             {availableCoupons.map(coupon => (
-                                                <CouponItem key={coupon.id} coupon={coupon} />
+                                                <CouponItem
+                                                    key={coupon.id}
+                                                    coupon={coupon}
+                                                    onApply={applyCoupon}
+                                                />
                                             ))}
                                         </ScrollView>
                                     </View>
@@ -761,7 +796,12 @@ const Cart: React.FC = () => {
                             <Text className="text-gray-600 mb-4">Choose your preferred delivery time slot</Text>
 
                             {timeSlots.map((slot, index) => (
-                                <TimeSlotItem key={slot.id} slot={slot} index={index} />
+                                <TimeSlotItem
+                                    key={slot.id}
+                                    slot={slot}
+                                    isSelected={selectedTimeSlot === slot.id}
+                                    onSelect={setSelectedTimeSlot}
+                                />
                             ))}
                         </View>
                     </View>

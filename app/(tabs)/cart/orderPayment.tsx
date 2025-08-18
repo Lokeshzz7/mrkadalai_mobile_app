@@ -54,6 +54,13 @@ interface WalletData {
     lastOrder?: string;
 }
 
+interface AppliedCoupon {
+    code: string;
+    discount: number;
+    description: string;
+}
+
+
 const OrderPayment = () => {
     const router = useRouter()
     const navigation = useNavigation();
