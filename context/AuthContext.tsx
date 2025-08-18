@@ -23,7 +23,7 @@ type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, phoneNumber: string, college: string, yearOfStudy: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, phoneNumber: string, college: string, yearOfStudy: string, password: string, confirmPassword: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -34,7 +34,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Local development: 'http://localhost:3000/api' or 'http://192.168.1.100:3000/api'
 // Production: 'https://your-domain.com/api'
 // Make sure your backend server is running and accessible
-const API_BASE_URL = 'http://51.21.198.214:5500/api'; // Update this to your backend URL
+// const API_BASE_URL = 'http://51.21.198.214:5500/api'; // Update this to your backend URL
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 // 7 days in milliseconds
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
@@ -149,7 +151,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signup = async (name: string, email: string, phoneNumber: string, college: string, yearOfStudy: string, password: string) => {
+  const signup = async (name: string, email: string, phoneNumber: string, college: string, yearOfStudy: string, password: string, confirmPassword: string) => {
     setIsLoading(true);
 
     try {
@@ -182,10 +184,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         name,
         email,
         password,
-        role: 'CUSTOMER',
+        retypePassword: confirmPassword,
         outletId,
         phone: phoneNumber,
-        yearOfStudy: yearOfStudyNumber
+        yearOfStudy: yearOfStudyNumber,
       };
 
       console.log('Signup request body:', requestBody);

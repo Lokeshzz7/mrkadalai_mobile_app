@@ -501,7 +501,7 @@ const RestaurantHome = () => {
 
               {/* Categories Header */}
               <View className="flex-row justify-between items-center px-4 mb-4">
-                <Text className="text-lg font-semibold text-gray-900">All Categories</Text>
+                <Text className="text-lg font-semibold text-gray-900">All Categoreis</Text>
                 <TouchableOpacity>
                   <Text className="text-yellow-600 font-medium">See All</Text>
                 </TouchableOpacity>

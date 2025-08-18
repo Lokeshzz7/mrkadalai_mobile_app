@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE_URL = "http://51.21.198.214:5500/api";
+// const API_BASE_URL = "http://51.21.198.214:5500/api";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 interface RequestOptions extends RequestInit {
   body?: any;
