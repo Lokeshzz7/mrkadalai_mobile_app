@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
-    View, Text, SafeAreaView, ScrollView, TouchableOpacity
+    View, Text, SafeAreaView, ScrollView, TouchableOpacity,
+    FlatList
 } from "react-native";
 import { MotiView, MotiText } from "moti";
 import { router } from "expo-router";
@@ -48,21 +49,78 @@ const faqData = [
     }
 ];
 
-const FAQ = () => {
-    const [expandedItems, setExpandedItems] = useState({});
+interface FaqDataItem {
+    id: number;
+    question: string;
+    answer: string;
+}
 
-    const toggleExpand = (id) => {
+
+interface FAQItemProps {
+    item: FaqDataItem;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
+}
+
+const FAQItem = React.memo<FAQItemProps>(({ item, isExpanded, onToggleExpand }) => (
+    <MotiView
+        className="bg-white rounded-lg mb-3 overflow-hidden"
+        style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.1,
+            shadowRadius: 2,
+            elevation: 2,
+        }}
+    >
+        {/* Question */}
+        <TouchableOpacity
+            className="flex-row items-center justify-between p-4"
+            onPress={onToggleExpand}
+            activeOpacity={0.7}
+        >
+            <Text className="flex-1 text-base font-semibold text-black pr-3">
+                {item.question}
+            </Text>
+            <MotiView
+                animate={{ rotate: isExpanded ? '180deg' : '0deg' }}
+                transition={{ type: 'timing', duration: 150 }}
+            >
+                <Text className="text-xl font-bold" style={{ color: '#EBB22F' }}>↓</Text>
+            </MotiView>
+        </TouchableOpacity>
+
+        {/* Answer */}
+        {isExpanded && (
+            <MotiView
+                from={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ type: 'timing', duration: 200 }}
+                style={{ overflow: 'hidden' }}
+            >
+                <View className="px-4 pb-4 border-t border-gray-100">
+                    <Text className="text-gray-700 text-sm leading-6 mt-3">
+                        {item.answer}
+                    </Text>
+                </View>
+            </MotiView>
+        )}
+    </MotiView>
+));
+
+const FAQ = () => {
+    const [expandedItems, setExpandedItems] = useState<{ [key: number]: boolean }>({});
+    const toggleExpand = useCallback((id: number) => {
         setExpandedItems(prev => ({
             ...prev,
             [id]: !prev[id]
         }));
-    };
+    }, []);
 
-    const handleRaiseTicket = () => {
-
+    const handleRaiseTicket = useCallback(() => {
         router.push("/ticket/raiseTicket");
-
-    };
+    }, []);
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -74,114 +132,49 @@ const FAQ = () => {
 
                 <Text className="text-xl font-bold text-gray-900">FAQ</Text>
 
-                <View className="flex-row">
-                    <TouchableOpacity className="p-1" onPress={() => router.push('/ticket/myTicket')}>
-                        <Text className="text-sm text-[#EBB22F]">My ticket</Text>
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity className="p-1" onPress={() => router.push('/ticket/myTicket')}>
+                    <Text className="text-sm text-[#EBB22F] font-semibold">My Ticket</Text>
+                </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                {/* FAQ Items */}
-                <View className="px-4 py-4">
-                    {faqData.map((item) => (
-                        <MotiView
-                            key={item.id}
-                            className="bg-white rounded-lg mb-3 overflow-hidden"
-                            style={{
-                                shadowColor: "#000",
-                                shadowOffset: { width: 0, height: 1 },
-                                shadowOpacity: 0.1,
-                                shadowRadius: 2,
-                                elevation: 2,
-                            }}
-                            from={{ opacity: 0, translateY: 10 }}
-                            animate={{ opacity: 1, translateY: 0 }}
-                            transition={{
-                                type: 'timing',
-                                duration: 200,
-                                delay: item.id * 10
-                            }}
-                        >
-                            {/* Question */}
+            {/* ✅ OPTIMIZATION: Use FlatList for the FAQ items */}
+            <FlatList
+                data={faqData}
+                keyExtractor={(item) => item.id.toString()}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
+                renderItem={({ item }) => (
+                    <FAQItem
+                        item={item}
+                        isExpanded={!!expandedItems[item.id]}
+                        onToggleExpand={() => toggleExpand(item.id)}
+                    />
+                )}
+                ListFooterComponent={
+                    <>
+                        {/* Raise Ticket Button */}
+                        <View className="pt-4 pb-8">
                             <TouchableOpacity
-                                className="flex-row items-center justify-between p-4"
-                                onPress={() => toggleExpand(item.id)}
-                                activeOpacity={0.7}
+                                className="rounded-lg py-4 px-6 shadow-md"
+                                style={{ backgroundColor: '#EBB22F' }}
+                                onPress={handleRaiseTicket}
+                                activeOpacity={0.8}
                             >
-                                <Text className="flex-1 text-base font-semibold text-black pr-3">
-                                    {item.question}
+                                <Text className="text-center text-white text-lg font-bold">
+                                    Raise a Ticket
                                 </Text>
-
-                                <MotiView
-                                    animate={{
-                                        rotate: expandedItems[item.id] ? '180deg' : '0deg'
-                                    }}
-                                    transition={{
-                                        type: 'timing',
-                                        duration: 150
-                                    }}
-                                >
-                                    <Text className="text-xl font-bold" style={{ color: '#EBB22F' }}>
-                                        ↓
-                                    </Text>
-                                </MotiView>
                             </TouchableOpacity>
+                        </View>
 
-                            {/* Answer */}
-                            {expandedItems[item.id] && (
-                                <MotiView
-                                    from={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{
-                                        type: 'timing',
-                                        duration: 39
-                                    }}
-                                    style={{ overflow: 'hidden' }}
-                                >
-                                    <View className="px-4 pb-4 border-t border-gray-100">
-                                        <Text className="text-gray-700 text-sm leading-6 mt-3">
-                                            {item.answer}
-                                        </Text>
-                                    </View>
-                                </MotiView>
-                            )}
-                        </MotiView>
-                    ))}
-                </View>
-
-                {/* Raise Ticket Button */}
-                <View className="px-4 pb-8">
-                    <MotiView
-                        from={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{
-                            type: 'timing',
-                            duration: 250,
-                            delay: 200
-                        }}
-                    >
-                        <TouchableOpacity
-                            className="rounded-lg py-4 px-6"
-                            style={{ backgroundColor: '#EBB22F' }}
-                            onPress={handleRaiseTicket}
-                            activeOpacity={0.8}
-                        >
-                            <Text className="text-center text-white text-lg font-bold">
-                                Raise a Ticket
+                        {/* Help Text */}
+                        <View className="pb-6">
+                            <Text className="text-center text-gray-500 text-sm">
+                                Still have questions? Our support team is here to help!
                             </Text>
-                        </TouchableOpacity>
-                    </MotiView>
-                </View>
-
-                {/* Help Text */}
-                <View className="px-4 pb-6">
-                    <Text className="text-center text-gray-500 text-sm">
-                        Still have questions? Our support team is here to help!
-                    </Text>
-                </View>
-            </ScrollView>
+                        </View>
+                    </>
+                }
+            />
         </SafeAreaView>
     );
 };
