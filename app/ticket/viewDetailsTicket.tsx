@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View, Text, SafeAreaView, ScrollView, TouchableOpacity
 } from "react-native";
@@ -31,40 +31,138 @@ export interface TimelineItemProps {
     isLast: boolean;
 }
 
+const formatDate = (dateString: string) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
+
+const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+        case "in progress":
+            return "#3B82F6";
+        case "under review":
+            return "#F59E0B";
+        case "waiting for response":
+            return "#EF4444";
+        case "resolved":
+        case "completed":
+            return "#10B981";
+        default:
+            return "#6B7280";
+    }
+};
+
+const getPriorityColor = (priority: string) => {
+    switch (priority.toLowerCase()) {
+        case "high":
+            return "#EF4444";
+        case "medium":
+            return "#F59E0B";
+        case "low":
+            return "#10B981";
+        default:
+            return "#6B7280";
+    }
+};
+
+const TimelineItem = React.memo<TimelineItemProps>(({ step, title, date, isCompleted, isLast }: any) => (
+    <View className="flex-row items-start">
+        {/* Timeline Circle and Line */}
+        <View className="items-center mr-4">
+            <MotiView
+                from={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'timing', duration: 500, delay: step * 200 }}
+                className={`w-6 h-6 rounded-full border-2 items-center justify-center ${isCompleted
+                    ? 'bg-[#EBB22F] border-[#EBB22F]'
+                    : 'bg-white border-gray-300'
+                    }`}
+            >
+                {isCompleted && (
+                    <MotiView
+                        from={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'timing', duration: 300, delay: step * 200 + 200 }}
+                    >
+                        <Text className="text-white text-xs font-bold">✓</Text>
+                    </MotiView>
+                )}
+            </MotiView>
+
+            {/* Vertical Line */}
+            {!isLast && (
+                <MotiView
+                    from={{ height: 0 }}
+                    animate={{ height: 60 }}
+                    transition={{ type: 'timing', duration: 400, delay: step * 200 + 100 }}
+                    className={`w-0.5 mt-1 ${isCompleted ? 'bg-[#EBB22F]' : 'bg-gray-300'
+                        }`}
+                />
+            )}
+        </View>
+
+        {/* Timeline Content */}
+        <MotiView
+            from={{ opacity: 0, translateX: -20 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'timing', duration: 400, delay: step * 200 + 300 }}
+            className="flex-1 pb-6"
+        >
+            <Text className={`text-base font-semibold ${isCompleted ? 'text-gray-900' : 'text-gray-500'
+                }`}>
+                {title}
+            </Text>
+            {date && (
+                <Text className="text-sm text-gray-500 mt-1">
+                    {formatDate(date)}
+                </Text>
+            )}
+        </MotiView>
+    </View>
+));
+
+
 const viewDetailsTicket = () => {
-    const params = useLocalSearchParams<any>();
+    const params = useLocalSearchParams<{ ticketId: string }>();
     const [ticketData, setTicketData] = useState<TicketData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchTicketDetails = async () => {
-            try {
-                const ticketId = params.ticketId;
-                if (!ticketId) {
-                    setError("No ticket ID provided");
-                    return;
-                }
-
-                const response = await apiRequest(`/customer/outlets/tickets/${ticketId}`, {
-                    method: 'GET'
-                });
-
-                if (response.ticket) {
-                    setTicketData(response.ticket);
-                } else {
-                    setError("Ticket not found");
-                }
-            } catch (err: any) {
-                console.error('Error fetching ticket details:', err);
-                setError(err.message || "Failed to load ticket details");
-            } finally {
-                setLoading(false);
+    const fetchTicketDetails = useCallback(async () => {
+        try {
+            const ticketId = params.ticketId;
+            if (!ticketId) {
+                setError("No ticket ID provided");
+                return;
             }
-        };
 
-        fetchTicketDetails();
+            const response = await apiRequest(`/customer/outlets/tickets/${ticketId}`, {
+                method: 'GET'
+            });
+
+            if (response.ticket) {
+                setTicketData(response.ticket);
+            } else {
+                setError("Ticket not found");
+            }
+        } catch (err: any) {
+            console.error('Error fetching ticket details:', err);
+            setError(err.message || "Failed to load ticket details");
+        } finally {
+            setLoading(false);
+        }
     }, [params.ticketId]);
+
+    useEffect(() => {
+        fetchTicketDetails();
+    }, [fetchTicketDetails]);
 
     if (loading) {
         return (
@@ -78,7 +176,7 @@ const viewDetailsTicket = () => {
         return (
             <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
                 <Text className="text-lg text-red-500">{error}</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                     className="mt-4 px-6 py-2 bg-[#EBB22F] rounded-lg"
                     onPress={() => router.back()}
                 >
@@ -96,102 +194,9 @@ const viewDetailsTicket = () => {
         );
     }
 
-    const formatDate = (dateString: string) => {
-        if (!dateString) return null;
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
 
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case "in progress":
-                return "#3B82F6";
-            case "under review":
-                return "#F59E0B";
-            case "waiting for response":
-                return "#EF4444";
-            case "resolved":
-            case "completed":
-                return "#10B981";
-            default:
-                return "#6B7280";
-        }
-    };
 
-    const getPriorityColor = (priority: string) => {
-        switch (priority.toLowerCase()) {
-            case "high":
-                return "#EF4444";
-            case "medium":
-                return "#F59E0B";
-            case "low":
-                return "#10B981";
-            default:
-                return "#6B7280";
-        }
-    };
 
-    const TimelineItem: React.FC<TimelineItemProps> = ({ step, title, date, isCompleted, isLast }: any) => (
-        <View className="flex-row items-start">
-            {/* Timeline Circle and Line */}
-            <View className="items-center mr-4">
-                <MotiView
-                    from={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'timing', duration: 500, delay: step * 200 }}
-                    className={`w-6 h-6 rounded-full border-2 items-center justify-center ${isCompleted
-                        ? 'bg-[#EBB22F] border-[#EBB22F]'
-                        : 'bg-white border-gray-300'
-                        }`}
-                >
-                    {isCompleted && (
-                        <MotiView
-                            from={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: 'timing', duration: 300, delay: step * 200 + 200 }}
-                        >
-                            <Text className="text-white text-xs font-bold">✓</Text>
-                        </MotiView>
-                    )}
-                </MotiView>
-
-                {/* Vertical Line */}
-                {!isLast && (
-                    <MotiView
-                        from={{ height: 0 }}
-                        animate={{ height: 60 }}
-                        transition={{ type: 'timing', duration: 400, delay: step * 200 + 100 }}
-                        className={`w-0.5 mt-1 ${isCompleted ? 'bg-[#EBB22F]' : 'bg-gray-300'
-                            }`}
-                    />
-                )}
-            </View>
-
-            {/* Timeline Content */}
-            <MotiView
-                from={{ opacity: 0, translateX: -20 }}
-                animate={{ opacity: 1, translateX: 0 }}
-                transition={{ type: 'timing', duration: 400, delay: step * 200 + 300 }}
-                className="flex-1 pb-6"
-            >
-                <Text className={`text-base font-semibold ${isCompleted ? 'text-gray-900' : 'text-gray-500'
-                    }`}>
-                    {title}
-                </Text>
-                {date && (
-                    <Text className="text-sm text-gray-500 mt-1">
-                        {formatDate(date)}
-                    </Text>
-                )}
-            </MotiView>
-        </View>
-    );
 
     const isCompleted = ticketData.status === "closed";
     const hasBeenAccepted = ticketData.dateAccepted !== null;

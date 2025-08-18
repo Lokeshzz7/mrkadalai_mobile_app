@@ -121,25 +121,37 @@ export default function RootLayout() {
     return null;
   }
 
+  // return (
+  //   <AuthProvider>
+  //     <Stack onLayout={onLayoutRootView}>
+  //       <Stack.Screen
+  //         name="auth/login"
+  //         options={{ headerShown: false }}
+  //       />
+  //       <Stack.Screen
+  //         name="auth/signup"
+  //         options={{ headerShown: false }}
+  //       />
+  //       <Stack.Screen
+  //         name="(tabs)"
+  //         options={{ headerShown: false }}
+  //       />
+  //       <Stack.Screen
+  //         name="ticket"
+  //         options={{ headerShown: false }}
+  //       />
+  //     </Stack>
+  //   </AuthProvider>
+  // );
+
   return (
     <AuthProvider>
-      <Stack onLayout={onLayoutRootView}>
-        <Stack.Screen
-          name="auth/login"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="auth/signup"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ticket"
-          options={{ headerShown: false }}
-        />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+        onLayout={onLayoutRootView}>
+
       </Stack>
     </AuthProvider>
   );
