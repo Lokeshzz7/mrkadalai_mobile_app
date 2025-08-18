@@ -75,7 +75,7 @@ const Signup = () => {
     }
 
     try {
-      await signup(name, email, phoneNumber, college, customerYear, password)
+      await signup(name, email, phoneNumber, college, customerYear, password, confirmPassword)
       Alert.alert('Success', 'Account created successfully!')
     } catch (error: any) {
       Alert.alert('Signup Failed', error.message || 'Could not create account. Please try again.')
