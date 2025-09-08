@@ -16,6 +16,7 @@ import { apiRequest } from '../../../utils/api'
 import { useAuth } from '../../../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCart } from '@/context/CartContext';
+import Toast from 'react-native-toast-message';
 
 interface CartProduct {
     id: number;
@@ -86,7 +87,16 @@ const OrderPayment = () => {
                 setCartData(parsedCartData)
             } catch (error) {
                 console.error('Error parsing cart data:', error)
-                Alert.alert('Error', 'Invalid cart data')
+                Toast.show({
+                    type: 'error',
+                    text1: 'Error',
+                    text2: 'Invalid cart data',
+                    position: 'top',       // shows at the top
+                    topOffset: 200,        // adjust to move it towards center
+                    visibilityTime: 4000,  // stays visible for 4 seconds
+                    autoHide: true,
+                    onPress: () => Toast.hide(), // tap to dismiss
+                });
                 router.back()
             }
         }
@@ -156,7 +166,16 @@ const OrderPayment = () => {
             }
         } catch (error) {
             console.error('Error fetching wallet:', error)
-            Alert.alert('Error', 'Failed to fetch wallet details')
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to fetch wallet details',
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
         } finally {
             setWalletLoading(false)
         }
@@ -504,23 +523,59 @@ const OrderPayment = () => {
     // Main payment handler
     const handlePayment = async () => {
         if (!selectedPaymentMethod) {
-            Alert.alert('Select Payment Method', 'Please choose how you want to pay')
+            Toast.show({
+                type: 'error',
+                text1: 'Select Payment Method',
+                text2: 'Please choose how you want to pay',
+                position: 'top',
+                topOffset: 200,      // Adjust to center if needed
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(), // Tap anywhere to close
+            });
             return
         }
 
         if (!cartData) {
-            Alert.alert('Error', 'Cart data not found')
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Cart data not found',
+                position: 'top',
+                topOffset: 200,       // adjust vertical position if needed
+                visibilityTime: 4000, // 4 seconds
+                autoHide: true,
+                onPress: () => Toast.hide(), // tap anywhere to close
+            });
             return
         }
 
         if (!selectedTimeSlot) {
-            Alert.alert('Error', 'Delivery time slot not selected')
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Delivery time slot not selected',
+                position: 'top',
+                topOffset: 200,       // adjust vertical position if needed
+                visibilityTime: 4000, // 4 seconds
+                autoHide: true,
+                onPress: () => Toast.hide(), // tap anywhere to close
+            });
             return
         }
 
         if (selectedPaymentMethod === 'WALLET') {
             if (walletData && walletData.balance < finalTotalAmount) {
-                Alert.alert('Insufficient Balance', 'Your wallet balance is insufficient for this order')
+                Toast.show({
+                    type: 'error',
+                    text1: 'Insufficient Balance',
+                    text2: 'Your wallet balance is insufficient for this order',
+                    position: 'top',
+                    topOffset: 200,       // adjust vertical position if needed
+                    visibilityTime: 4000, // 4 seconds
+                    autoHide: true,
+                    onPress: () => Toast.hide(), // tap anywhere to close
+                });
                 return
             }
             await handleWalletPayment()

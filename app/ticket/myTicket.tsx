@@ -7,6 +7,7 @@ import {
 import { MotiView, MotiText } from "moti";
 import { router } from "expo-router";
 import { apiRequest } from "../../utils/api";
+import Toast from "react-native-toast-message";
 
 interface Ticket {
     id: string;
@@ -210,7 +211,15 @@ const myTicket = () => {
             setTickets(response.tickets);
         } catch (error: any) {
             console.error('Error fetching tickets:', error);
-            Alert.alert('Error', error.message || 'Failed to fetch tickets');
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: error.message || 'Failed to fetch tickets',
+                position: 'top',
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
         } finally {
             setLoading(false);
             setRefreshing(false);

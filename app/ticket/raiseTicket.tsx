@@ -7,6 +7,7 @@ import { MotiView, MotiText } from "moti";
 import { router } from "expo-router";
 import * as ImagePicker from 'expo-image-picker';
 import { apiRequest } from "../../utils/api";
+import Toast from "react-native-toast-message";
 
 interface IssueType {
     id: number;
@@ -66,7 +67,15 @@ const raiseTicket = () => {
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
             if (permissionResult.granted === false) {
-                Alert.alert("Permission Required", "Permission to access camera roll is required!");
+                Toast.show({
+                    type: 'error',
+                    text1: 'Permission Required',
+                    text2: 'Permission to access camera roll is required!',
+                    position: 'top',
+                    visibilityTime: 4000,
+                    autoHide: true,
+                    onPress: () => Toast.hide(),
+                });
                 return;
             }
 
@@ -81,24 +90,56 @@ const raiseTicket = () => {
                 setUploadedImage(result.assets[0]);
             }
         } catch (error) {
-            Alert.alert("Error", "Failed to pick image");
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to pick image',
+                position: 'top',
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
         }
     }, []);
 
     const handleSubmit = useCallback(async () => {
         // Validation
         if (!selectedIssue) {
-            Alert.alert("Error", "Please select an issue type");
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Please select an issue type',
+                position: 'top',
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
             return;
         }
 
         if (selectedIssue === "others" && !customIssue.trim()) {
-            Alert.alert("Error", "Please specify your issue");
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Please specify your issue',
+                position: 'top',
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
             return;
         }
 
         if (!description.trim()) {
-            Alert.alert("Error", "Please provide a detailed description");
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Please provide a detailed description',
+                position: 'top',
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
             return;
         }
 
@@ -125,19 +166,29 @@ const raiseTicket = () => {
                 body: ticketData
             });
 
-            Alert.alert(
-                "Success",
-                "Your ticket has been submitted successfully! We'll get back to you soon.",
-                [
-                    {
-                        text: "OK",
-                        onPress: () => router.push("/ticket/myTicket")
-                    }
-                ]
-            );
+            Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: "Your ticket has been submitted successfully! We'll get back to you soon.",
+                position: 'top',
+                visibilityTime: 4000,
+                autoHide: true,
+                onHide: () => {
+                    router.push("/ticket/myTicket"); // Navigate after toast disappears
+                },
+            });
+
         } catch (error: any) {
             console.error('Error creating ticket:', error);
-            Alert.alert("Error", error.message || "Failed to submit ticket. Please try again.");
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: error.message || 'Failed to submit ticket. Please try again.',
+                position: 'top',
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
         } finally {
             setIsSubmitting(false);
         }

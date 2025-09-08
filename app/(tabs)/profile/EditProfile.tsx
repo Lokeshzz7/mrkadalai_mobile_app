@@ -12,6 +12,7 @@ import {
 import { MotiView, MotiText } from 'moti'
 import { router } from 'expo-router'
 import { apiRequest } from '../../../utils/api'
+import Toast from 'react-native-toast-message'
 
 const EditProfile = () => {
   const [name, setName] = useState('')
@@ -20,12 +21,12 @@ const EditProfile = () => {
   const [bio, setBio] = useState('')
   const [yearOfStudy, setYearOfStudy] = useState('')
   const [degree, setDegree] = useState('UG')
-  const [formErrors, setFormErrors] = useState({ 
-    name: '', 
-    phone: '', 
-    email: '', 
-    bio: '', 
-    yearOfStudy: '' 
+  const [formErrors, setFormErrors] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    bio: '',
+    yearOfStudy: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
@@ -40,7 +41,7 @@ const EditProfile = () => {
       const response = await apiRequest('/customer/outlets/get-profile', {
         method: 'GET'
       })
-      
+
       setName(response.name || '')
       setPhone(response.phone || '')
       setEmail(response.email || '')
@@ -49,7 +50,16 @@ const EditProfile = () => {
       setDegree(response.degree || 'UG')
     } catch (error) {
       console.error('Error fetching profile:', error)
-      Alert.alert('Error', 'Failed to load profile information')
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load profile information',
+        position: 'top',
+        topOffset: 200,
+        visibilityTime: 4000,
+        autoHide: true,
+        onPress: () => Toast.hide(),
+      });
     } finally {
       setInitialLoading(false)
     }
@@ -90,7 +100,7 @@ const EditProfile = () => {
 
     try {
       setIsLoading(true)
-      
+
       const requestData = {
         name: name.trim(),
         phone: phone.trim(),
@@ -105,22 +115,46 @@ const EditProfile = () => {
         body: requestData
       })
 
-      Alert.alert('Success', 'Profile updated successfully', [
-        {
-          text: 'OK',
-          onPress: () => {
-            router.back()
-          }
-        }
-      ])
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Profile updated successfully',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+        onPress: () => {
+          Toast.hide();
+        },
+        onHide: () => {
+          router.back();
+        },
+      });
+
     } catch (error) {
-        if (error instanceof Error) {
-            console.error('Error fetching ongoing orders:', error);
-            Alert.alert('Error', error.message || 'Failed to fetch ongoing orders. Please try again.');
-        } else {
-            console.error('Unknown error:', error);
-            Alert.alert('Error', 'An unexpected error occurred.');
-        }
+      if (error instanceof Error) {
+        console.error('Error fetching ongoing orders:', error);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: error.message || 'Failed to fetch ongoing orders. Please try again.',
+          position: 'top',
+          topOffset: 200,
+          visibilityTime: 4000,
+          autoHide: true,
+          onPress: () => Toast.hide(),
+        });
+      } else {
+        console.error('Unknown error:', error);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'An unexpected error occurred.',
+          position: 'top',       // shows at the top
+          visibilityTime: 4000,  // stays visible for 4 seconds
+          autoHide: true,
+          onPress: () => Toast.hide(), // hide toast when pressed
+        });
+      }
     } finally {
       setIsLoading(false)
     }
@@ -139,8 +173,8 @@ const EditProfile = () => {
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100">
-        <TouchableOpacity 
-          className="p-2" 
+        <TouchableOpacity
+          className="p-2"
           onPress={() => router.back()}
           disabled={isLoading}
         >
@@ -310,32 +344,28 @@ const EditProfile = () => {
               <Text className="text-gray-700 text-sm font-semibold mb-2">🎓 Degree</Text>
               <View className="flex-row space-x-4">
                 <TouchableOpacity
-                  className={`flex-1 px-4 py-4 rounded-xl border ${
-                    degree === 'UG' 
-                      ? 'bg-yellow-400 border-yellow-400' 
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
+                  className={`flex-1 px-4 py-4 rounded-xl border ${degree === 'UG'
+                    ? 'bg-yellow-400 border-yellow-400'
+                    : 'bg-gray-50 border-gray-200'
+                    }`}
                   onPress={() => setDegree('UG')}
                   disabled={isLoading}
                 >
-                  <Text className={`text-center font-semibold ${
-                    degree === 'UG' ? 'text-gray-900' : 'text-gray-700'
-                  }`}>
+                  <Text className={`text-center font-semibold ${degree === 'UG' ? 'text-gray-900' : 'text-gray-700'
+                    }`}>
                     UG
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  className={`flex-1 px-4 py-4 rounded-xl border ${
-                    degree === 'PG' 
-                      ? 'bg-yellow-400 border-yellow-400' 
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
+                  className={`flex-1 px-4 py-4 rounded-xl border ${degree === 'PG'
+                    ? 'bg-yellow-400 border-yellow-400'
+                    : 'bg-gray-50 border-gray-200'
+                    }`}
                   onPress={() => setDegree('PG')}
                   disabled={isLoading}
                 >
-                  <Text className={`text-center font-semibold ${
-                    degree === 'PG' ? 'text-gray-900' : 'text-gray-700'
-                  }`}>
+                  <Text className={`text-center font-semibold ${degree === 'PG' ? 'text-gray-900' : 'text-gray-700'
+                    }`}>
                     PG
                   </Text>
                 </TouchableOpacity>

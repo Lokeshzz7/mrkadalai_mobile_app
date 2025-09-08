@@ -6,6 +6,7 @@ import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import Toast from 'react-native-toast-message';
 
 // Prevent auto-hide of splash screen
 SplashScreen.preventAutoHideAsync();
@@ -153,6 +154,7 @@ export default function RootLayout() {
         onLayout={onLayoutRootView}>
 
       </Stack>
+      <Toast position="top" topOffset={50} />
     </AuthProvider>
   );
 }

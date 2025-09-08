@@ -123,6 +123,7 @@ import { MotiView, MotiText } from 'moti'
 import { useAuth } from '@/context/AuthContext'
 import { apiRequest } from '../../../utils/api'
 import { router } from 'expo-router'
+import Toast from 'react-native-toast-message'
 
 const Profile = () => {
   const { user, logout } = useAuth()
@@ -149,7 +150,7 @@ const Profile = () => {
       const response = await apiRequest('/customer/outlets/get-profile', {
         method: 'GET'
       })
-      
+
       setUserDetails({
         name: response.name || '',
         phone: response.phone || '',
@@ -161,7 +162,15 @@ const Profile = () => {
       })
     } catch (error) {
       console.error('Error fetching profile:', error)
-      Alert.alert('Error', 'Failed to load profile information')
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load profile information',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+        onPress: () => Toast.hide(),
+      });
     } finally {
       setLoading(false)
     }
@@ -235,29 +244,77 @@ const Profile = () => {
         router.push('/cart')
         break
       case 'favorites':
-        Alert.alert('Favorites', 'Favorites will be available soon')
+        Toast.show({
+          type: 'error',
+          text1: 'Favorites',
+          text2: 'Favorites will be available soon',
+          position: 'top',
+          visibilityTime: 4000,
+          autoHide: true,
+          onPress: () => Toast.hide(),
+        });
         break
       case 'notifications':
-        Alert.alert('Notifications', 'Notifications will be available soon')
+        Toast.show({
+          type: 'error',
+          text1: 'Notifications',
+          text2: 'Notifications will be available soon',
+          position: 'top',
+          visibilityTime: 4000,
+          autoHide: true,
+          onPress: () => Toast.hide(),
+        });
         break
       case 'college':
-        Alert.alert('College Info', 'College details will be available soon')
+        Toast.show({
+          type: 'error',
+          text1: 'College Info',
+          text2: 'College details will be available soon',
+          position: 'top',
+          visibilityTime: 4000,
+          autoHide: true,
+          onPress: () => Toast.hide(),
+        });
         break
       case 'faq':
         router.push('/ticket/faq')
         break
       case 'settings':
-        Alert.alert('Settings', 'Settings will be available soon')
+        Toast.show({
+          type: 'error',
+          text1: 'Settings',
+          text2: 'Settings will be available soon',
+          position: 'top',
+          visibilityTime: 4000,
+          autoHide: true,
+          onPress: () => Toast.hide(),
+        });
         break
       default:
-        Alert.alert(item.title, `Navigate to ${item.title} page`)
+        Toast.show({
+          type: 'error',
+          text1: item.title,
+          text2: `Navigate to ${item.title} page`,
+          position: 'top',
+          visibilityTime: 4000,
+          autoHide: true,
+          onPress: () => Toast.hide(),
+        });
     }
   }
 
   const handleHeaderButtonPress = (buttonType: any) => {
     switch (buttonType) {
       case 'more':
-        Alert.alert('More Options', 'Show more profile options')
+        Toast.show({
+          type: 'error',
+          text1: 'More Options',
+          text2: 'Show more profile options',
+          position: 'top',
+          visibilityTime: 4000,
+          autoHide: true,
+          onPress: () => Toast.hide(),
+        });
         break
       default:
         break
@@ -390,7 +447,7 @@ const Profile = () => {
                 <Text className="text-sm text-gray-600">Rating</Text>
               </View>
             </View>
-            
+
             {userDetails.degree && (
               <View className="mt-4 pt-4 border-t border-gray-100">
                 <Text className="text-sm text-gray-600">

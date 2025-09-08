@@ -52,7 +52,7 @@ const Receipt = () => {
         router.back()
         return null
     }
-    
+
     const parsePrice = (priceString: string): number => {
         if (!priceString) return 0;
         // Remove $ symbol and convert to number
@@ -63,7 +63,7 @@ const Receipt = () => {
     // Calculate totals
     const calculateItemsTotal = () => {
         if (!orderData.items || orderData.items.length === 0) return 0;
-        
+
         return orderData.items.reduce((total, item) => {
             const price = parsePrice(item.price);
             const quantity = item.quantity || 1;
@@ -132,9 +132,9 @@ Outlet: ${orderData.outlet.name}
 
 Items:
 ${orderData.items.map(item => {
-    const price = parsePrice(item.price);
-    return `${item.foodName} x${item.quantity} - ${formatCurrency(price)}`;
-}).join('\n')}
+                const price = parsePrice(item.price);
+                return `${item.foodName} x${item.quantity} - ${formatCurrency(price)}`;
+            }).join('\n')}
 
 Items Total: ${formatCurrency(itemsTotal)}
 Total Amount: ${formatCurrency(actualTotalAmount)}
@@ -231,7 +231,7 @@ Thank you for your order!
                 >
                     {/* Receipt Icon and Title */}
                     <View className="bg-white rounded-2xl px-6 py-8 mb-6 items-center">
-                        <Text className="text-6xl mb-4">🧾</Text>
+                        {/* <Text className="text-6xl mb-4"></Text> */}
                         <Text className="text-2xl font-bold text-gray-900 mb-2">Order Receipt</Text>
                         <Text className="text-base text-gray-600 text-center">
                             Thank you for your order! Here's your detailed receipt.
@@ -240,7 +240,7 @@ Thank you for your order!
 
                     {/* Order Information */}
                     <View className="bg-white rounded-2xl px-6 py-6 mb-6">
-                        <Text className="text-lg font-bold text-gray-900 mb-4">Order Information</Text>
+                        <Text className="text-lg font-bold text-gray-900 mb-4">Order Information : </Text>
 
                         <View className="bg-gray-50 rounded-xl p-4 mb-4">
                             <View className="flex-row justify-between items-center mb-2">
@@ -261,16 +261,16 @@ Thank you for your order!
                                 <Text className="text-sm text-gray-600">Outlet:</Text>
                                 <Text className="text-sm font-medium text-gray-900">{orderData.outlet.name}</Text>
                             </View>
-                            <View className="flex-row justify-between items-center mb-1">
+                            {/* <View className="flex-row justify-between items-center mb-1">
                                 <Text className="text-sm text-gray-600">Estimated Time:</Text>
                                 <Text className="text-sm font-medium text-gray-900">{orderData.estimatedTime}</Text>
-                            </View>
+                            </View> */}
                         </View>
                     </View>
 
                     {/* Order Items */}
                     <View className="bg-white rounded-2xl px-6 py-6 mb-6">
-                        <Text className="text-lg font-bold text-gray-900 mb-4">Order Items</Text>
+                        <Text className="text-lg font-bold text-gray-900 mb-4">Order Items :</Text>
 
                         {orderData.items && orderData.items.length > 0 ? (
                             orderData.items.map((item, index) => {
@@ -311,7 +311,7 @@ Thank you for your order!
 
                     {/* Bill Summary */}
                     <View className="bg-white rounded-2xl px-6 py-6 mb-6">
-                        <Text className="text-lg font-bold text-gray-900 mb-4">Bill Summary</Text>
+                        <Text className="text-lg font-bold text-gray-900 mb-4">Bill Summary : </Text>
 
                         <View className="space-y-2">
                             <InfoRow label="Items Total" value={formatCurrency(itemsTotal)} />
@@ -326,35 +326,35 @@ Thank you for your order!
                     <View className="bg-white rounded-2xl px-6 py-6 mb-6">
                         <Text className="text-lg font-bold text-gray-900 mb-4">Payment Information</Text>
 
-                        <View className="bg-green-50 rounded-xl p-4">
+                        <View className="bg-gray-50 rounded-xl p-4">
                             <View className="flex-row items-center justify-between mb-2">
-                                <Text className="font-medium text-green-800">Payment Method</Text>
-                                <Text className="font-bold text-green-600">{paymentMethodInfo.icon} {paymentMethodInfo.text}</Text>
+                                <Text className="font-medium text-black-800">Payment Method</Text>
+                                <Text className="font-bold text-black-600"> {paymentMethodInfo.text}</Text>
                             </View>
                             <View className="flex-row items-center justify-between mb-2">
-                                <Text className="font-medium text-green-800">Amount Paid</Text>
-                                <Text className="font-bold text-green-600">{formatCurrency(actualTotalAmount)}</Text>
+                                <Text className="font-medium text-black-800">Amount Paid</Text>
+                                <Text className="font-bold text-black-600">{formatCurrency(actualTotalAmount)}</Text>
                             </View>
                             <View className="flex-row items-center justify-between mb-2">
-                                <Text className="font-medium text-green-800">Order ID</Text>
-                                <Text className="font-bold text-green-600 text-xs">{orderData.orderNumber}</Text>
+                                <Text className="font-medium text-black-800">Order ID</Text>
+                                <Text className="font-bold text-black-600 text-xs">{orderData.orderNumber}</Text>
                             </View>
-                            {/* <View className="flex-row items-center justify-between">
+                            <View className="flex-row items-center justify-between">
                                 <Text className="font-medium text-green-800">Payment Status</Text>
                                 <Text className="font-bold text-green-600">
-                                    {orderData.status.toLowerCase() === 'delivered' ? '✅ Paid' : 
-                                     orderData.status.toLowerCase() === 'pending' ? '⏳ Processing' : 
-                                     orderData.status.toLowerCase() === 'cancelled' ? '❌ Cancelled' : '✅ Paid'}
+                                    {orderData.status.toLowerCase() === 'delivered' ? ' Paid' :
+                                        orderData.status.toLowerCase() === 'pending' ? ' Processing' :
+                                            orderData.status.toLowerCase() === 'cancelled' ? ' Cancelled' : '✅ Paid'}
                                 </Text>
-                            </View> */}
+                            </View>
                         </View>
                     </View>
 
                     {/* Contact Information */}
-                    <View className="bg-white rounded-2xl px-6 py-6 mb-6">
+                    <View className="bg-white rounded-2xl px-6 py-6 mb-3">
                         <Text className="text-lg font-bold text-gray-900 mb-4">Contact Information</Text>
 
-                        <View className="space-y-3">
+                        <View className="bg-gray-50 rounded-xl p-4">
                             <View className="flex-row items-center">
                                 <Text className="text-xl mr-3">📞</Text>
                                 <View>
@@ -383,28 +383,28 @@ Thank you for your order!
 
                     {/* Thank You Message */}
                     <View className="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-2xl px-6 py-8">
-                        <Text className="text-center text-2xl font-bold text-gray-900 mb-2">Thank You! 🙏</Text>
-                        <Text className="text-center text-base text-gray-800 leading-6">
+                        <Text className="text-center text-2xl font-bold text-gray-900 ">Thank You!</Text>
+                        {/* <Text className="text-center text-base text-gray-800 leading-6">
                             We appreciate your business and hope you enjoyed your meal.
                             Your feedback helps us serve you better!
-                        </Text>
+                        </Text> */}
                     </View>
                 </MotiView>
 
                 {/* Action Buttons */}
-                <View className="px-4 py-6 mb-16">
-                    <TouchableOpacity
+                <View className="px-4 mb-2 ">
+                    {/* <TouchableOpacity
                         className="bg-yellow-400 py-4 rounded-xl mb-3"
                         onPress={() => router.push('/(tabs)')}
                     >
                         <Text className="text-center font-bold text-gray-900 text-lg">Order Again</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
 
                     <TouchableOpacity
-                        className="bg-gray-100 py-4 rounded-xl mb-3"
+                        className="bg-yellow-300 py-4 rounded-xl mb-3"
                         onPress={() => router.push('/(tabs)/orders')}
                     >
-                        <Text className="text-center font-medium text-gray-700 text-base">View All Orders</Text>
+                        <Text className="text-center font-medium text-black text-base">View All Orders</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>

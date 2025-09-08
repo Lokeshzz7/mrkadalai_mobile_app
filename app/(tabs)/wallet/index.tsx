@@ -15,6 +15,8 @@ import {
 import { MotiView, MotiText } from 'moti'
 import { apiRequest } from '../../../utils/api'
 import RazorpayCheckout from 'react-native-razorpay';
+import Toast from 'react-native-toast-message';
+
 
 interface RequestOptions extends RequestInit {
     body?: any;
@@ -222,6 +224,40 @@ const TransactionHistoryCard = React.memo(({ item, index }: { item: TransactionH
     </View>
 ))
 
+const notices = [
+    "Wallet recharges are non-refundable",
+    "Processing fees may apply",
+    "By proceeding, you agree to our Terms of Service and Refund Policy.",
+];
+
+const ImportantNotice = () => {
+    const noticeItems = useMemo(() =>
+        notices.map((notice, index) => (
+            <Text key={index} className="text-red-700 text-sm leading-5">
+                • {notice}
+            </Text>
+        )),
+        []
+    );
+
+    return (
+        <MotiView
+            from={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ type: 'timing', duration: 600, delay: 400 }}
+            className="px-4 mb-6"
+        >
+            <View className="bg-red-50 border border-red-200 rounded-2xl p-4 gap-2">
+                <Text className="text-red-800 text-2xl font-bold mb-2">
+                    Important Notice
+                </Text>
+                {noticeItems}
+            </View>
+        </MotiView>
+    );
+};
+
+
 const Wallet = () => {
     const [activeTab, setActiveTab] = useState('recharge')
     const [showAllRecharge, setShowAllRecharge] = useState(false)
@@ -301,7 +337,15 @@ const Wallet = () => {
             }
         } catch (error) {
             console.error('Error fetching wallet details:', error);
-            Alert.alert('Error', 'Failed to fetch wallet details');
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to fetch wallet details',
+                position: 'top',
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
         } finally {
             setIsLoading(false);
         }
@@ -318,7 +362,15 @@ const Wallet = () => {
             }
         } catch (error) {
             console.error('Error fetching recharge history:', error);
-            Alert.alert('Error', 'Failed to fetch recharge history');
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to fetch recharge history',
+                position: 'top',
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
         }
     }, [transformRechargeTransaction]);
 
@@ -333,7 +385,15 @@ const Wallet = () => {
             }
         } catch (error) {
             console.error('Error fetching transactions:', error);
-            Alert.alert('Error', 'Failed to fetch transaction history');
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to fetch transaction history',
+                position: 'top',
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
         }
     }, [transformAllTransactions]);
 
@@ -359,7 +419,16 @@ const Wallet = () => {
     const handleRecharge = useCallback(async () => {
         const amount = parseFloat(rechargeAmount);
         if (isNaN(amount) || amount <= 0) {
-            Alert.alert('Invalid Amount', 'Please enter a valid amount greater than 0.');
+            Toast.show({
+                type: 'error', // you can define a custom type in your toastConfig if needed
+                text1: 'Invalid Amount',
+                text2: 'Please enter a valid amount greater than 0.',
+                position: 'top',    // keep top or bottom
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+
+            });
             return;
         }
 
@@ -405,7 +474,13 @@ const Wallet = () => {
                     const verifyResponse = await walletAPI.verifyRechargePayment(verificationData);
 
                     if (verifyResponse.wallet) {
-                        Alert.alert('Success', 'Wallet recharged successfully!');
+                        Toast.show({
+                            type: 'success',
+                            text1: 'Recharge Successful',
+                            text2: 'Your wallet has been updated ✅',
+                            position: 'top',
+                            visibilityTime: 5000
+                        });
                         setRechargeAmount('');
 
                         // Refresh all wallet data to show the new balance and transaction history
@@ -417,21 +492,45 @@ const Wallet = () => {
                 } catch (verificationError) {
                     console.error('Verification Error:', verificationError);
                     const message = verificationError instanceof Error ? verificationError.message : 'An unknown error occurred.';
-                    Alert.alert('Verification Failed', message);
+                    Toast.show({
+                        type: 'error',
+                        text1: 'Verification Failed',
+                        text2: message,
+                        position: 'top',
+                        visibilityTime: 4000,
+                        autoHide: true,
+                        onPress: () => Toast.hide(),
+                    });
                 } finally {
                     setIsRecharging(false);
                 }
             }).catch((error) => {
                 // This block runs if the user cancels or the payment fails
                 console.log(`Razorpay Error: ${error.code} | ${error.description}`);
-                Alert.alert('Payment Failed', 'The payment was not completed. Please try again.');
+                Toast.show({
+                    type: 'error',
+                    text1: 'Payment Failed',
+                    text2: 'The payment was not completed. Please try again.',
+                    position: 'top',
+                    visibilityTime: 4000,
+                    autoHide: true,
+                    onPress: () => Toast.hide(),
+                });
                 setIsRecharging(false);
             });
 
         } catch (apiError) {
             console.error('Recharge initiation error:', apiError);
             const message = apiError instanceof Error ? apiError.message : 'Could not initiate the recharge process.';
-            Alert.alert('Error', message);
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: message,
+                position: 'top',
+                visibilityTime: 4000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
             setIsRecharging(false);
         }
     }, [rechargeAmount, loadInitialData]);
@@ -527,25 +626,19 @@ const Wallet = () => {
                             transition={{ type: 'timing', duration: 600 }}
                             className="px-4 py-6"
                         >
-                            <View className="bg-white rounded-3xl p-6 mb-4 shadow-xl border border-gray-100" style={{
-                                shadowColor: '#FCD34D',
-                                shadowOffset: { width: 0, height: 8 },
-                                shadowOpacity: 0.15,
-                                shadowRadius: 20,
-                                elevation: 12
-                            }}>
+                            <View className="bg-white shadow-md rounded-3xl p-6 mb-4  border border-gray-100 " >
                                 <View className="flex-row items-center justify-between mb-4">
                                     <View className="flex-row items-center">
-                                        <View className="w-12 h-12 bg-yellow-100 rounded-2xl items-center justify-center mr-3">
+                                        {/* <View className="w-12 h-12 bg-yellow-100 rounded-2xl items-center justify-center mr-3">
                                             <Text className="text-yellow-600 text-xl">💰</Text>
-                                        </View>
-                                        <Text className="text-gray-800 text-lg font-semibold">
+                                        </View> */}
+                                        <Text className="text-gray-800 text-2xl font-semibold">
                                             Wallet Balance
                                         </Text>
                                     </View>
-                                    <View className="w-8 h-8 bg-yellow-50 rounded-full items-center justify-center">
+                                    {/* <View className="w-8 h-8 bg-yellow-50 rounded-full items-center justify-center">
                                         <View className="w-2 h-2 bg-yellow-400 rounded-full" />
-                                    </View>
+                                    </View> */}
                                 </View>
 
                                 <View className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-2xl p-4 mb-4">
@@ -567,7 +660,7 @@ const Wallet = () => {
                                     <View className="flex-row items-center justify-between">
                                         <View className="flex-1">
                                             <View className="flex-row items-center mb-1">
-                                                <Text className="text-yellow-600 text-sm mr-2">🎁</Text>
+
                                                 <Text className="text-yellow-800 text-sm font-semibold">
                                                     Total Recharged
                                                 </Text>
@@ -597,8 +690,8 @@ const Wallet = () => {
                             className="px-4 mb-6"
                         >
                             <View className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-                                <Text className="text-lg font-bold text-gray-900 mb-4">
-                                    💳 Recharge Wallet
+                                <Text className="text-2xl font-bold text-gray-900 mb-4">
+                                    Recharge Wallet
                                 </Text>
                                 <View className="flex-row justify-between mb-4">
                                     {quickRechargeAmounts.map((amount) => (
@@ -630,7 +723,7 @@ const Wallet = () => {
                                         editable={!isRecharging}
                                     />
                                 </View>
-                                <View className="mb-4">
+                                {/* <View className="mb-4">
                                     <Text className="text-gray-700 font-medium mb-2">Payment Method</Text>
                                     <View className="flex-row flex-wrap">
                                         {paymentMethods.map((method) => (
@@ -651,7 +744,7 @@ const Wallet = () => {
                                             </TouchableOpacity>
                                         ))}
                                     </View>
-                                </View>
+                                </View> */}
                                 <TouchableOpacity
                                     className={`py-4 rounded-xl ${isRecharging ? 'bg-yellow-200' : 'bg-yellow-400'}`}
                                     onPress={handleRecharge}
@@ -673,29 +766,30 @@ const Wallet = () => {
                             </View>
                         </MotiView>
 
-                        {/* Caution Notice */}
+                        {/* Caution Notice
                         <MotiView
                             from={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ type: 'timing', duration: 600, delay: 400 }}
                             className="px-4 mb-6"
                         >
-                            <View className="bg-red-50 border border-red-200 rounded-2xl p-4">
-                                <Text className="text-red-800 font-medium mb-2">
-                                    ⚠️ Important Notice
+                            <View className="bg-red-50 border border-red-200 rounded-2xl p-4 gap-2">
+                                <Text className="text-red-800 text-2xl font-bold mb-2">
+                                    Important Notice
                                 </Text>
                                 <Text className="text-red-700 text-sm leading-5">
                                     • Wallet recharges are non-refundable
                                 </Text>
                                 <Text className="text-red-700 text-sm leading-5">
-                                    • Processing fees may apply for certain payment methods
+                                    • Processing fees may apply
                                 </Text>
-                                <Text className="text-red-700 text-sm leading-5 mt-2">
-                                    By proceeding, you agree to our Terms of Service and Refund Policy.
+                                <Text className="text-red-700 text-sm leading-5 ">
+                                    • By proceeding, you agree to our Terms of Service and Refund Policy.
                                 </Text>
                             </View>
-                        </MotiView>
+                        </MotiView> */}
 
+                        <ImportantNotice />
                         {/* Tab Buttons */}
                         <View className="flex-row px-4 py-4">
                             <TabButton

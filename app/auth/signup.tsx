@@ -15,6 +15,7 @@ import { Picker } from '@react-native-picker/picker'
 import { router } from 'expo-router'
 import { icons } from '@/constants/icons'
 import { useAuth } from '../../context/AuthContext'
+import Toast from 'react-native-toast-message'
 
 const Signup = () => {
   const [name, setName] = useState('')
@@ -48,37 +49,93 @@ const Signup = () => {
       college === '' || college === 'Select your college' ||
       customerYear === '' || customerYear === 'Select your year' ||
       password.trim() === '' || confirmPassword.trim() === '') {
-      Alert.alert('Error', 'Please fill in all fields')
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please fill in all fields',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+        onPress: () => Toast.hide(),
+      });
       return
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match')
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Passwords do not match',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+        onPress: () => Toast.hide(),
+      });
       return
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long')
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Password must be at least 6 characters long',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+        onPress: () => Toast.hide(),
+      });
       return
     }
 
     const phoneRegex = /^[6-9]\d{9}$/
     if (!phoneRegex.test(phoneNumber)) {
-      Alert.alert('Error', 'Please enter a valid 10-digit phone number')
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter a valid 10-digit phone number',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+        onPress: () => Toast.hide(),
+      });
       return
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address')
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter a valid email address',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+        onPress: () => Toast.hide(),
+      });
       return
     }
 
     try {
       await signup(name, email, phoneNumber, college, customerYear, password, confirmPassword)
-      Alert.alert('Success', 'Account created successfully!')
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Account created successfully!',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+        onPress: () => Toast.hide(),
+      });
     } catch (error: any) {
-      Alert.alert('Signup Failed', error.message || 'Could not create account. Please try again.')
+      Toast.show({
+        type: 'error',
+        text1: 'Signup Failed',
+        text2: error.message || 'Could not create account. Please try again.',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+        onPress: () => Toast.hide(),
+      });
     }
   }
 

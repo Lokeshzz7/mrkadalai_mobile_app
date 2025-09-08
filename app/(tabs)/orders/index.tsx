@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router'
 import { apiRequest } from '../../../utils/api'
 import Receipt from './receipt'
 import Cancel from './cancel'
+import Toast from 'react-native-toast-message'
 
 interface OrderItem {
     id: number;
@@ -427,10 +428,28 @@ const MyOrders = () => {
         } catch (error) {
             if (error instanceof Error) {
                 console.error('Error fetching ongoing orders:', error);
-                Alert.alert('Error', error.message || 'Failed to fetch ongoing orders. Please try again.');
+                Toast.show({
+                    type: 'error',
+                    text1: 'Error',
+                    text2: error.message || 'Failed to fetch ongoing orders. Please try again.',
+                    position: 'top',
+                    topOffset: 200,       // adjust vertical position if needed
+                    visibilityTime: 4000, // 4 seconds
+                    autoHide: true,
+                    onPress: () => Toast.hide(), // tap anywhere to close
+                });
             } else {
                 console.error('Unknown error:', error);
-                Alert.alert('Error', 'An unexpected error occurred.');
+                Toast.show({
+                    type: 'error',
+                    text1: 'Error',
+                    text2: 'An unexpected error occurred.',
+                    position: 'top',
+                    topOffset: 200,
+                    visibilityTime: 4000,
+                    autoHide: true,
+                    onPress: () => Toast.hide(),
+                });
             }
         }
     }, [transformOrder]);
@@ -446,10 +465,28 @@ const MyOrders = () => {
         } catch (error) {
             if (error instanceof Error) {
                 console.error('Error fetching orders history:', error);
-                Alert.alert('Error', error.message || 'Failed to fetch orders history. Please try again.');
+                Toast.show({
+                    type: 'error',
+                    text1: 'Error',
+                    text2: error.message || 'Failed to fetch orders history. Please try again.',
+                    position: 'top',
+                    topOffset: 200,
+                    visibilityTime: 4000,
+                    autoHide: true,
+                    onPress: () => Toast.hide(),
+                });
             } else {
                 console.error('Unknown error:', error);
-                Alert.alert('Error', 'An unexpected error occurred.');
+                Toast.show({
+                    type: 'error',
+                    text1: 'Error',
+                    text2: 'An unexpected error occurred.',
+                    position: 'top',
+                    topOffset: 200,
+                    visibilityTime: 4000,
+                    autoHide: true,
+                    onPress: () => Toast.hide(),
+                });
             }
         }
     }, [transformOrder]);

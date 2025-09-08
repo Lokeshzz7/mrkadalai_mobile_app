@@ -16,6 +16,7 @@ import { useFocusEffect, useIsFocused } from '@react-navigation/native'
 import { useCart } from '../../../context/CartContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiRequest } from '../../../utils/api' // Import your API utility
+import Toast from 'react-native-toast-message'
 
 // Types
 interface CartProduct {
@@ -308,7 +309,16 @@ const Cart: React.FC = () => {
     // Apply coupon
     const applyCoupon = useCallback(async (code: string) => {
         if (!code.trim()) {
-            Alert.alert('Invalid Input', 'Please enter a coupon code')
+            Toast.show({
+                type: 'error',
+                text1: 'Invalid Input',
+                text2: 'Please enter a coupon code',
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 5000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
             return
         }
 
@@ -340,9 +350,27 @@ const Cart: React.FC = () => {
 
             setCouponCode('')
             setShowCoupons(false)
-            Alert.alert('Success', `Coupon applied successfully! You saved $${response.discount.toFixed(2)}`)
+            Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: `Coupon applied successfully! You saved $${response.discount.toFixed(2)}`,
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 5000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
         } catch (error) {
-            Alert.alert('Coupon Error', error.message || 'Failed to apply coupon')
+            Toast.show({
+                type: 'error',
+                text1: 'Coupon Error',
+                text2: error.message || 'Failed to apply coupon',
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 5000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
             console.error(outletId);
             console.error('Error applying coupon:', error)
         } finally {
@@ -426,7 +454,16 @@ const Cart: React.FC = () => {
         })
 
         if (change > 0 && availableStock <= 0) {
-            Alert.alert('Stock Limit', `No more stock available for ${product.name}.`)
+            Toast.show({
+                type: 'error',
+                text1: 'Stock Limit',
+                text2: `No more stock available for ${product.name}.`,
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 5000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
             return
         }
 
@@ -440,7 +477,16 @@ const Cart: React.FC = () => {
             }
         } catch (error) {
             console.error('Error updating quantity:', error)
-            Alert.alert('Error', 'Failed to update quantity. Please try again.')
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to update quantity. Please try again.',
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 5000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
         }
     }, [updateItemQuantity, getItemQuantity, handleRefresh])
 
@@ -478,7 +524,16 @@ const Cart: React.FC = () => {
                             await removeItem(productId)
                         } catch (error) {
                             console.error('Error removing item:', error)
-                            Alert.alert('Error', 'Failed to remove item. Please try again.')
+                            Toast.show({
+                                type: 'error',
+                                text1: 'Error',
+                                text2: 'Failed to remove item. Please try again.',
+                                position: 'top',
+                                topOffset: 200,
+                                visibilityTime: 5000,
+                                autoHide: true,
+                                onPress: () => Toast.hide(),
+                            });
                         }
                     }
                 }
@@ -488,11 +543,29 @@ const Cart: React.FC = () => {
 
     const handleCheckout = useCallback(async () => {
         if (!cartState.cartData || cartState.cartData.items.length === 0) {
-            Alert.alert('Empty Cart', 'Please add items to your cart first')
+            Toast.show({
+                type: 'error',
+                text1: 'Empty Cart',
+                text2: 'Please add items to your cart first',
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 5000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
             return
         }
         if (!selectedTimeSlot) {
-            Alert.alert('Select Time Slot', 'Please select a delivery time slot')
+            Toast.show({
+                type: 'error',
+                text1: 'Select Time Slot',
+                text2: 'Please select a delivery time slot',
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 5000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
             return
         }
 

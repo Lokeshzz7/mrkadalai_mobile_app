@@ -15,6 +15,7 @@ import { apiRequest } from '../../utils/api'
 import { useFocusEffect } from '@react-navigation/native'
 import { useCart } from '../../context/CartContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import Toast from 'react-native-toast-message'
 
 // Types
 interface Product {
@@ -329,11 +330,16 @@ const RestaurantHome = () => {
 
     // Check if we have enough stock
     if (totalAfterAdd > availableStock) {
-      Alert.alert(
-        'Insufficient Stock',
-        `Only ${availableStock} items available. You already have ${currentCartQuantity} in cart.`,
-        [{ text: 'OK' }]
-      )
+      Toast.show({
+        type: 'error',
+        text1: 'Insufficient Stock',
+        text2: `Only ${availableStock} items available. You already have ${currentCartQuantity} in cart.`,
+        position: 'top',           // shows at the top
+        visibilityTime: 5000,      // stays visible for 5 seconds
+        autoHide: true,
+        onPress: () => Toast.hide(), // tap to close
+      });
+
       return false
     }
 
@@ -343,7 +349,16 @@ const RestaurantHome = () => {
   // ⭐ FIX: Enhanced add to cart with better validation
   const handleAddToCart = useCallback((product: Product) => {
     if (!isProductAvailable(product)) {
-      Alert.alert('Out of Stock', 'This item is currently out of stock.')
+      Toast.show({
+        type: 'error',
+        text1: 'Out of Stock',
+        text2: 'This item is currently out of stock.',
+        position: 'top',
+        topOffset: 200,
+        visibilityTime: 5000,
+        autoHide: true,
+        onPress: () => Toast.hide(),
+      });
       return
     }
 
