@@ -56,12 +56,8 @@ const DateCard = React.memo(({ date, index, isSelected, onPress }: any) => (
   <TouchableOpacity onPress={onPress} style={{ width: 80, marginRight: 12 }}>
 
     <MotiView
-      animate={{
-        backgroundColor: isSelected ? '#FCD34D' : '#FFFFFF',
-        scale: isSelected ? 1.05 : 1,
-      }}
-      transition={{ type: 'timing', duration: 100 }}
-      className={`px-3 py-3 rounded-2xl border-2 ${isSelected ? 'border-yellow-400' : 'border-gray-200'} shadow-sm`}
+
+      className={`px-3 py-3 rounded-2xl border-2 ${isSelected ? 'border-yellow-400' : 'border-gray-200'} ${isSelected ? 'bg-[#FCD34D]' : 'bg-[#FFFFFF]'} shadow-sm`}
     >
       <Text className={`text-center text-sm font-medium ${isSelected ? 'text-gray-800' : 'text-gray-600'}`}>
         {date.day}

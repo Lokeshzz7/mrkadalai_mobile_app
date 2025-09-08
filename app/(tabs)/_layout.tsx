@@ -1,36 +1,31 @@
-import React from 'react';
-import { View, Text, ImageBackground } from 'react-native';
+import React, { memo, ReactElement } from 'react';
+import { View, Platform } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Image } from 'react-native';
-import { icons } from '@/constants/icons';
-import Colors from '@/constants/theme/colors';
 import { CartProvider } from '../../context/CartContext';
+import { AntDesign, MaterialIcons, Feather, FontAwesome } from '@expo/vector-icons';
 
-const TabIcon = ({ focused, icon, title }: any) => {
-    if (focused) {
-        return (
-            <ImageBackground
-                className='flex flex-row w-full flex-1 min-w-[80px] min-h-[52px] mt-3 justify-center items-center overflow-hidden'
-            >
-                <Image
-                    source={icon} 
-                    tintColor="#EBB22F"
-                    className="size-7"
-                />
-            </ImageBackground>
-        )
-    }
-
-    return (
-        <View className='size-full justify-center items-center mt-3'>
-            <Image 
-                source={icon}
-                tintColor="#32343E"
-                className="size-7" 
-            />
-        </View>
-    )
+interface TabIconProps {
+    focused: boolean;
+    icon: ReactElement;
 }
+
+// Memoized TabIcon to prevent unnecessary re-renders
+const TabIcon = memo(({ focused, icon }: TabIconProps) => {
+    return (
+        <View
+            style={{
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                backgroundColor: focused ? '#EBB22F20' : 'transparent',
+                justifyContent: 'center',
+                alignItems: 'center',
+            }}
+        >
+            {React.cloneElement(icon, { color: focused ? '#EBB22F' : '#32343E', size: 28 })}
+        </View>
+    );
+});
 
 const TabsLayout = () => {
     return (
@@ -39,112 +34,61 @@ const TabsLayout = () => {
                 <Tabs
                     screenOptions={{
                         tabBarShowLabel: false,
-                        tabBarItemStyle: {
-                            width: '100%',
-                            height: '100%',
-                            justifyContent: 'center',
-                            alignItems: 'center'
-                        },
+                        lazy: true, // lazy load screens for faster navigation
                         tabBarStyle: {
-                            backgroundColor: "#F0F5FA",
-                            height: 52,
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            overflow: 'hidden',
-                            // borderColor: Colors.light[200],
-                        }
+                            height: 70,
+                            backgroundColor: '#ffffff',
+                            borderTopLeftRadius: 24,
+                            borderTopRightRadius: 24,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: -3 },
+                            shadowOpacity: 0.05,
+                            shadowRadius: 5,
+                            elevation: 5,
+                            paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+                            paddingTop: 10,
+                        },
                     }}
                 >
                     <Tabs.Screen
-                        name='index'
+                        name="index"
                         options={{
-                            title: 'Home',
                             headerShown: false,
-                            tabBarIcon: ({ focused }: any) => (
-                                <TabIcon
-                                    focused={focused}
-                                    icon={icons.home}
-                                    title="Home"
-                                />
-                            )
+                            tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon={<AntDesign name="home" size={28} />} />,
                         }}
                     />
-
                     <Tabs.Screen
-                        name='orders'
+                        name="orders"
                         options={{
-                            title: 'Notes',
                             headerShown: false,
-                            tabBarIcon: ({ focused }: any) => (
-                                <TabIcon
-                                    focused={focused}
-                                    icon={icons.notes}
-                                    title="Notes"
-                                />
-                            )
+                            tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon={<MaterialIcons name="receipt-long" size={28} />} />,
                         }}
                     />
-
                     <Tabs.Screen
-                        name='wallet'
+                        name="wallet"
                         options={{
-                            title: 'Calendar',
                             headerShown: false,
-                            tabBarIcon: ({ focused }: any) => (
-                                <TabIcon
-                                    focused={focused}
-                                    icon={icons.calendar}
-                                    title="Search"
-                                />
-                            )
+                            tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon={<Feather name="credit-card" size={28} />} />,
                         }}
                     />
-
                     <Tabs.Screen
-                        name='cart'
+                        name="cart"
                         options={{
-                            title: 'Cart',
                             headerShown: false,
-                            tabBarIcon: ({ focused }: any) => (
-                                <TabIcon
-                                    focused={focused}
-                                    icon={icons.search}
-                                    title="Cart"
-                                />
-                            )
+                            tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon={<AntDesign name="shoppingcart" size={28} />} />,
                         }}
                     />
-
                     <Tabs.Screen
-                        name='profile'
+                        name="profile"
                         options={{
-                            title: 'Profile',
                             headerShown: false,
-                            tabBarIcon: ({ focused }: any) => (
-                                <TabIcon
-                                    focused={focused}
-                                    icon={icons.person}
-                                    title="Profile"
-                                />
-                            )
-                        }}
-                    />
-
-                    {/* Hidden FAQ screen - won't show in tab bar */}
-                    <Tabs.Screen
-                        name='faq'
-                        options={{
-                            title: 'FAQ',
-                            headerShown: false,
-                            href: null, // This hides it from the tab bar
+                            tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon={<FontAwesome name="user-circle" size={28} />} />,
                         }}
                     />
                 </Tabs>
             </View>
         </CartProvider>
-    )
-}
+    );
+};
 
 export default TabsLayout;
