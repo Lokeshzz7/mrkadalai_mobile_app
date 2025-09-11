@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react'
 import {
   FlatList,
   Text,
@@ -16,6 +16,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import { useCart } from '../../context/CartContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from 'react-native-toast-message'
+import { AppConfigContext } from '@/context/AppConfigContext'
 
 // Types
 interface Product {
@@ -194,6 +195,8 @@ const RestaurantHome = () => {
 
   // Memoize dates to prevent re-calculation
   const [dates, setDates] = useState<DateItem[]>([]);
+  const { config } = useContext(AppConfigContext);
+
   useEffect(() => {
     const fetchDates = async () => {
       try {
@@ -203,10 +206,15 @@ const RestaurantHome = () => {
         });
 
         console.log("Full API response:", response);
-        console.log("Dates array:", response.data?.data);
 
+        let dateArray = response.data || []; // ✅ Correct
 
-        const dateList = response.data.map((item: any, index: any) => {
+        // If LIVE_COUNTER is false, remove the first date
+        if (!config.LIVE_COUNTER) {
+          dateArray = dateArray.slice(1);
+        }
+
+        const dateList = dateArray.map((item: any, index: number) => {
           const dateObj = new Date(item.date);
           return {
             id: index,
@@ -218,18 +226,24 @@ const RestaurantHome = () => {
           };
         });
 
+        console.log("Processed dateList:", dateList); // ✅ Check processed dates
+
         setDates(dateList);
+
         if (dateList.length > 0) {
           await AsyncStorage.setItem("Date", JSON.stringify(dateList[0]));
           console.log("Default date saved:", dateList[0]);
         }
+
       } catch (error) {
         console.error("Error fetching available dates:", error);
       }
     };
 
     fetchDates();
-  }, []);
+  }, [config.LIVE_COUNTER]);
+
+
 
 
   // Category mapping with icons

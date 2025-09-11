@@ -192,16 +192,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log('Signup request body:', requestBody);
 
-
-      // ... (Your signup mapping logic)
-      const response = await fetch(`${API_BASE_URL}/auth/signup`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
+      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
 
       console.log('Response status:', response.status);
       console.log('Response headers:', response.headers);
@@ -211,17 +208,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       await saveUserSession(data.user, data.token);
 
-      // Update state, which will trigger the layout to navigate
       setUser(data.user);
 
       await registerForPushNotifications();
-
 
       router.replace('/');
 
     } catch (error) {
       console.error('Signup error:', error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

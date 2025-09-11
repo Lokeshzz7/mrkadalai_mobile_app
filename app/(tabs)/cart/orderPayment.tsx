@@ -17,6 +17,10 @@ import { useAuth } from '../../../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCart } from '@/context/CartContext';
 import Toast from 'react-native-toast-message';
+import { useContext } from 'react';
+import { AppConfigContext } from '@/context/AppConfigContext';
+
+
 
 interface CartProduct {
     id: number;
@@ -78,6 +82,8 @@ const OrderPayment = () => {
     const { user } = useAuth();
 
     const outletId = user?.outletId;
+    const { config } = useContext(AppConfigContext);
+
 
     // Parse cart data from params
     useEffect(() => {
@@ -837,44 +843,49 @@ const OrderPayment = () => {
                             </MotiView>
                         )}
 
-                        <PaymentOption
-                            type="UPI"
-                            title="Pay by Online Transaction"
-                            subtitle="UPI, Card, Net Banking via Razorpay"
-                            icon="🌐"
-                            onPress={() => setSelectedPaymentMethod('UPI')}
-                        />
+                        {config.UPI && (
+                            <>
+                                <PaymentOption
+                                    type="UPI"
+                                    title="Pay by Online Transaction"
+                                    subtitle="UPI, Card, Net Banking via Razorpay"
+                                    icon="🌐"
+                                    onPress={() => setSelectedPaymentMethod('UPI')}
+                                />
 
-                        {/* Online Payment Details */}
-                        {selectedPaymentMethod === 'UPI' && (
-                            <MotiView
-                                from={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                transition={{ type: 'timing', duration: 300 }}
-                                className="bg-green-50 rounded-xl p-4 mb-4 border border-green-200"
-                            >
-                                <Text className="text-base font-semibold text-gray-900 mb-3">Online Payment Details</Text>
-                                <View className="space-y-2">
-                                    <View className="flex-row justify-between">
-                                        <Text className="text-gray-700">Payment Amount</Text>
-                                        <Text className="text-gray-900 font-medium">{formatCurrency(finalTotalAmount)}</Text>
-                                    </View>
-                                    <View className="flex-row justify-between">
-                                        <Text className="text-gray-700">Payment Gateway</Text>
-                                        <Text className="text-gray-900 font-medium">Razorpay</Text>
-                                    </View>
-                                    <View className="flex-row justify-between">
-                                        <Text className="text-gray-700">Accepted Methods</Text>
-                                        <Text className="text-gray-900 font-medium">UPI, Cards, Net Banking</Text>
-                                    </View>
-                                </View>
-                                <View className="mt-3 p-2 bg-green-100 rounded-lg">
-                                    <Text className="text-green-700 text-sm font-medium">
-                                        ✓ Secure payment powered by Razorpay. Your payment information is encrypted and secure.
-                                    </Text>
-                                </View>
-                            </MotiView>
+                                {/* Online Payment Details */}
+                                {selectedPaymentMethod === 'UPI' && (
+                                    <MotiView
+                                        from={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        transition={{ type: 'timing', duration: 300 }}
+                                        className="bg-green-50 rounded-xl p-4 mb-4 border border-green-200"
+                                    >
+                                        <Text className="text-base font-semibold text-gray-900 mb-3">Online Payment Details</Text>
+                                        <View className="space-y-2">
+                                            <View className="flex-row justify-between">
+                                                <Text className="text-gray-700">Payment Amount</Text>
+                                                <Text className="text-gray-900 font-medium">{formatCurrency(finalTotalAmount)}</Text>
+                                            </View>
+                                            <View className="flex-row justify-between">
+                                                <Text className="text-gray-700">Payment Gateway</Text>
+                                                <Text className="text-gray-900 font-medium">Razorpay</Text>
+                                            </View>
+                                            <View className="flex-row justify-between">
+                                                <Text className="text-gray-700">Accepted Methods</Text>
+                                                <Text className="text-gray-900 font-medium">UPI, Cards</Text>
+                                            </View>
+                                        </View>
+                                        <View className="mt-3 p-2 bg-green-100 rounded-lg">
+                                            <Text className="text-green-700 text-sm font-medium">
+                                                ✓ Secure payment powered by Razorpay. Your payment information is encrypted and secure.
+                                            </Text>
+                                        </View>
+                                    </MotiView>
+                                )}
+                            </>
                         )}
+
                     </View>
                 </MotiView>
 

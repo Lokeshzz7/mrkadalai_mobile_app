@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import './globals.css';
 import { AuthProvider } from "../context/AuthContext";
+import { AppConfigProvider } from "../context/AppConfigContext";
 import { useCallback, useEffect, useRef } from "react";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
@@ -39,19 +40,18 @@ export default function RootLayout() {
 
   useEffect(() => {
     const hideSplash = async () => {
-      await SplashScreen.hideAsync();
+      if (fontsLoaded) {
+        await SplashScreen.hideAsync();
+      }
     };
     hideSplash();
-  }, []);
+  }, [fontsLoaded]);
 
   // Set up notification listeners
   useEffect(() => {
     // Listener for notifications received while the app is in the foreground
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       console.log('📱 Notification received in foreground:', notification);
-
-      // You can customize the behavior here
-      // For example, show a custom in-app notification or update some state
     });
 
     // Listener for when user taps on a notification
@@ -63,14 +63,11 @@ export default function RootLayout() {
 
       // Example: Navigate to specific screens based on notification data
       if (notificationData?.screen) {
-        // You can use router.push() here to navigate to specific screens
         console.log(`Navigate to: ${notificationData.screen}`);
-        // router.push(notificationData.screen);
       }
 
       if (notificationData?.orderId) {
         console.log(`Navigate to order: ${notificationData.orderId}`);
-        // router.push(`/order/${notificationData.orderId}`);
       }
     });
 
@@ -97,7 +94,6 @@ export default function RootLayout() {
         sound: 'default',
       });
 
-      // You can create multiple channels for different types of notifications
       Notifications.setNotificationChannelAsync('orders', {
         name: 'Order Updates',
         importance: Notifications.AndroidImportance.HIGH,
@@ -122,39 +118,34 @@ export default function RootLayout() {
     return null;
   }
 
-  // return (
-  //   <AuthProvider>
-  //     <Stack onLayout={onLayoutRootView}>
-  //       <Stack.Screen
-  //         name="auth/login"
-  //         options={{ headerShown: false }}
-  //       />
-  //       <Stack.Screen
-  //         name="auth/signup"
-  //         options={{ headerShown: false }}
-  //       />
-  //       <Stack.Screen
-  //         name="(tabs)"
-  //         options={{ headerShown: false }}
-  //       />
-  //       <Stack.Screen
-  //         name="ticket"
-  //         options={{ headerShown: false }}
-  //       />
-  //     </Stack>
-  //   </AuthProvider>
-  // );
-
   return (
     <AuthProvider>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}
-        onLayout={onLayoutRootView}>
-
-      </Stack>
-      <Toast position="top" topOffset={50} />
+      <AppConfigProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+          onLayout={onLayoutRootView}
+        >
+          <Stack.Screen
+            name="auth/login"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="auth/signup"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="(tabs)"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ticket"
+            options={{ headerShown: false }}
+          />
+        </Stack>
+        <Toast position="top" topOffset={50} />
+      </AppConfigProvider>
     </AuthProvider>
   );
 }

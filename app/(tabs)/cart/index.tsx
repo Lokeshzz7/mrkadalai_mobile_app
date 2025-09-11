@@ -17,6 +17,9 @@ import { useCart } from '../../../context/CartContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiRequest } from '../../../utils/api' // Import your API utility
 import Toast from 'react-native-toast-message'
+import { useContext } from 'react';
+import { AppConfigContext } from '@/context/AppConfigContext';
+
 
 // Types
 interface CartProduct {
@@ -258,6 +261,8 @@ const Cart: React.FC = () => {
     const [couponLoading, setCouponLoading] = useState<boolean>(false)
     const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([])
     const [showCoupons, setShowCoupons] = useState<boolean>(false)
+    const { config } = useContext(AppConfigContext);
+
 
     // Use cart context
     const {
@@ -300,7 +305,8 @@ const Cart: React.FC = () => {
             const coupons = await apiRequest(`/customer/outlets/coupons/${outletId}`, {
                 method: 'GET'
             })
-            setAvailableCoupons(coupons)
+            console.log("coupons : ", coupons);
+            setAvailableCoupons(coupons?.coupons ?? [])
         } catch (error) {
             console.error('Error fetching coupons:', error)
         }
@@ -333,7 +339,7 @@ const Cart: React.FC = () => {
             const response = await apiRequest('/customer/outlets/apply-coupon', {
                 method: 'POST',
                 body: {
-                    code: code.toUpperCase(),
+                    code: code,
                     currentTotal,
                     outletId
                 }
@@ -343,7 +349,7 @@ const Cart: React.FC = () => {
             const couponDetails = availableCoupons.find(c => c.code.toUpperCase() === code.toUpperCase())
 
             setAppliedCoupon({
-                code: code.toUpperCase(),
+                code: code,
                 discount: response.discount,
                 description: couponDetails?.description || 'Discount Applied'
             })
@@ -722,8 +728,9 @@ const Cart: React.FC = () => {
                     </View>
                 )}
 
+
                 {/* Coupon Section */}
-                {cartItems.length > 0 && (
+                {config.COUPONS && cartItems.length > 0 && (
                     <View className="mx-4 mb-6">
                         <View className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
                             <View className="flex-row items-center justify-between mb-4">

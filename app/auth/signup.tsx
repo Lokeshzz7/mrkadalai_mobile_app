@@ -51,12 +51,11 @@ const Signup = () => {
       password.trim() === '' || confirmPassword.trim() === '') {
       Toast.show({
         type: 'error',
-        text1: 'Error',
+        text1: 'Missing Information',
         text2: 'Please fill in all fields',
         position: 'top',
         visibilityTime: 4000,
         autoHide: true,
-        onPress: () => Toast.hide(),
       });
       return
     }
@@ -64,12 +63,11 @@ const Signup = () => {
     if (password !== confirmPassword) {
       Toast.show({
         type: 'error',
-        text1: 'Error',
+        text1: 'Password Mismatch',
         text2: 'Passwords do not match',
         position: 'top',
         visibilityTime: 4000,
         autoHide: true,
-        onPress: () => Toast.hide(),
       });
       return
     }
@@ -77,12 +75,11 @@ const Signup = () => {
     if (password.length < 6) {
       Toast.show({
         type: 'error',
-        text1: 'Error',
+        text1: 'Weak Password',
         text2: 'Password must be at least 6 characters long',
         position: 'top',
         visibilityTime: 4000,
         autoHide: true,
-        onPress: () => Toast.hide(),
       });
       return
     }
@@ -91,12 +88,11 @@ const Signup = () => {
     if (!phoneRegex.test(phoneNumber)) {
       Toast.show({
         type: 'error',
-        text1: 'Error',
+        text1: 'Invalid Phone Number',
         text2: 'Please enter a valid 10-digit phone number',
         position: 'top',
         visibilityTime: 4000,
         autoHide: true,
-        onPress: () => Toast.hide(),
       });
       return
     }
@@ -105,36 +101,69 @@ const Signup = () => {
     if (!emailRegex.test(email)) {
       Toast.show({
         type: 'error',
-        text1: 'Error',
+        text1: 'Invalid Email',
         text2: 'Please enter a valid email address',
         position: 'top',
         visibilityTime: 4000,
         autoHide: true,
-        onPress: () => Toast.hide(),
       });
       return
     }
 
     try {
       await signup(name, email, phoneNumber, college, customerYear, password, confirmPassword)
+
       Toast.show({
         type: 'success',
-        text1: 'Success',
+        text1: 'Welcome!',
         text2: 'Account created successfully!',
         position: 'top',
-        visibilityTime: 4000,
+        visibilityTime: 3000,
         autoHide: true,
-        onPress: () => Toast.hide(),
       });
+
     } catch (error: any) {
+      console.error('Signup error in component:', error);
+
+      let errorTitle = 'Signup Failed';
+      let errorMessage = 'Could not create account. Please try again.';
+      let shouldClearEmail = false;
+
+      if (error.message) {
+        if (error.message.toLowerCase().includes('user already exists') ||
+          error.message.toLowerCase().includes('email already exists')) {
+          errorTitle = 'Account Already Exists';
+          errorMessage = 'An account with this email already exists. Please try signing in instead.';
+          shouldClearEmail = true;
+        } else if (error.message.toLowerCase().includes('invalid email')) {
+          errorTitle = 'Invalid Email';
+          errorMessage = 'Please check your email address and try again.';
+        } else if (error.message.toLowerCase().includes('network') ||
+          error.message.toLowerCase().includes('connection')) {
+          errorTitle = 'Connection Error';
+          errorMessage = 'Please check your internet connection and try again.';
+        } else if (error.message.toLowerCase().includes('server')) {
+          errorTitle = 'Server Error';
+          errorMessage = 'Server is temporarily unavailable. Please try again later.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       Toast.show({
         type: 'error',
-        text1: 'Signup Failed',
-        text2: error.message || 'Could not create account. Please try again.',
+        text1: errorTitle,
+        text2: errorMessage,
         position: 'top',
-        visibilityTime: 4000,
+        visibilityTime: 5000,
         autoHide: true,
-        onPress: () => Toast.hide(),
+        onHide: () => {
+          if (shouldClearEmail) {
+            setEmail('');
+            setPassword('');
+            setConfirmPassword('');
+          }
+        },
       });
     }
   }
@@ -145,6 +174,7 @@ const Signup = () => {
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
+        keyboardShouldPersistTaps="handled"
       >
         <View className="flex-1 px-4 py-8">
           {/* Header */}
@@ -194,6 +224,7 @@ const Signup = () => {
                   className="text-gray-900 text-base"
                   autoCapitalize="words"
                   editable={!isLoading}
+                  autoCorrect={false}
                 />
               </View>
             </View>
@@ -211,6 +242,7 @@ const Signup = () => {
                   autoCapitalize="none"
                   keyboardType="email-address"
                   editable={!isLoading}
+                  autoCorrect={false}
                 />
               </View>
             </View>
@@ -296,14 +328,15 @@ const Signup = () => {
                     secureTextEntry={!isPasswordVisible}
                     autoCapitalize="none"
                     editable={!isLoading}
+                    autoCorrect={false}
                   />
                   <TouchableOpacity
                     onPress={() => setIsPasswordVisible(!isPasswordVisible)}
                     disabled={isLoading}
-                    className="ml-2"
+                    className="ml-2 p-1"
                   >
-                    <Text className="text-yellow-600 font-semibold">
-                      {isPasswordVisible ? '👁️' : '👁️‍🗨️'}
+                    <Text className="text-lg">
+                      {isPasswordVisible ? '👁️' : '🙈'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -324,14 +357,15 @@ const Signup = () => {
                     secureTextEntry={!isConfirmPasswordVisible}
                     autoCapitalize="none"
                     editable={!isLoading}
+                    autoCorrect={false}
                   />
                   <TouchableOpacity
                     onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}
                     disabled={isLoading}
-                    className="ml-2"
+                    className="ml-2 p-1"
                   >
-                    <Text className="text-yellow-600 font-semibold">
-                      {isConfirmPasswordVisible ? '👁️' : '👁️‍🗨️'}
+                    <Text className="text-lg">
+                      {isConfirmPasswordVisible ? '👁️' : '🙈'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -340,16 +374,19 @@ const Signup = () => {
 
             {/* Signup Button */}
             <TouchableOpacity
-              className="bg-yellow-400 rounded-xl py-4 shadow-md"
+              className={`rounded-xl py-4 shadow-md ${isLoading ? 'bg-gray-300' : 'bg-yellow-400 active:bg-yellow-500'}`}
               onPress={handleSignup}
               disabled={isLoading}
               activeOpacity={0.8}
             >
               {isLoading ? (
-                <ActivityIndicator color="#1F2937" size="small" />
+                <View className="flex-row items-center justify-center">
+                  <ActivityIndicator color="#1F2937" size="small" />
+                  <Text className="text-gray-700 ml-2 font-semibold">Creating Account...</Text>
+                </View>
               ) : (
                 <Text className="text-gray-900 text-center font-bold text-lg">
-                  Create Account
+                  🚀 Create Account
                 </Text>
               )}
             </TouchableOpacity>
