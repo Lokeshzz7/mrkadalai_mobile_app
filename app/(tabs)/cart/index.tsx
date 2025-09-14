@@ -419,10 +419,14 @@ const Cart: React.FC = () => {
     // Fetch cart data and coupons when screen is focused
     useFocusEffect(
         useCallback(() => {
-            fetchCartData()
-            validateCartStock()
-            fetchCoupons()
-        }, [fetchCartData, validateCartStock, fetchCoupons])
+            // Only refresh the cart if another sync operation isn't already running.
+            if (!cartState.syncInProgress) {
+                console.log('Cart screen focused, refreshing cart data.');
+                fetchCartData();
+            } else {
+                console.log('Cart screen focused, but a sync is already in progress. Skipping refresh.');
+            }
+        }, [cartState.syncInProgress, fetchCartData])
     )
 
     // Handle pull to refresh

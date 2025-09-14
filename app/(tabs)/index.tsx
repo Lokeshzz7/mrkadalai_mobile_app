@@ -1,3 +1,5 @@
+// RestaurantHome.tsx - Key fixes for stock validation
+
 import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react'
 import {
   FlatList,
@@ -18,7 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from 'react-native-toast-message'
 import { AppConfigContext } from '@/context/AppConfigContext'
 
-// Types
+// Types (keeping existing types)
 interface Product {
   id: number;
   name: string;
@@ -31,13 +33,14 @@ interface Product {
     reserved: number;
   };
 }
+
 interface DateItem {
   id: number;
   day: string;
   date: number;
   month: string;
   fullDate: Date;
-  availableSlots: any; // Or a more specific type if you know it
+  availableSlots: any;
 }
 
 interface ApiResponse {
@@ -52,13 +55,13 @@ interface FoodItemCardProps {
   onQuantityChange: (product: Product, change: number) => void;
   getCategoryIcon: (category: string) => string;
   isProductAvailable: (product: Product) => boolean;
+  getAvailableStock: (product: Product) => number;
+  canAddMore: (productId: number, product: Product) => boolean;
 }
 
 const DateCard = React.memo(({ date, index, isSelected, onPress }: any) => (
   <TouchableOpacity onPress={onPress} style={{ width: 80, marginRight: 12 }}>
-
     <MotiView
-
       className={`px-3 py-3 rounded-2xl border-2 ${isSelected ? 'border-yellow-400' : 'border-gray-200'} ${isSelected ? 'bg-[#FCD34D]' : 'bg-[#FFFFFF]'} shadow-sm`}
     >
       <Text className={`text-center text-sm font-medium ${isSelected ? 'text-gray-800' : 'text-gray-600'}`}>
@@ -95,16 +98,29 @@ const CategoryCard = React.memo(({ category, isSelected, onPress }: any) => (
   </TouchableOpacity>
 ))
 
-//  FIX: Enhanced FoodItemCard with better stock handling
-const FoodItemCard = React.memo(({ item, index, getItemQuantity, onAddToCart, onQuantityChange, getCategoryIcon, isProductAvailable }: FoodItemCardProps) => {
-
+// ⭐ FIXED: Enhanced FoodItemCard with consistent stock handling
+const FoodItemCard = React.memo(({
+  item,
+  index,
+  getItemQuantity,
+  onAddToCart,
+  onQuantityChange,
+  getCategoryIcon,
+  isProductAvailable,
+  getAvailableStock,
+  canAddMore
+}: FoodItemCardProps) => {
   const isAvailable = isProductAvailable(item)
-  const availableStock = item.inventory ? item.inventory.quantity : 0
+  const availableStock = getAvailableStock(item)
   const cartQuantity = getItemQuantity(item.id)
+  const canAddMoreItems = canAddMore(item.id, item)
 
-  // ⭐ FIX: Better stock calculation
-  const remainingStock = availableStock - cartQuantity
-  const canAddMoreItems = remainingStock > 0 && isAvailable
+  console.log(`${item.name} stock info:`, {
+    availableStock,
+    cartQuantity,
+    canAddMoreItems,
+    isAvailable
+  })
 
   return (
     <View className={`bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100 ${!isAvailable ? 'opacity-60' : ''}`}>
@@ -116,7 +132,8 @@ const FoodItemCard = React.memo(({ item, index, getItemQuantity, onAddToCart, on
           )}
           <View className="flex-row items-center mb-2">
             <Text className="text-sm text-gray-500">
-              {item.inventory ? `Stock: ${availableStock}${cartQuantity > 0 ? ` (${remainingStock} available)` : ''}` : 'Available'}
+              Stock: {availableStock} available
+              {cartQuantity > 0 && ` (${cartQuantity} in cart)`}
             </Text>
           </View>
           <View className="flex-row items-center justify-between">
@@ -131,7 +148,7 @@ const FoodItemCard = React.memo(({ item, index, getItemQuantity, onAddToCart, on
             <Text className="text-3xl">{getCategoryIcon(item.category)}</Text>
           </View>
 
-          {/* Cart Controls - INSTANT UPDATES, NO LOADING */}
+          {/* Cart Controls */}
           {cartQuantity > 0 ? (
             <View className="flex-row items-center bg-gray-100 rounded-full px-1">
               <TouchableOpacity
@@ -158,15 +175,15 @@ const FoodItemCard = React.memo(({ item, index, getItemQuantity, onAddToCart, on
             </View>
           ) : (
             <TouchableOpacity
-              className={`px-4 py-2 w-20 rounded-full items-center ${isAvailable ? 'bg-yellow-400' : 'bg-gray-300'
+              className={`px-4 py-2 w-20 rounded-full items-center ${isAvailable && availableStock > 0 ? 'bg-yellow-400' : 'bg-gray-300'
                 }`}
               activeOpacity={0.7}
-              disabled={!isAvailable}
+              disabled={!isAvailable || availableStock <= 0}
               onPress={() => onAddToCart(item)}
             >
-              <Text className={`font-semibold text-xs ${isAvailable ? 'text-gray-900' : 'text-gray-500'
+              <Text className={`font-semibold text-xs ${isAvailable && availableStock > 0 ? 'text-gray-900' : 'text-gray-500'
                 }`}>
-                {isAvailable ? 'Add' : 'Out'}
+                {isAvailable && availableStock > 0 ? 'Add' : 'Out'}
               </Text>
             </TouchableOpacity>
           )}
@@ -190,7 +207,8 @@ const RestaurantHome = () => {
     updateItemQuantity,
     getTotalCartItems,
     getItemQuantity,
-    canAddMore
+    canAddMore,
+    getAvailableStock  // ⭐ NEW: Use the consistent stock calculation
   } = useCart()
 
   // Memoize dates to prevent re-calculation
@@ -205,9 +223,9 @@ const RestaurantHome = () => {
           method: 'GET'
         });
 
-        console.log("Full API response:", response);
+        // console.log("Full API response:", response);
 
-        let dateArray = response.data || []; // ✅ Correct
+        let dateArray = response.data || [];
 
         // If LIVE_COUNTER is false, remove the first date
         if (!config.LIVE_COUNTER) {
@@ -226,7 +244,7 @@ const RestaurantHome = () => {
           };
         });
 
-        console.log("Processed dateList:", dateList); // ✅ Check processed dates
+        // console.log("Processed dateList:", dateList);
 
         setDates(dateList);
 
@@ -242,9 +260,6 @@ const RestaurantHome = () => {
 
     fetchDates();
   }, [config.LIVE_COUNTER]);
-
-
-
 
   // Category mapping with icons
   const categoryMapping = useMemo(() => ({
@@ -331,36 +346,12 @@ const RestaurantHome = () => {
   // Check if product is available (has stock)
   const isProductAvailable = useCallback((product: Product) => {
     if (!product.inventory) return true
-    return product.inventory.quantity > 0
-  }, [])
+    return getAvailableStock(product) > 0
+  }, [getAvailableStock])
 
-  // ⭐ FIX: Enhanced stock validation
-  const validateStock = useCallback((product: Product, requestedQuantity: number) => {
-    if (!product.inventory) return true
+  // ⭐ REMOVED: Old validateStock method - now using cart context's consistent validation
 
-    const currentCartQuantity = getItemQuantity(product.id)
-    const availableStock = product.inventory.quantity
-    const totalAfterAdd = currentCartQuantity + requestedQuantity
-
-    // Check if we have enough stock
-    if (totalAfterAdd > availableStock) {
-      Toast.show({
-        type: 'error',
-        text1: 'Insufficient Stock',
-        text2: `Only ${availableStock} items available. You already have ${currentCartQuantity} in cart.`,
-        position: 'top',           // shows at the top
-        visibilityTime: 5000,      // stays visible for 5 seconds
-        autoHide: true,
-        onPress: () => Toast.hide(), // tap to close
-      });
-
-      return false
-    }
-
-    return true
-  }, [getItemQuantity])
-
-  // ⭐ FIX: Enhanced add to cart with better validation
+  // ⭐ SIMPLIFIED: Add to cart with consistent validation
   const handleAddToCart = useCallback((product: Product) => {
     if (!isProductAvailable(product)) {
       Toast.show({
@@ -376,27 +367,15 @@ const RestaurantHome = () => {
       return
     }
 
-    // Validate stock before adding
-    if (!validateStock(product, 1)) {
-      return
-    }
+    // ⭐ SIMPLIFIED: Let the cart context handle all validation
+    updateItemQuantity(product.id, 1, product)
+  }, [isProductAvailable, updateItemQuantity])
 
-    const availableStock = product.inventory?.quantity || 0
-    updateItemQuantity(product.id, 1, product, availableStock)
-  }, [isProductAvailable, validateStock, updateItemQuantity])
-
-  // ⭐ FIX: Enhanced quantity changes with better validation
+  // ⭐ SIMPLIFIED: Quantity changes with consistent validation
   const handleQuantityChange = useCallback((product: Product, change: number) => {
-    if (change > 0) {
-      // Validate stock before increasing
-      if (!validateStock(product, change)) {
-        return
-      }
-    }
-
-    const availableStock = product.inventory?.quantity || 0
-    updateItemQuantity(product.id, change, product, availableStock)
-  }, [validateStock, updateItemQuantity])
+    // ⭐ SIMPLIFIED: Let the cart context handle all validation
+    updateItemQuantity(product.id, change, product)
+  }, [updateItemQuantity])
 
   const handleDateSelect = useCallback(async (date: any, index: number) => {
     setSelectedDate(index);
@@ -406,9 +385,6 @@ const RestaurantHome = () => {
       console.error('Error saving date', error);
     }
   }, []);
-
-  // Memoized DateCard component
-
 
   // Loading component
   if (loading) {
@@ -467,13 +443,14 @@ const RestaurantHome = () => {
             onQuantityChange={handleQuantityChange}
             getCategoryIcon={getCategoryIcon}
             isProductAvailable={isProductAvailable}
+            getAvailableStock={getAvailableStock}  // ⭐ Pass the consistent method
+            canAddMore={canAddMore}  // ⭐ Pass the consistent method
           />
         )}
         ListHeaderComponent={
           <>
-            {/* --- All your header content now lives inside the FlatList --- */}
+            {/* Header with greeting, cart button, and FAQ button */}
             <View className="bg-white mt-3">
-              {/* Header with greeting, cart button, and FAQ button */}
               <View className="flex-row justify-between items-center px-4 pt-2">
                 <Text className="text-2xl font-bold text-gray-900">
                   Hello Moto !
@@ -518,7 +495,7 @@ const RestaurantHome = () => {
                       date={date}
                       index={index}
                       isSelected={selectedDate === index}
-                      onPress={() => handleDateSelect(date, index)} // Using the memoized handler
+                      onPress={() => handleDateSelect(date, index)}
                     />
                   ))}
                 </ScrollView>
@@ -526,7 +503,7 @@ const RestaurantHome = () => {
 
               {/* Categories Header */}
               <View className="flex-row justify-between items-center px-4 mb-4">
-                <Text className="text-lg font-semibold text-gray-900">All Categoreis</Text>
+                <Text className="text-lg font-semibold text-gray-900">All Categories</Text>
                 <TouchableOpacity>
                   <Text className="text-yellow-600 font-medium">See All</Text>
                 </TouchableOpacity>
