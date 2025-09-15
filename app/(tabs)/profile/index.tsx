@@ -186,36 +186,11 @@ const Profile = () => {
       action: 'edit_profile'
     },
     {
-      id: 2,
-      title: 'College',
-      icon: '🎓',
-      description: 'Your college details and preferences',
-      hasNotification: false,
-      action: 'college'
-    },
-    {
       id: 3,
       title: 'Cart',
       icon: '🛒',
       description: 'View items in your cart',
       action: 'cart'
-    },
-    {
-      id: 4,
-      title: 'Favorites',
-      icon: '❤️',
-      description: 'Your favorite food items',
-      hasNotification: false,
-      action: 'favorites'
-    },
-    {
-      id: 5,
-      title: 'Notifications',
-      icon: '🔔',
-      description: 'Manage your notification preferences',
-      hasNotification: true,
-      notificationCount: 5,
-      action: 'notifications'
     },
     {
       id: 6,
@@ -243,39 +218,6 @@ const Profile = () => {
       case 'cart':
         router.push('/cart')
         break
-      case 'favorites':
-        Toast.show({
-          type: 'error',
-          text1: 'Favorites',
-          text2: 'Favorites will be available soon',
-          position: 'top',
-          visibilityTime: 4000,
-          autoHide: true,
-          onPress: () => Toast.hide(),
-        });
-        break
-      case 'notifications':
-        Toast.show({
-          type: 'error',
-          text1: 'Notifications',
-          text2: 'Notifications will be available soon',
-          position: 'top',
-          visibilityTime: 4000,
-          autoHide: true,
-          onPress: () => Toast.hide(),
-        });
-        break
-      case 'college':
-        Toast.show({
-          type: 'error',
-          text1: 'College Info',
-          text2: 'College details will be available soon',
-          position: 'top',
-          visibilityTime: 4000,
-          autoHide: true,
-          onPress: () => Toast.hide(),
-        });
-        break
       case 'faq':
         router.push('/ticket/faq')
         break
@@ -302,24 +244,7 @@ const Profile = () => {
         });
     }
   }
-
-  const handleHeaderButtonPress = (buttonType: any) => {
-    switch (buttonType) {
-      case 'more':
-        Toast.show({
-          type: 'error',
-          text1: 'More Options',
-          text2: 'Show more profile options',
-          position: 'top',
-          visibilityTime: 4000,
-          autoHide: true,
-          onPress: () => Toast.hide(),
-        });
-        break
-      default:
-        break
-    }
-  }
+  
 
   const ProfileMenuItem = ({ item, index }: any) => (
     <TouchableOpacity
@@ -388,12 +313,12 @@ const Profile = () => {
         <Text className="text-xl font-bold text-gray-900">Profile</Text>
 
         <View className="flex-row">
-          <TouchableOpacity
+          {/* <TouchableOpacity
             className="p-1"
             onPress={() => handleHeaderButtonPress('more')}
           >
             <Text className="text-3xl">⋮</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 

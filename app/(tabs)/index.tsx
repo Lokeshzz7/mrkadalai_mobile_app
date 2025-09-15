@@ -393,7 +393,7 @@ const RestaurantHome = () => {
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#FCD34D" />
           <Text className="mt-4 text-gray-600">Loading products...</Text>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             className="mt-4 bg-yellow-400 px-6 py-3 rounded-full"
             onPress={() => {
               setLoading(false)
@@ -401,9 +401,9 @@ const RestaurantHome = () => {
             }}
           >
             <Text className="font-semibold text-gray-900">Skip Loading</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
-      </SafeAreaView>
+      </SafeAreaView>    
     )
   }
 
@@ -504,9 +504,9 @@ const RestaurantHome = () => {
               {/* Categories Header */}
               <View className="flex-row justify-between items-center px-4 mb-4">
                 <Text className="text-lg font-semibold text-gray-900">All Categories</Text>
-                <TouchableOpacity>
+                {/* <TouchableOpacity>
                   <Text className="text-yellow-600 font-medium">See All</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
 
               {/* Categories */}
