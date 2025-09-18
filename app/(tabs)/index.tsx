@@ -9,7 +9,8 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert
+  Alert,
+  Image
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
 import { router } from 'expo-router'
@@ -19,6 +20,7 @@ import { useCart } from '../../context/CartContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from 'react-native-toast-message'
 import { AppConfigContext } from '@/context/AppConfigContext'
+import { useAuth } from '@/context/AuthContext'
 
 // Types (keeping existing types)
 interface Product {
@@ -115,38 +117,50 @@ const FoodItemCard = React.memo(({
   const cartQuantity = getItemQuantity(item.id)
   const canAddMoreItems = canAddMore(item.id, item)
 
-  console.log(`${item.name} stock info:`, {
-    availableStock,
-    cartQuantity,
-    canAddMoreItems,
-    isAvailable
-  })
-
   return (
-    <View className={`bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100 ${!isAvailable ? 'opacity-60' : ''}`}>
-      <View className="flex-row">
-        <View className="flex-1 gap-3">
-          <Text className="text-lg font-bold text-gray-900 mb-1">{item.name}</Text>
-          {item.description && (
-            <Text className="text-sm text-gray-600 mb-2">{item.description}</Text>
-          )}
-          <View className="flex-row items-center mb-2">
-            <Text className="text-sm text-gray-500">
-              Stock: {availableStock} available
-              {cartQuantity > 0 && ` (${cartQuantity} in cart)`}
+    <View
+      className={`bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100 ${!isAvailable ? 'opacity-60' : ''
+        }`}
+    >
+      <View className="flex-row items-center">
+        {/* LEFT SIDE → Text content */}
+        <View className="flex-1 pr-3 justify-between">
+          {/* Title + Category */}
+          <View>
+            <Text className="text-xl font-bold text-gray-900 mb-1">
+              {item.name}
             </Text>
+
+            <View className="flex-row items-center mb-2">
+              <Text className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full mr-2">
+                {item.category}
+              </Text>
+              {/* <Text className="text-sm text-gray-500">
+                {getCategoryIcon(item.category)}
+              </Text> */}
+            </View>
+
+            {item.description && (
+              <Text className="text-sm text-gray-600 mb-3" numberOfLines={2}>
+                {item.description}
+              </Text>
+            )}
           </View>
-          <View className="flex-row items-center justify-between">
-            <Text className="text-xl font-bold text-yellow-600">
-              ${item.price.toFixed(2)}
-            </Text>
-          </View>
+
+          {/* Price */}
+          <Text className="text-lg font-extrabold text-yellow-600">
+            ₹{item.price.toFixed(2)}
+          </Text>
         </View>
 
-        <View className="flex flex-col gap-4">
-          <View className="w-20 h-20 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
-            <Text className="text-3xl">{getCategoryIcon(item.category)}</Text>
-          </View>
+        {/* RIGHT SIDE → Image + Cart Controls */}
+        <View className="items-center ml-4">
+          {/* Product Image */}
+          <Image
+            source={{ uri: item.imageUrl }}
+            className="w-32 h-32 rounded-2xl mb-3"
+            resizeMode="cover"
+          />
 
           {/* Cart Controls */}
           {cartQuantity > 0 ? (
@@ -175,14 +189,20 @@ const FoodItemCard = React.memo(({
             </View>
           ) : (
             <TouchableOpacity
-              className={`px-4 py-2 w-20 rounded-full items-center ${isAvailable && availableStock > 0 ? 'bg-yellow-400' : 'bg-gray-300'
+              className={`px-4 py-2 w-24 rounded-full items-center ${isAvailable && availableStock > 0
+                ? 'bg-yellow-400'
+                : 'bg-gray-300'
                 }`}
               activeOpacity={0.7}
               disabled={!isAvailable || availableStock <= 0}
               onPress={() => onAddToCart(item)}
             >
-              <Text className={`font-semibold text-xs ${isAvailable && availableStock > 0 ? 'text-gray-900' : 'text-gray-500'
-                }`}>
+              <Text
+                className={`font-semibold text-xs ${isAvailable && availableStock > 0
+                  ? 'text-gray-900'
+                  : 'text-gray-500'
+                  }`}
+              >
                 {isAvailable && availableStock > 0 ? 'Add' : 'Out'}
               </Text>
             </TouchableOpacity>
@@ -194,6 +214,7 @@ const FoodItemCard = React.memo(({
 })
 
 const RestaurantHome = () => {
+  const { user } = useAuth()
   const [selectedDate, setSelectedDate] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [products, setProducts] = useState<Product[]>([])
@@ -250,7 +271,7 @@ const RestaurantHome = () => {
 
         if (dateList.length > 0) {
           await AsyncStorage.setItem("Date", JSON.stringify(dateList[0]));
-          console.log("Default date saved:", dateList[0]);
+          // console.log("Default date saved:", dateList[0]);
         }
 
       } catch (error) {
@@ -307,6 +328,7 @@ const RestaurantHome = () => {
 
       if (response && response.products && Array.isArray(response.products)) {
         setProducts(response.products)
+        // console.log("products : ", response.products)
       } else if (response && Array.isArray(response)) {
         setProducts(response)
       } else {
@@ -403,7 +425,7 @@ const RestaurantHome = () => {
             <Text className="font-semibold text-gray-900">Skip Loading</Text>
           </TouchableOpacity> */}
         </View>
-      </SafeAreaView>    
+      </SafeAreaView>
     )
   }
 
@@ -433,7 +455,7 @@ const RestaurantHome = () => {
         keyExtractor={(item) => item.id.toString()}
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
         renderItem={({ item, index }) => (
           <FoodItemCard
             item={item}
@@ -453,19 +475,19 @@ const RestaurantHome = () => {
             <View className="bg-white mt-3">
               <View className="flex-row justify-between items-center px-4 pt-2">
                 <Text className="text-2xl font-bold text-gray-900">
-                  Hello Moto !
+                  {`Hello ${user?.name || "User"}`}
                 </Text>
                 <View className="flex-row items-center gap-3">
                   {/* Cart Button - Instant Updates */}
                   {totalCartItems > 0 && (
                     <TouchableOpacity
-                      className="flex-row items-center bg-green-500 px-4 py-2 rounded-full"
+                      className="flex-row items-center bg-yellow-400 px-4 py-2 rounded-full"
                       onPress={() => router.push("/(tabs)/cart")}
                       activeOpacity={0.8}
                     >
-                      <Text className="text-white font-semibold mr-2">Cart</Text>
+                      <Text className="text-black font-semibold mr-2">Cart</Text>
                       <View className="bg-white rounded-full min-w-6 h-6 items-center justify-center">
-                        <Text className="text-green-500 text-xs font-bold">
+                        <Text className="text-black text-xs font-bold">
                           {totalCartItems}
                         </Text>
                       </View>
@@ -502,12 +524,12 @@ const RestaurantHome = () => {
               </View>
 
               {/* Categories Header */}
-              <View className="flex-row justify-between items-center px-4 mb-4">
+              {/* <View className="flex-row justify-between items-center px-4 mb-4">
                 <Text className="text-lg font-semibold text-gray-900">All Categories</Text>
-                {/* <TouchableOpacity>
+                <TouchableOpacity>
                   <Text className="text-yellow-600 font-medium">See All</Text>
-                </TouchableOpacity> */}
-              </View>
+                </TouchableOpacity>
+              </View> */}
 
               {/* Categories */}
               <View className="mb-4">

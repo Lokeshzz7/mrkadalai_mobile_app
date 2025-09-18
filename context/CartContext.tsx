@@ -330,7 +330,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'GET'
       })
 
-      console.log('🔄 Cart data fetched:', response)
+      // console.log('🔄 Cart data fetched:', response)
 
       if (response.cart) {
         dispatch({ type: 'SET_CART_DATA', payload: response.cart })
@@ -369,11 +369,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const validateStockForAddition = useCallback((product: CartProduct, additionalQuantity: number): boolean => {
     const availableStock = getAvailableStock(product)
 
-    console.log(`📊 Stock validation for ${product.name}:`, {
-      additionalQuantity,
-      availableStock,
-      canAdd: additionalQuantity <= availableStock
-    })
+    // console.log(`📊 Stock validation for ${product.name}:`, {
+    //   additionalQuantity,
+    //   availableStock,
+    //   canAdd: additionalQuantity <= availableStock
+    // })
 
     return additionalQuantity <= availableStock
   }, [getAvailableStock])
@@ -388,7 +388,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     lastSyncRef.current = syncId
     syncLockRef.current = true
 
-    console.log(`🔄 Starting sync #${syncId} with ${syncQueue.current.size} items`)
+    // console.log(`🔄 Starting sync #${syncId} with ${syncQueue.current.size} items`)
 
     dispatch({ type: 'SET_SYNC_IN_PROGRESS', payload: true })
 
@@ -404,7 +404,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           dispatch({ type: 'SET_UPDATE_ERROR', payload: { productId, error: null } })
 
-          console.log(`📦 Syncing product ${productId}: ${oldQuantity} → ${newQuantity}`)
+          // console.log(`📦 Syncing product ${productId}: ${oldQuantity} → ${newQuantity}`)
 
           if (newQuantity === 0) {
             // Remove all items
@@ -516,7 +516,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             payload: { [productId]: newQuantity }
           })
 
-          console.log(`✅ Successfully synced product ${productId} to ${newQuantity}`)
+          // console.log(`✅ Successfully synced product ${productId} to ${newQuantity}`)
 
         } catch (error: any) {
           console.error(`❌ Error syncing item ${productId}:`, error)
@@ -555,7 +555,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Clear successfully processed items
       syncQueue.current.clear()
-      console.log(`✅ Sync #${syncId} completed`)
+      // console.log(`✅ Sync #${syncId} completed`)
 
     } catch (error) {
       console.error(`❌ Sync #${syncId} failed:`, error)
@@ -578,7 +578,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentQuantity = state.cartItems[productId] || 0
     const newQuantity = Math.max(0, currentQuantity + change)
 
-    console.log(`🔄 Updating quantity for product ${productId}: ${currentQuantity} + ${change} = ${newQuantity}`)
+    // console.log(`🔄 Updating quantity for product ${productId}: ${currentQuantity} + ${change} = ${newQuantity}`)
 
     // Don't allow negative quantities
     if (newQuantity < 0) return false
@@ -620,7 +620,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       timestamp: Date.now()
     })
 
-    console.log(`📝 Added to sync queue: ${productId} → ${newQuantity}`)
+    // console.log(`📝 Added to sync queue: ${productId} → ${newQuantity}`)
 
     // Debounced background sync - reduced timeout for better UX
     if (syncTimeoutRef.current) {
@@ -666,7 +666,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [fetchCartData])
 
   const removeItem = useCallback(async (productId: number) => {
-    console.log(`🗑️ Removing item ${productId}`)
+    // console.log(`🗑️ Removing item ${productId}`)
 
     // Clear any existing errors
     dispatch({ type: 'SET_UPDATE_ERROR', payload: { productId, error: null } })
@@ -690,7 +690,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         })
       }
-      console.log(`✅ Item ${productId} removed successfully`)
+      // console.log(`✅ Item ${productId} removed successfully`)
     } catch (error) {
       console.error(`❌ Error removing item ${productId}:`, error)
       // Refresh cart on error to get correct state
@@ -715,7 +715,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state.cartData, state.cartItems])
 
   const clearCart = useCallback(() => {
-    console.log('🧹 Clearing cart')
+    // console.log('🧹 Clearing cart')
     dispatch({ type: 'CLEAR_CART' })
     syncQueue.current.clear()
     isUpdatingRef.current.clear()
@@ -726,7 +726,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [])
 
   const refreshCart = useCallback(async () => {
-    console.log('🔄 Refreshing cart')
+    // console.log('🔄 Refreshing cart')
     dispatch({ type: 'REFRESH_CART' })
     await fetchCartData()
   }, [fetchCartData])

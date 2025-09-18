@@ -15,9 +15,9 @@ const registerDeviceOnServer = async (token) => {
         platform: Platform.OS,
       },
     });
-    console.log(
-      "✅ Push notification token successfully registered with backend."
-    );
+    // console.log(
+    //   "✅ Push notification token successfully registered with backend."
+    // );
   } catch (error) {
     console.error("❌ Error sending push token to server:", error);
   }
@@ -33,7 +33,7 @@ const unregisterDeviceOnServer = async (token) => {
       method: "POST",
       body: { deviceToken: token },
     });
-    console.log("✅ Push notification token unregistered from backend.");
+    // console.log("✅ Push notification token unregistered from backend.");
   } catch (error) {
     console.error("❌ Error unregistering push token from server:", error);
   }
@@ -48,7 +48,7 @@ export const usePushNotifications = () => {
    */
   const registerForPushNotifications = async () => {
     if (!Device.isDevice) {
-      console.log("Push notifications are not supported on simulators.");
+      // console.log("Push notifications are not supported on simulators.");
       return;
     }
 
@@ -62,14 +62,14 @@ export const usePushNotifications = () => {
     }
 
     if (finalStatus !== "granted") {
-      console.log("User did not grant permission for push notifications.");
+      // console.log("User did not grant permission for push notifications.");
       return;
     }
 
     try {
       const tokenData = await Notifications.getDevicePushTokenAsync();
       const token = tokenData.data;
-      console.log("Native Device Token:", token);
+      // console.log("Native Device Token:", token);
       await registerDeviceOnServer(token);
     } catch (e) {
       console.error("Failed to get native push token", e);

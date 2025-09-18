@@ -43,7 +43,7 @@ export const AppConfigProvider = ({ children }: Props) => {
             const data = await apiRequest(`/superadmin/outlets/app-features/${outletId}`);
             if (data && data.data) {
                 const configData = data.data;
-                console.log("CNfig data  : ", configData);
+                // console.log("CNfig data  : ", configData);
 
                 const completeConfig = {
                     APP: configData.APP ?? false,
