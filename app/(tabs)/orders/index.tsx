@@ -100,178 +100,205 @@ interface CancelConfirmationModalProps {
 }
 
 const getStatusColor = (status: string) => {
-    switch (status) {
+    const key = (status || '').toLowerCase();
+
+    switch (key) {
         case 'pending':
-            return 'bg-blue-100 text-blue-800'
+            return 'bg-blue-100 text-blue-800';
         case 'processing':
-            return 'bg-yellow-100 text-yellow-800'
+            return 'bg-yellow-100 text-yellow-800';
         case 'completed':
-            return 'bg-green-100 text-green-800'
+        case 'delivered':
+            return 'bg-green-100 text-green-800';
         case 'cancelled':
-            return 'bg-red-100 text-red-800'
+        case 'canceled':
+        case 'partial_cancel':
+            return 'bg-red-100 text-red-800';
+        case 'partially_delivered':
+            return 'bg-yellow-100 text-yellow-800';
         default:
-            return 'bg-gray-100 text-gray-800'
+            return 'bg-gray-100 text-gray-800';
     }
-}
+};
 
 const getStatusText = (status: string) => {
-    switch (status) {
+    const key = (status || '').toLowerCase();
+
+    switch (key) {
         case 'pending':
-            return 'Order Placed'
+            return 'Order Placed';
         case 'processing':
-            return 'On Processing'
+            return 'On Processing';
         case 'completed':
-            return 'Completed'
+        case 'delivered':
+            return 'Delivered';
         case 'cancelled':
-            return 'Cancelled'
+        case 'canceled':
+            return 'Cancelled';
+        case 'partial_cancel':
+            return 'Partially Cancelled';
+        case 'partially_delivered':
+            return 'Partially Delivered';
         default:
-            return 'Unknown'
+            return 'Unknown';
     }
+};
+
+
+const getProductImage = (product?: { imageUrl?: string; name?: string }) => {
+    if (product?.imageUrl) {
+        return product.imageUrl
+    }
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        product?.name || 'Food'
+    )}&background=random`
 }
 
-const OngoingOrderCard = React.memo(({ item, index, onViewReceipt, onCancel }: OngoingOrderCardProps) => (
-    <View
-        className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100"
-    >
-        {/* Order Number and Time */}
-        <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-sm font-bold text-gray-900">{item.orderNumber}</Text>
-            <Text className="text-xs text-gray-500">{item.orderTime}</Text>
-        </View>
 
-        {/* Order Items Preview */}
-        <View className="mb-4">
-            <View className="flex-row mb-3">
-                {/* Display first 3 item images */}
-                <View className="flex-row">
-                    {item.items.slice(0, 3).map((orderItem, idx) => (
-                        <View
-                            key={orderItem.id}
-                            className={`w-12 h-12 bg-yellow-100 rounded-xl items-center justify-center ${idx > 0 ? '-ml-2' : ''}`}
-                            style={{ zIndex: 3 - idx }}
-                        >
-                            <Text className="text-lg">{orderItem.image}</Text>
-                        </View>
-                    ))}
-                    {item.items.length > 3 && (
-                        <View className="w-12 h-12 bg-gray-200 rounded-xl items-center justify-center -ml-2">
-                            <Text className="text-xs font-bold text-gray-600">+{item.items.length - 3}</Text>
+const OngoingOrderCard = React.memo(
+    ({ item, index, onViewReceipt, onCancel }: OngoingOrderCardProps) => (
+        <View className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100">
+            <View className="flex-row">
+                {/* LEFT → First Product Image */}
+                <View className="w-20 h-20 mr-4">
+                    <Image
+                        source={{ uri: getProductImage(item.items[0]?.product) }}
+                        className="w-full h-full rounded-xl"
+                        resizeMode="cover"
+                    />
+                    {item.items.length > 1 && (
+                        <View className="absolute bottom-0 right-0 bg-black/60 px-2 py-1 rounded-full">
+                            <Text className="text-xs text-white font-medium">
+                                +{item.items.length - 1}
+                            </Text>
                         </View>
                     )}
                 </View>
 
-                <View className="flex-1 ml-3">
-                    <Text className="text-base font-bold text-gray-900 mb-1">
-                        {item.items.length} item{item.items.length > 1 ? 's' : ''}
+                {/* RIGHT → Order Info */}
+                <View className="flex-1 justify-between">
+                    {/* Top Row → Order Number + Time */}
+                    <View className="flex-row justify-between items-center mb-2">
+                        <Text className="text-sm font-bold text-gray-900">
+                            {item.orderNumber}
+                        </Text>
+                        <Text className="text-xs text-gray-500">{item.orderTime}</Text>
+                    </View>
+
+                    {/* Order Summary */}
+                    <Text className="text-base font-semibold text-gray-900 mb-1">
+                        {item.items[0]?.foodName}
+                        {item.items.length > 1 && ` +${item.items.length - 1} more`}
                     </Text>
-                    <Text className="text-sm text-gray-600 mb-1">
-                        {item.items.slice(0, 2).map(orderItem => orderItem.foodName).join(', ')}
-                        {item.items.length > 2 && ` +${item.items.length - 2} more`}
+                    <Text className="text-sm text-gray-600 mb-2">
+                        Total: {item.totalPrice}
                     </Text>
-                    <Text className="text-lg font-bold text-yellow-600">{item.totalPrice}</Text>
+
+                    {/* Bottom Row → Status + Actions */}
+                    <View className="flex-row justify-between items-center">
+                        <View
+                            className={`px-3 py-1 rounded-full ${getStatusColor(item.status)}`}
+                        >
+                            <Text className="text-xs font-medium">
+                                {getStatusText(item.status)}
+                            </Text>
+                        </View>
+                        <View className="flex-row">
+                            <TouchableOpacity
+                                className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
+                                onPress={() => onViewReceipt(item)}
+                            >
+                                <Text className="text-xs font-medium text-gray-700">
+                                    Receipt
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                className="bg-red-100 px-3 py-2 rounded-lg"
+                                onPress={() => onCancel(item)}
+                            >
+                                <Text className="text-xs font-medium text-red-700">
+                                    Cancel
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
             </View>
-
-            <Text className="text-xs text-gray-500">Est. {item.estimatedTime}</Text>
         </View>
+    )
+)
 
-        {/* Status and Action Buttons */}
-        <View className="flex-row items-center justify-between">
-            <View className={`px-3 py-1 rounded-full ${getStatusColor(item.status)}`}>
-                <Text className="text-xs font-medium">{getStatusText(item.status)}</Text>
-            </View>
-
+// ✅ History Order Card
+const HistoryOrderCard = React.memo(
+    ({ item, index, onViewReceipt }: HistoryOrderCardProps) => (
+        <View className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100">
             <View className="flex-row">
-                <TouchableOpacity
-                    className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
-                    onPress={() => onViewReceipt(item)}
-                >
-                    <Text className="text-xs font-medium text-gray-700">View Receipt</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    className="bg-red-100 px-3 py-2 rounded-lg"
-                    onPress={() => onCancel(item)}
-                >
-                    <Text className="text-xs font-medium text-red-700">Cancel</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    </View>
-));
-
-const HistoryOrderCard = React.memo(({ item, index, onViewReceipt }: HistoryOrderCardProps) => (
-    <View
-        // from={{ opacity: 0, translateY: 50 }}
-        // animate={{ opacity: 1, translateY: 0 }}
-        // transition={{
-        //     type: 'timing',
-        //     duration: 300,
-        //     delay: index * 100,
-        // }}
-        className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100"
-    >
-        {/* Order Number and Date */}
-        <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-sm font-bold text-gray-900">{item.orderNumber}</Text>
-            <Text className="text-xs text-gray-500">{item.orderDate}</Text>
-        </View>
-
-        {/* Order Items Preview */}
-        <View className="mb-4">
-            <View className="flex-row mb-3">
-                {/* Display first 3 item images */}
-                <View className="flex-row">
-                    {item.items.slice(0, 3).map((orderItem, idx) => (
-                        <View
-                            key={orderItem.id}
-                            className={`w-12 h-12 bg-yellow-100 rounded-xl items-center justify-center ${idx > 0 ? '-ml-2' : ''}`}
-                            style={{ zIndex: 3 - idx }}
-                        >
-                            <Text className="text-lg">{orderItem.image}</Text>
-                        </View>
-                    ))}
-                    {item.items.length > 3 && (
-                        <View className="w-12 h-12 bg-gray-200 rounded-xl items-center justify-center -ml-2">
-                            <Text className="text-xs font-bold text-gray-600">+{item.items.length - 3}</Text>
+                {/* LEFT → First Product Image */}
+                <View className="w-20 h-20 mr-4">
+                    <Image
+                        source={{ uri: getProductImage(item.items[0]?.product) }}
+                        className="w-full h-full rounded-xl"
+                        resizeMode="cover"
+                    />
+                    {item.items.length > 1 && (
+                        <View className="absolute bottom-0 right-0 bg-black/60 px-2 py-1 rounded-full">
+                            <Text className="text-xs text-white font-medium">
+                                +{item.items.length - 1}
+                            </Text>
                         </View>
                     )}
                 </View>
 
-                <View className="flex-1 ml-3">
-                    <Text className="text-base font-bold text-gray-900 mb-1">
-                        {item.items.length} item{item.items.length > 1 ? 's' : ''}
+                {/* RIGHT → Order Info */}
+                <View className="flex-1 justify-between">
+                    {/* Top Row → Order Number + Date */}
+                    <View className="flex-row justify-between items-center mb-2">
+                        <Text className="text-sm font-bold text-gray-900">
+                            {item.orderNumber}
+                        </Text>
+                        <Text className="text-xs text-gray-500">{item.orderDate}</Text>
+                    </View>
+
+                    {/* Order Summary */}
+                    <Text className="text-base font-semibold text-gray-900 mb-1">
+                        {item.items[0]?.foodName}
+                        {item.items.length > 1 && ` +${item.items.length - 1} more`}
                     </Text>
-                    <Text className="text-sm text-gray-600 mb-1">
-                        {item.items.slice(0, 2).map(orderItem => orderItem.foodName).join(', ')}
-                        {item.items.length > 2 && ` +${item.items.length - 2} more`}
+                    <Text className="text-sm text-gray-600 mb-2">
+                        Total: {item.totalPrice}
                     </Text>
-                    <Text className="text-lg font-bold text-yellow-600">{item.totalPrice}</Text>
+
+                    {/* Bottom Row → Status + Actions */}
+                    <View className="flex-row justify-between items-center">
+                        <View
+                            className={`px-3 py-1 rounded-full ${getStatusColor(item.status)}`}
+                        >
+                            <Text className="text-xs font-medium">
+                                {getStatusText(item.status)}
+                            </Text>
+                        </View>
+                        <View className="flex-row">
+                            <TouchableOpacity
+                                className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
+                                onPress={() => onViewReceipt(item)}
+                            >
+                                <Text className="text-xs font-medium text-gray-700">
+                                    Receipt
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity className="bg-yellow-400 px-3 py-2 rounded-lg">
+                                <Text className="text-xs font-medium text-gray-900">
+                                    Re-order
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
             </View>
-
-            <Text className="text-xs text-gray-500">Completed at {item.completedTime}</Text>
         </View>
+    )
+)
 
-        {/* Status and Action Buttons */}
-        <View className="flex-row items-center justify-between">
-            <View className={`px-3 py-1 rounded-full ${getStatusColor(item.status)}`}>
-                <Text className="text-xs font-medium">{getStatusText(item.status)}</Text>
-            </View>
-
-            <View className="flex-row">
-                <TouchableOpacity
-                    className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
-                    onPress={() => onViewReceipt(item)}
-                >
-                    <Text className="text-xs font-medium text-gray-700">View Receipt</Text>
-                </TouchableOpacity>
-                <TouchableOpacity className="bg-yellow-400 px-3 py-2 rounded-lg">
-                    <Text className="text-xs font-medium text-gray-900">Re-order</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    </View>
-));
 
 const TabButton = React.memo(({ title, isActive, onPress }: TabButtonProps) => (
     <TouchableOpacity onPress={onPress} className="flex-1">
@@ -417,14 +444,21 @@ const MyOrders = () => {
         }
     }, []);
 
+
+
     // Fetch ongoing orders
     const fetchOngoingOrders = useCallback(async () => {
         try {
             const data = await apiRequest('/customer/outlets/customer-ongoing-order/', {
                 method: 'GET',
             })
+            // console.log("orer data : ", data.orders);
+            // data.orders.forEach((order, i) => {
+            //     console.log(`Order #${i + 1} items:`, order.items);
+            // });
             const transformedOrders = data.orders.map(transformOrder)
             setOngoingOrders(transformedOrders)
+
         } catch (error) {
             if (error instanceof Error) {
                 console.error('Error fetching ongoing orders:', error);
@@ -460,6 +494,7 @@ const MyOrders = () => {
             const data = await apiRequest('/customer/outlets/customer-order-history/', {
                 method: 'GET',
             })
+            console.log("raw data : ", data.orders);
             const transformedOrders = data.orders.map(transformOrder)
             setOrderHistory(transformedOrders)
         } catch (error) {
