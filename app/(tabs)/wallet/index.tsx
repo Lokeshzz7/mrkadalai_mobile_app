@@ -451,7 +451,7 @@ const Wallet = () => {
                 currency: 'INR',
                 key: 'rzp_test_CqJOLIOhHoCry6', // IMPORTANT: Replace with your actual Razorpay Key ID
                 amount: payableAmount, // Amount in paise, from your backend response
-                name: 'Delicious Bites Restaurant', // Your application's name
+                name: 'Mr . Kadalai', // Your application's name
                 order_id: order_id, // The unique order_id from your backend
                 prefill: {
                     email: 'customer@restaurant.com',
@@ -648,12 +648,12 @@ const Wallet = () => {
                                     <Text className="text-gray-900 text-4xl font-bold mb-2">
                                         ₹{walletBalance.toFixed(2)}
                                     </Text>
-                                    <View className="flex-row items-center">
+                                    {/* <View className="flex-row items-center">
                                         <View className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2" />
                                         <Text className="text-gray-600 text-xs font-medium">
                                             Active • Last updated now
                                         </Text>
-                                    </View>
+                                    </View> */}
                                 </View>
 
                                 <View className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
@@ -759,7 +759,7 @@ const Wallet = () => {
                                         </View>
                                     ) : (
                                         <Text className="text-center font-bold text-gray-900 text-lg">
-                                            💰 Pay ₹{rechargeAmount || '0'}
+                                            Pay ₹{rechargeAmount || '0'}
                                         </Text>
                                     )}
                                 </TouchableOpacity>

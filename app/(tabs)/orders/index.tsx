@@ -322,68 +322,102 @@ const TabButton = React.memo(({ title, isActive, onPress }: TabButtonProps) => (
 ))
 
 // This component should only use props passed to it, not functions from the parent.
-const CancelConfirmationModal = React.memo(({ visible, onClose, onConfirm, order, loading }: CancelConfirmationModalProps) => (
-    <Modal
-        visible={visible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={onClose} // ✅ FIX: Use the 'onClose' prop
-    >
-        <View className="flex-1 bg-black/50 justify-center items-center px-4">
-            <MotiView
-                from={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: 'timing', duration: 200 }}
-                className="bg-white rounded-2xl p-6 w-full max-w-sm"
+// Cancel Confirmation Modal
+// Corrected CancelConfirmationModal Component
+
+
+// Corrected CancelConfirmationModal Component
+const CancelConfirmationModal = React.memo(
+    ({ visible, onClose, onConfirm, order, loading }: CancelConfirmationModalProps) => (
+        <Modal
+            visible={visible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={onClose}
+            statusBarTranslucent={true}
+        >
+            <View
+                style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    paddingHorizontal: 24,
+                    // zIndex: 9999, // <--- THIS LINE WAS REMOVED
+                }}
             >
-                {/* Modal Header */}
-                <View className="items-center mb-4">
-                    <Text className="text-4xl mb-2">⚠️</Text>
-                    <Text className="text-xl font-bold text-gray-900">Cancel Order</Text>
-                    <Text className="text-sm text-gray-600 text-center mt-2">
-                        Are you sure you want to cancel this order?
+                <MotiView
+                    from={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'timing', duration: 250 }}
+                    style={{
+                        backgroundColor: 'white',
+                        borderRadius: 16,
+                        padding: 24,
+                        width: '100%',
+                        maxWidth: 350,
+                        shadowColor: '#000',
+                        shadowOffset: {
+                            width: 0,
+                            height: 2,
+                        },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 3.84,
+                        elevation: 5,
+                    }}
+                >
+                    {/* Header */}
+                    <Text className="text-2xl font-bold text-gray-900 mb-2 text-center">
+                        Cancel Order
                     </Text>
-                </View>
+                    <Text className="text-sm text-gray-600 mb-6 text-center">
+                        Are you sure you want to cancel{" "}
+                        <Text className="font-semibold">{order?.orderNumber}</Text>?
+                        This action cannot be undone.
+                    </Text>
 
-                {/* ✅ FIX: Use the 'order' prop, not 'selectedOrder' */}
-                {order && order.items && order.items.length > 0 && (
-                    <View className="bg-gray-50 rounded-xl p-4 mb-6">
-                        <View className="flex-row items-center justify-between mb-2">
-                            <Text className="font-bold text-gray-900">{order.orderNumber}</Text>
-                            <Text className="text-sm font-medium text-yellow-600">{order.totalPrice}</Text>
+                    {/* Order Summary */}
+                    {order && (
+                        <View className="bg-gray-50 rounded-xl p-4 mb-6">
+                            <View className="flex-row justify-between items-center mb-1">
+                                <Text className="font-semibold text-gray-900">{order.orderNumber}</Text>
+                                <Text className="font-medium text-yellow-600">{order.totalPrice}</Text>
+                            </View>
+                            <Text className="text-xs text-gray-500">
+                                {order.items.slice(0, 2).map(i => i.foodName).join(", ")}
+                                {order.items.length > 2 && ` +${order.items.length - 2} more`}
+                            </Text>
                         </View>
-                        <Text className="text-sm text-gray-600">
-                            {order.items.length} item{order.items.length > 1 ? 's' : ''}
-                        </Text>
-                        <Text className="text-xs text-gray-500 mt-1">
-                            {order.items.slice(0, 2).map(item => item.foodName).join(', ')}
-                            {order.items.length > 2 && ` +${order.items.length - 2} more`}
-                        </Text>
-                    </View>
-                )}
+                    )}
 
-                {/* Action Buttons */}
-                <View className="flex-row space-x-3">
-                    <TouchableOpacity
-                        className="flex-1 bg-gray-100 py-3 rounded-xl"
-                        onPress={onClose} // ✅ FIX: Use the 'onClose' prop
-                    >
-                        <Text className="text-center font-medium text-gray-700">Keep Order</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        className="flex-1 bg-red-500 py-3 rounded-xl"
-                        onPress={onConfirm} // ✅ FIX: Use the 'onConfirm' prop
-                        disabled={loading}
-                    >
-                        <Text className="text-center font-medium text-white">
-                            {loading ? 'Cancelling...' : 'Yes, Cancel'}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </MotiView>
-        </View>
-    </Modal>
-));
+                    {/* Actions */}
+                    <View className="flex-row justify-between">
+                        <TouchableOpacity
+                            className="flex-1 bg-gray-100 py-3 rounded-xl mr-2"
+                            onPress={onClose}
+                            disabled={loading}
+                            activeOpacity={0.7}
+                        >
+                            <Text className="text-center font-medium text-gray-700">Keep Order</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            className={`flex-1 py-3 rounded-xl ${loading ? "bg-red-300" : "bg-red-500"}`}
+                            onPress={onConfirm}
+                            disabled={loading}
+                            activeOpacity={0.7}
+                        >
+                            <Text className="text-center font-medium text-white">
+                                {loading ? "Cancelling..." : "Yes, Cancel"}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </MotiView>
+            </View>
+        </Modal>
+    )
+);
+
 
 const MyOrders = () => {
     const [activeTab, setActiveTab] = useState('ongoing')
@@ -392,6 +426,7 @@ const MyOrders = () => {
     const [ongoingOrders, setOngoingOrders] = useState<TransformedOrder[]>([])
     const [orderHistory, setOrderHistory] = useState<TransformedOrder[]>([])
     const [loading, setLoading] = useState(false)
+    const [cancelLoading, setCancelLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false)
     const router = useRouter()
 
@@ -563,6 +598,7 @@ const MyOrders = () => {
     }, [router])
 
     const handleCancelPress = useCallback((item: TransformedOrder) => {
+        console.log("Cancel Pressed for:", item.orderNumber)
         setSelectedOrder(item)
         setShowCancelModal(true)
     }, []);
@@ -571,49 +607,34 @@ const MyOrders = () => {
         if (!selectedOrder) return;
 
         try {
-            setLoading(true)
+            setCancelLoading(true);
 
-            // Call the backend cancel API
-            const response = await apiRequest(`/customer/outlets/customer-cancel-order/${selectedOrder.id}`, {
-                method: 'PUT',
-            })
+            const response = await apiRequest(
+                `/customer/outlets/customer-cancel-order/${selectedOrder.id}`,
+                { method: "PUT" }
+            );
 
-            setShowCancelModal(false)
+            setShowCancelModal(false);
 
-            // Show success message
             Alert.alert(
-                'Order Cancelled',
-                `Order ${selectedOrder.orderNumber} has been cancelled successfully. ${response.refundAmount ? `$${response.refundAmount.toFixed(2)} has been refunded to your ${response.refundMethod === 'CASH' ? 'account' : 'wallet'}.` : ''}`,
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => {
-                            // Navigate to cancel page with updated order data
-                            const cancelledOrder = { ...selectedOrder, status: 'cancelled' }
-                            router.push({
-                                pathname: '/(tabs)/orders/cancel',
-                                params: {
-                                    orderData: JSON.stringify(cancelledOrder)
-                                }
-                            })
-                        }
-                    }
-                ]
-            )
+                "Order Cancelled",
+                `Order ${selectedOrder.orderNumber} has been cancelled successfully.${response.refundAmount ? ` $${response.refundAmount.toFixed(2)} refunded.` : ""
+                }`
+            );
 
-            // Refresh the orders list
-            await loadOrders(false)
-
+            await loadOrders(false);
         } catch (error) {
-            console.error('Error cancelling order:', error)
+            console.error("Error cancelling order:", error);
             Alert.alert(
-                'Cancellation Failed',
-                error instanceof Error ? error.message : 'Failed to cancel order. Please try again.'
-            )
+                "Cancellation Failed",
+                error instanceof Error ? error.message : "Failed to cancel order. Please try again."
+            );
         } finally {
-            setLoading(false)
+            setCancelLoading(false);
         }
-    }, [selectedOrder, router, loadOrders]);
+    }, [selectedOrder, loadOrders]);
+
+
 
     const currentOrders = useMemo(() =>
         activeTab === 'ongoing' ? ongoingOrders : orderHistory,
@@ -646,57 +667,58 @@ const MyOrders = () => {
                     onPress={() => setActiveTab('history')}
                 />
             </View>
+            <View style={{ flex: 1 }}>
+                {/* Loading State */}
+                {loading && (
+                    <View className="flex-1 items-center justify-center">
+                        <ActivityIndicator size="large" color="#FCD34D" />
+                        <Text className="text-gray-600 mt-2">Loading orders...</Text>
+                    </View>
+                )}
 
-            {/* Loading State */}
-            {loading && (
-                <View className="flex-1 items-center justify-center">
-                    <ActivityIndicator size="large" color="#FCD34D" />
-                    <Text className="text-gray-600 mt-2">Loading orders...</Text>
-                </View>
-            )}
+                {/* Orders List */}
+                {!loading && (
+                    <FlatList
+                        data={currentOrders}
+                        renderItem={({ item, index }) => (
+                            activeTab === 'ongoing' ?
+                                <OngoingOrderCard item={item} index={index} onViewReceipt={navigateToReceipt} onCancel={handleCancelPress} /> :
+                                <HistoryOrderCard item={item} index={index} onViewReceipt={navigateToReceipt} />
+                        )}
+                        keyExtractor={(item) => item.id.toString()}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{ paddingBottom: 70 }}
+                        refreshControl={
+                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                        }
+                        ListEmptyComponent={() => (
+                            <MotiView
+                                from={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ type: 'timing', duration: 400 }}
+                                className="flex-1 items-center justify-center px-8 py-20"
+                            >
+                                <Text className="text-6xl mb-4">🍽️</Text>
+                                <Text className="text-xl font-bold text-gray-900 mb-2">No Orders Found</Text>
+                                <Text className="text-gray-600 text-center">
+                                    {activeTab === 'ongoing'
+                                        ? "You don't have any ongoing orders right now."
+                                        : "You haven't placed any orders yet."
+                                    }
+                                </Text>
+                            </MotiView>
+                        )}
+                    />
 
-            {/* Orders List */}
-            {!loading && (
-                <FlatList
-                    data={currentOrders}
-                    renderItem={({ item, index }) => (
-                        activeTab === 'ongoing' ?
-                            <OngoingOrderCard item={item} index={index} onViewReceipt={navigateToReceipt} onCancel={handleCancelPress} /> :
-                            <HistoryOrderCard item={item} index={index} onViewReceipt={navigateToReceipt} />
-                    )}
-                    keyExtractor={(item) => item.id.toString()}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 70 }}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                    }
-                    ListEmptyComponent={() => (
-                        <MotiView
-                            from={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ type: 'timing', duration: 400 }}
-                            className="flex-1 items-center justify-center px-8 py-20"
-                        >
-                            <Text className="text-6xl mb-4">🍽️</Text>
-                            <Text className="text-xl font-bold text-gray-900 mb-2">No Orders Found</Text>
-                            <Text className="text-gray-600 text-center">
-                                {activeTab === 'ongoing'
-                                    ? "You don't have any ongoing orders right now."
-                                    : "You haven't placed any orders yet."
-                                }
-                            </Text>
-                        </MotiView>
-                    )}
-                />
-
-            )}
+                )}
+            </View>
 
             <CancelConfirmationModal
                 visible={showCancelModal}
                 onClose={() => setShowCancelModal(false)}
                 onConfirm={handleCancelConfirm}
                 order={selectedOrder}
-                loading={loading}
+                loading={cancelLoading}
             />
         </SafeAreaView>
     )
