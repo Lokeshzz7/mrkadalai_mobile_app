@@ -7,15 +7,18 @@ import {
   Image,
   SafeAreaView,
   ActivityIndicator,
-  Alert,
-  ScrollView
+  ScrollView,
+  Dimensions,
 } from 'react-native'
 import { MotiView, MotiText } from 'moti'
 import { Picker } from '@react-native-picker/picker'
 import { router } from 'expo-router'
-import { icons } from '@/constants/icons'
 import { useAuth } from '../../context/AuthContext'
 import Toast from 'react-native-toast-message'
+import { images } from '@/constants/images'
+import Icon from 'react-native-vector-icons/Feather'
+
+const { width } = Dimensions.get('window')
 
 const Signup = () => {
   const [name, setName] = useState('')
@@ -29,26 +32,22 @@ const Signup = () => {
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false)
   const { signup, isLoading } = useAuth()
 
-  const collegeList = [
-    'Select your college',
-    'CIT',
-    'REC',
-  ]
+  const collegeList = ['Select your college', 'CIT', 'REC']
 
-  const yearOfStudy = [
-    'Select your year',
-    '1 year',
-    '2 year',
-    '3 year',
-    '4 year',
-  ]
+  const yearOfStudy = ['Select your year', '1 year', '2 year', '3 year', '4 year']
 
   const handleSignup = async () => {
-    // Validation
-    if (name.trim() === '' || email.trim() === '' || phoneNumber.trim() === '' ||
-      college === '' || college === 'Select your college' ||
-      customerYear === '' || customerYear === 'Select your year' ||
-      password.trim() === '' || confirmPassword.trim() === '') {
+    if (
+      name.trim() === '' ||
+      email.trim() === '' ||
+      phoneNumber.trim() === '' ||
+      college === '' ||
+      college === 'Select your college' ||
+      customerYear === '' ||
+      customerYear === 'Select your year' ||
+      password.trim() === '' ||
+      confirmPassword.trim() === ''
+    ) {
       Toast.show({
         type: 'error',
         text1: 'Missing Information',
@@ -56,7 +55,7 @@ const Signup = () => {
         position: 'top',
         visibilityTime: 4000,
         autoHide: true,
-      });
+      })
       return
     }
 
@@ -68,7 +67,7 @@ const Signup = () => {
         position: 'top',
         visibilityTime: 4000,
         autoHide: true,
-      });
+      })
       return
     }
 
@@ -80,7 +79,7 @@ const Signup = () => {
         position: 'top',
         visibilityTime: 4000,
         autoHide: true,
-      });
+      })
       return
     }
 
@@ -93,7 +92,7 @@ const Signup = () => {
         position: 'top',
         visibilityTime: 4000,
         autoHide: true,
-      });
+      })
       return
     }
 
@@ -106,12 +105,20 @@ const Signup = () => {
         position: 'top',
         visibilityTime: 4000,
         autoHide: true,
-      });
+      })
       return
     }
 
     try {
-      await signup(name, email, phoneNumber, college, customerYear, password, confirmPassword)
+      await signup(
+        name,
+        email,
+        phoneNumber,
+        college,
+        customerYear,
+        password,
+        confirmPassword
+      )
 
       Toast.show({
         type: 'success',
@@ -120,33 +127,37 @@ const Signup = () => {
         position: 'top',
         visibilityTime: 3000,
         autoHide: true,
-      });
-
+      })
     } catch (error: any) {
-      console.error('Signup error in component:', error);
+      console.error('Signup error in component:', error)
 
-      let errorTitle = 'Signup Failed';
-      let errorMessage = 'Could not create account. Please try again.';
-      let shouldClearEmail = false;
+      let errorTitle = 'Signup Failed'
+      let errorMessage = 'Could not create account. Please try again.'
+      let shouldClearEmail = false
 
       if (error.message) {
-        if (error.message.toLowerCase().includes('user already exists') ||
-          error.message.toLowerCase().includes('email already exists')) {
-          errorTitle = 'Account Already Exists';
-          errorMessage = 'An account with this email already exists. Please try signing in instead.';
-          shouldClearEmail = true;
+        if (
+          error.message.toLowerCase().includes('user already exists') ||
+          error.message.toLowerCase().includes('email already exists')
+        ) {
+          errorTitle = 'Account Already Exists'
+          errorMessage =
+            'An account with this email already exists. Please try signing in instead.'
+          shouldClearEmail = true
         } else if (error.message.toLowerCase().includes('invalid email')) {
-          errorTitle = 'Invalid Email';
-          errorMessage = 'Please check your email address and try again.';
-        } else if (error.message.toLowerCase().includes('network') ||
-          error.message.toLowerCase().includes('connection')) {
-          errorTitle = 'Connection Error';
-          errorMessage = 'Please check your internet connection and try again.';
+          errorTitle = 'Invalid Email'
+          errorMessage = 'Please check your email address and try again.'
+        } else if (
+          error.message.toLowerCase().includes('network') ||
+          error.message.toLowerCase().includes('connection')
+        ) {
+          errorTitle = 'Connection Error'
+          errorMessage = 'Please check your internet connection and try again.'
         } else if (error.message.toLowerCase().includes('server')) {
-          errorTitle = 'Server Error';
-          errorMessage = 'Server is temporarily unavailable. Please try again later.';
+          errorTitle = 'Server Error'
+          errorMessage = 'Server is temporarily unavailable. Please try again later.'
         } else {
-          errorMessage = error.message;
+          errorMessage = error.message
         }
       }
 
@@ -159,39 +170,45 @@ const Signup = () => {
         autoHide: true,
         onHide: () => {
           if (shouldClearEmail) {
-            setEmail('');
-            setPassword('');
-            setConfirmPassword('');
+            setEmail('')
+            setPassword('')
+            setConfirmPassword('')
           }
         },
-      });
+      })
     }
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="flex-1 px-4 py-8">
-          {/* Header */}
+        <View className="flex-1 bg-background">
+          {/* Header with semicircle */}
+          <View className="items-center">
+            <Image
+              source={images.Login_Illustration}
+              style={{ width: width, height: (width / 2) / 2 }}
+              resizeMode="contain"
+            />
+          </View>
+
+          {/* Header Text */}
           <MotiView
             from={{ opacity: 0, translateY: -30 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 600 }}
-            className="items-center mb-8 mt-4"
+            className="items-center mb-10 mt-8"
           >
-            <View className="w-24 h-24 bg-yellow-400 rounded-full items-center justify-center mb-6 shadow-md">
-              <Text className="text-4xl">🍽️</Text>
-            </View>
             <MotiText
               from={{ opacity: 0, translateY: 20 }}
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ type: 'timing', duration: 600, delay: 200 }}
-              className="text-gray-900 text-3xl font-bold mb-2"
+              className="text-white text-3xl font-bold mb-2"
             >
               Create Account
             </MotiText>
@@ -205,16 +222,13 @@ const Signup = () => {
             </MotiText>
           </MotiView>
 
-          {/* Form Container */}
-          <MotiView
-            from={{ opacity: 0, translateY: 30 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 600, delay: 600 }}
-            className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 mb-6"
+          {/* Form + Login Link Container */}
+          <View
+            className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 mb-6 mx-4"
           >
             {/* Full Name Field */}
             <View className="mb-5">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">👤 Full Name</Text>
+              <Text className="text-gray-700 text-lg font-bold mb-2"> Full Name</Text>
               <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
                 <TextInput
                   value={name}
@@ -231,7 +245,7 @@ const Signup = () => {
 
             {/* Email Field */}
             <View className="mb-5">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">📧 Email Address</Text>
+              <Text className="text-gray-700 text-lg font-bold mb-2"> Email Address</Text>
               <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
                 <TextInput
                   value={email}
@@ -249,7 +263,7 @@ const Signup = () => {
 
             {/* Phone Number Field */}
             <View className="mb-5">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">📞 Phone Number</Text>
+              <Text className="text-gray-700 text-lg font-bold mb-2"> Phone Number</Text>
               <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
                 <TextInput
                   value={phoneNumber}
@@ -266,15 +280,12 @@ const Signup = () => {
 
             {/* College Dropdown */}
             <View className="mb-5">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">🎓 College</Text>
+              <Text className="text-gray-700 text-lg font-bold mb-2"> College</Text>
               <View className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
                 <Picker
                   selectedValue={college}
                   onValueChange={setCollege}
-                  style={{
-                    height: 60,
-                    color: '#1F2937',
-                  }}
+                  style={{ height: 60, color: '#1F2937' }}
                   enabled={!isLoading}
                 >
                   {collegeList.map((item, index) => (
@@ -291,15 +302,12 @@ const Signup = () => {
 
             {/* Year of Study Dropdown */}
             <View className="mb-5">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">📚 Year of Study</Text>
+              <Text className="text-gray-700 text-lg font-bold mb-2"> Year of Study</Text>
               <View className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
                 <Picker
                   selectedValue={customerYear}
                   onValueChange={setCustomerYear}
-                  style={{
-                    height: 60,
-                    color: '#1F2937',
-                  }}
+                  style={{ height: 60, color: '#1F2937' }}
                   enabled={!isLoading}
                 >
                   {yearOfStudy.map((item, index) => (
@@ -316,7 +324,7 @@ const Signup = () => {
 
             {/* Password Field */}
             <View className="mb-5">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">🔒 Password</Text>
+              <Text className="text-gray-700 text-lg font-bold mb-2"> Password</Text>
               <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
                 <View className="flex-row justify-between items-center">
                   <TextInput
@@ -335,9 +343,11 @@ const Signup = () => {
                     disabled={isLoading}
                     className="ml-2 p-1"
                   >
-                    <Text className="text-lg">
-                      {isPasswordVisible ? '👁️' : '🙈'}
-                    </Text>
+                    <Icon
+                      name={isPasswordVisible ? 'eye' : 'eye-off'}
+                      size={20}
+                      color="#374151"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -345,7 +355,7 @@ const Signup = () => {
 
             {/* Confirm Password Field */}
             <View className="mb-6">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">🔐 Confirm Password</Text>
+              <Text className="text-gray-700 text-lg font-bold mb-2"> Confirm Password</Text>
               <View className="bg-gray-50 rounded-xl px-4 py-4 border border-gray-200">
                 <View className="flex-row justify-between items-center">
                   <TextInput
@@ -360,13 +370,15 @@ const Signup = () => {
                     autoCorrect={false}
                   />
                   <TouchableOpacity
-                    onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}
+                    onPress={() => setIsPasswordVisible(!isPasswordVisible)}
                     disabled={isLoading}
                     className="ml-2 p-1"
                   >
-                    <Text className="text-lg">
-                      {isConfirmPasswordVisible ? '👁️' : '🙈'}
-                    </Text>
+                    <Icon
+                      name={isPasswordVisible ? 'eye' : 'eye-off'}
+                      size={20}
+                      color="#374151"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -374,7 +386,8 @@ const Signup = () => {
 
             {/* Signup Button */}
             <TouchableOpacity
-              className={`rounded-xl py-4 shadow-md ${isLoading ? 'bg-gray-300' : 'bg-yellow-400 active:bg-yellow-500'}`}
+              className={`rounded-xl py-4 shadow-md ${isLoading ? 'bg-gray-300' : 'bg-yellow-400 active:bg-yellow-500'
+                }`}
               onPress={handleSignup}
               disabled={isLoading}
               activeOpacity={0.8}
@@ -385,21 +398,12 @@ const Signup = () => {
                   <Text className="text-gray-700 ml-2 font-semibold">Creating Account...</Text>
                 </View>
               ) : (
-                <Text className="text-gray-900 text-center font-bold text-lg">
-                  🚀 Create Account
-                </Text>
+                <Text className="text-gray-900 text-center font-bold text-lg"> Create Account</Text>
               )}
             </TouchableOpacity>
-          </MotiView>
 
-          {/* Login Link */}
-          <MotiView
-            from={{ opacity: 0, translateY: 20 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 600, delay: 800 }}
-            className="bg-white rounded-2xl p-4 shadow-md border border-gray-100"
-          >
-            <View className="flex-row justify-center items-center">
+            {/* Login Link (merged inside same card) */}
+            <View className="flex-row justify-center items-center mt-6">
               <Text className="text-gray-600 text-base">Already have an account? </Text>
               <TouchableOpacity
                 onPress={() => router.push('/auth/login')}
@@ -409,7 +413,8 @@ const Signup = () => {
                 <Text className="text-yellow-600 font-bold text-base">Sign In</Text>
               </TouchableOpacity>
             </View>
-          </MotiView>
+          </View>
+
         </View>
       </ScrollView>
     </SafeAreaView>
