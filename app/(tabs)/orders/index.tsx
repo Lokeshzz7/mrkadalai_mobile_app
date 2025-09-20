@@ -61,16 +61,19 @@ interface TransformedOrder {
     items: TransformedOrderItem[];
     totalPrice: string;
     status: string;
-    orderTime?: string;
-    estimatedTime?: string;
-    orderDate?: string;
+    orderTime?: string;       // formatted order time
+    orderDate?: string;       // formatted order date (e.g., Yesterday)
     completedTime?: string;
     outlet?: {
         id: number;
         name: string;
         address: string;
     };
+    createdAt: string;        // raw createdAt for formatting
+    deliveryDate: string;     // raw deliveryDate from backend
+    deliverySlot: string;     // delivery slot from backend
 }
+
 
 interface OngoingOrderCardProps {
     item: TransformedOrder;
@@ -154,15 +157,26 @@ const getProductImage = (product?: { imageUrl?: string; name?: string }) => {
     )}&background=random`
 }
 
+const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+};
+
+
+const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+};
+
 
 const OngoingOrderCard = React.memo(
     ({ item, index, onViewReceipt, onCancel }: OngoingOrderCardProps) => (
         <View className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100">
             <View className="flex-row">
                 {/* LEFT → First Product Image */}
-                <View className="w-20 h-20 mr-4">
+                <View className="w-20 h-20 mr-4 relative">
                     <Image
-                        source={{ uri: getProductImage(item.items[0]?.product) }}
+                        source={{ uri: item.items[0].image }}
                         className="w-full h-full rounded-xl"
                         resizeMode="cover"
                     />
@@ -177,48 +191,48 @@ const OngoingOrderCard = React.memo(
 
                 {/* RIGHT → Order Info */}
                 <View className="flex-1 justify-between">
-                    {/* Top Row → Order Number + Time */}
+                    {/* Top Row → Order Number + Order Date */}
                     <View className="flex-row justify-between items-center mb-2">
                         <Text className="text-sm font-bold text-gray-900">
                             {item.orderNumber}
                         </Text>
-                        <Text className="text-xs text-gray-500">{item.orderTime}</Text>
+                        <Text className="text-xs text-gray-500">
+                            {formatDate(item.createdAt)} {formatTime(item.createdAt)}
+                        </Text>
                     </View>
 
                     {/* Order Summary */}
                     <Text className="text-base font-semibold text-gray-900 mb-1">
-                        {item.items[0]?.foodName}
+                        {item.items[0].foodName}
                         {item.items.length > 1 && ` +${item.items.length - 1} more`}
                     </Text>
-                    <Text className="text-sm text-gray-600 mb-2">
+                    <Text className="text-sm text-gray-600 mb-1">
                         Total: {item.totalPrice}
+                    </Text>
+
+                    {/* Delivery Date */}
+                    <Text className="text-sm text-gray-500 mb-2">
+                        Delivery: {formatDate(item.deliveryDate)} ({item.deliverySlot})
                     </Text>
 
                     {/* Bottom Row → Status + Actions */}
                     <View className="flex-row justify-between items-center">
-                        <View
-                            className={`px-3 py-1 rounded-full ${getStatusColor(item.status)}`}
-                        >
-                            <Text className="text-xs font-medium">
-                                {getStatusText(item.status)}
-                            </Text>
+                        <View className={`px-3 py-1 rounded-full ${getStatusColor(item.status)}`}>
+                            <Text className="text-xs font-medium">{getStatusText(item.status)}</Text>
                         </View>
+
                         <View className="flex-row">
                             <TouchableOpacity
                                 className="bg-gray-100 px-3 py-2 rounded-lg mr-2"
                                 onPress={() => onViewReceipt(item)}
                             >
-                                <Text className="text-xs font-medium text-gray-700">
-                                    Receipt
-                                </Text>
+                                <Text className="text-xs font-medium text-gray-700">Receipt</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 className="bg-red-100 px-3 py-2 rounded-lg"
                                 onPress={() => onCancel(item)}
                             >
-                                <Text className="text-xs font-medium text-red-700">
-                                    Cancel
-                                </Text>
+                                <Text className="text-xs font-medium text-red-700">Cancel</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -226,7 +240,8 @@ const OngoingOrderCard = React.memo(
             </View>
         </View>
     )
-)
+);
+
 
 // ✅ History Order Card
 const HistoryOrderCard = React.memo(
@@ -448,23 +463,13 @@ const MyOrders = () => {
             foodName: item.product.name,
             price: `${item.product.price.toFixed(2)}`,
             quantity: item.quantity,
-            image: getStableFoodEmoji(item.product.name)
-        }))
+            image: getProductImage(item.product)
+        }));
 
-        const orderDate = new Date(order.createdAt)
-        const now = new Date()
-        const diffTime = Math.abs(now.getTime() - orderDate.getTime())
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+        const orderDate = new Date(order.createdAt);
 
-        let displayDate = ''
-        if (diffDays === 0) {
-            displayDate = orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        } else if (diffDays === 1) {
-            displayDate = 'Yesterday'
-        } else {
-            displayDate = `${diffDays} days ago`
-        }
-
+        const displayDate = `${orderDate.getDate().toString().padStart(2, '0')}/${(orderDate.getMonth() + 1).toString().padStart(2, '0')
+            }/${orderDate.getFullYear()}`;
         return {
             id: order.id,
             orderNumber: `#ORD-${order.id.toString().padStart(3, '0')}`,
@@ -472,12 +477,16 @@ const MyOrders = () => {
             totalPrice: `$${order.totalAmount.toFixed(2)}`,
             status: order.status.toLowerCase(),
             orderTime: orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            estimatedTime: '20-30 min', // Default estimated time
-            orderDate: displayDate,
+            orderDate: displayDate,                   // formatted date
             completedTime: new Date(order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            outlet: order.outlet
-        }
+            outlet: order.outlet,
+            createdAt: order.createdAt,
+            deliveryDate: order.deliveryDate,          // raw delivery date from backend
+            deliverySlot: order.deliverySlot           // slot
+        };
     }, []);
+
+
 
 
 
@@ -487,10 +496,12 @@ const MyOrders = () => {
             const data = await apiRequest('/customer/outlets/customer-ongoing-order/', {
                 method: 'GET',
             })
-            // console.log("orer data : ", data.orders);
-            // data.orders.forEach((order, i) => {
-            //     console.log(`Order #${i + 1} items:`, order.items);
-            // });
+
+            console.log("Full backend raw data:", JSON.stringify(data.debugOrders, null, 2));
+            console.log("orer data : ", data.orders);
+            data.orders.forEach((order, i) => {
+                console.log(`Order #${i + 1} items:`, order.items);
+            });
             const transformedOrders = data.orders.map(transformOrder)
             setOngoingOrders(transformedOrders)
 
@@ -596,6 +607,7 @@ const MyOrders = () => {
             }
         })
     }, [router])
+
 
     const handleCancelPress = useCallback((item: TransformedOrder) => {
         console.log("Cancel Pressed for:", item.orderNumber)

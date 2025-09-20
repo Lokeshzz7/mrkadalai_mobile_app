@@ -22,21 +22,28 @@ interface OrderItem {
 
 // Define the Order type based on actual API response
 interface Order {
-    id: number
-    orderNumber: string
-    items: OrderItem[]
-    totalPrice: string // API returns string like "$450.00"
-    status: string
-    orderTime: string
-    estimatedTime: string
-    orderDate: string
-    completedTime: string
+    id: number;
+    orderNumber: string;
+    items: OrderItem[];
+    totalPrice: string;
+    status: string;
+    orderDate: string; // formatted order date
+    orderTime: string; // formatted order time
+    completedTime: string;
     outlet: {
-        id: number
-        name: string
-        address: string
-    }
+        id: number;
+        name: string;
+        address: string;
+    };
+    deliveryDate: string;  // add
+    deliverySlot: string;  // add
 }
+
+const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+};
+
 
 const Receipt = () => {
     const router = useRouter()
@@ -89,7 +96,8 @@ const Receipt = () => {
             const receiptText = `
 Receipt - Order ${orderData.orderNumber}
 Date: ${orderDate}
-Time: ${orderTime}
+Time: ${orderTime}Delivery Date: ${orderData.deliveryDate}
+Delivery Slot: ${orderData.deliverySlot}
 Outlet: ${orderData.outlet.name}
 
 Items:
@@ -236,16 +244,21 @@ Thank you for your order!
                             </View>
                             <View className="flex-row justify-between items-center mb-1">
                                 <Text className="text-sm text-gray-600">Order Date:</Text>
-                                <Text className="text-sm font-medium text-gray-900">
-                                    {orderDate}
-                                </Text>
+                                <Text className="text-sm font-medium text-gray-900">{orderDate}</Text>
                             </View>
                             <View className="flex-row justify-between items-center mb-1">
                                 <Text className="text-sm text-gray-600">Order Time:</Text>
-                                <Text className="text-sm font-medium text-gray-900">
-                                    {orderTime}
-                                </Text>
+                                <Text className="text-sm font-medium text-gray-900">{orderTime}</Text>
                             </View>
+                            <View className="flex-row justify-between items-center mb-1">
+                                <Text className="text-sm text-gray-600">Delivery Date:</Text>
+                                <Text className="text-sm font-medium text-gray-900">{formatDate(orderData.deliveryDate)}</Text>
+                            </View>
+                            <View className="flex-row justify-between items-center mb-1">
+                                <Text className="text-sm text-gray-600">Delivery Slot:</Text>
+                                <Text className="text-sm font-medium text-gray-900">{orderData.deliverySlot}</Text>
+                            </View>
+
                             <View className="flex-row justify-between items-center mb-1">
                                 <Text className="text-sm text-gray-600">Outlet:</Text>
                                 <Text className="text-sm font-medium text-gray-900">
