@@ -333,6 +333,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // console.log('🔄 Cart data fetched:', response)
 
       if (response.cart) {
+
+        const filteredItems = response.cart.items.map((item: CartItem) => {
+          if (item.product.imageUrl) {
+            console.warn(`Product ${item.product.name} is present imageUrl!`)
+          }
+          return item
+        })
+
+
         dispatch({ type: 'SET_CART_DATA', payload: response.cart })
 
         // Convert to cartItems format - This is the single source of truth

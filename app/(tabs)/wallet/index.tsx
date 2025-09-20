@@ -70,6 +70,8 @@ type ApiTransaction = {
 // Union type for FlatList data
 type HistoryItem = RechargeHistoryItem | TransactionHistoryItem;
 
+
+
 // Wallet API Services
 const walletAPI = {
     // 1. Create a Razorpay order before payment
@@ -147,6 +149,14 @@ const getStatusText = (status: string) => {
             return 'Unknown'
     }
 }
+const formatDateDMY = (isoDate: string) => {
+    const date = new Date(isoDate);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+};
+
 
 const RechargeHistoryCard = React.memo(({ item, index }: { item: RechargeHistoryItem; index: number }) => (
     <View
@@ -165,7 +175,7 @@ const RechargeHistoryCard = React.memo(({ item, index }: { item: RechargeHistory
                     ₹{item.amount.toFixed(2)}
                 </Text>
                 <Text className="text-sm text-gray-600">
-                    {item.date} • {item.time}
+                    {formatDateDMY(item.date)} • {item.time}
                 </Text>
                 <Text className="text-xs text-gray-500 mt-1">
                     via {item.method}
@@ -208,7 +218,7 @@ const TransactionHistoryCard = React.memo(({ item, index }: { item: TransactionH
                     {item.description}
                 </Text>
                 <Text className="text-sm text-gray-600">
-                    {item.date} • {item.time}
+                    {formatDateDMY(item.date)} • {item.time}
                 </Text>
                 <Text className="text-xs text-gray-500 mt-1">
                     via {item.method}
@@ -257,6 +267,25 @@ const ImportantNotice = () => {
     );
 };
 
+const RechargeInput = React.memo(({ rechargeAmount, setRechargeAmount, payableAmount, isRecharging }) => (
+    <View className="mb-4">
+        <Text className="text-gray-700 font-medium mb-2">Enter Amount</Text>
+        <TextInput
+            className="border border-gray-200 rounded-xl px-4 py-3 text-lg font-medium"
+            placeholder="₹0.00"
+            value={rechargeAmount}
+            onChangeText={setRechargeAmount}
+            keyboardType="numeric"
+            editable={!isRecharging}
+        />
+        {rechargeAmount !== '' && (
+            <Text className="text-yellow-700 text-lg mt-1">
+                Note: 2% platform fee will be added. Total payable: ₹{payableAmount.toFixed(2)}
+            </Text>
+        )}
+    </View>
+));
+
 
 const Wallet = () => {
     const [activeTab, setActiveTab] = useState('recharge')
@@ -282,6 +311,20 @@ const Wallet = () => {
 
     const quickRechargeAmounts = [50, 100, 200, 500]
     const paymentMethods = ['UPI', 'CARD']
+    const [debouncedAmount, setDebouncedAmount] = useState(rechargeAmount);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedAmount(rechargeAmount), 50); // 150ms delay
+        return () => clearTimeout(timer); // cancel previous timer on next keystroke
+    }, [rechargeAmount]);
+
+    const PLATFORM_FEE_PERCENT = 2;
+
+    // Calculate payable amount including fee
+    const payableAmount = useMemo(() => {
+        const amount = parseFloat(rechargeAmount) || 0;
+        return amount + (amount * PLATFORM_FEE_PERCENT) / 100;
+    }, [rechargeAmount]);
 
     // Transform backend transaction to frontend format
     const transformRechargeTransaction = useCallback((transaction: ApiTransaction): RechargeHistoryItem => {
@@ -712,7 +755,7 @@ const Wallet = () => {
                                         </TouchableOpacity>
                                     ))}
                                 </View>
-                                <View className="mb-4">
+                                {/* <View className="mb-4">
                                     <Text className="text-gray-700 font-medium mb-2">Enter Amount</Text>
                                     <TextInput
                                         className="border border-gray-200 rounded-xl px-4 py-3 text-lg font-medium"
@@ -722,7 +765,13 @@ const Wallet = () => {
                                         keyboardType="numeric"
                                         editable={!isRecharging}
                                     />
-                                </View>
+                                </View> */}
+                                <RechargeInput
+                                    rechargeAmount={rechargeAmount}
+                                    setRechargeAmount={setRechargeAmount}
+                                    payableAmount={payableAmount}
+                                    isRecharging={isRecharging}
+                                />
                                 {/* <View className="mb-4">
                                     <Text className="text-gray-700 font-medium mb-2">Payment Method</Text>
                                     <View className="flex-row flex-wrap">
@@ -745,6 +794,8 @@ const Wallet = () => {
                                         ))}
                                     </View>
                                 </View> */}
+
+
                                 <TouchableOpacity
                                     className={`py-4 rounded-xl ${isRecharging ? 'bg-yellow-200' : 'bg-yellow-400'}`}
                                     onPress={handleRecharge}
@@ -759,7 +810,7 @@ const Wallet = () => {
                                         </View>
                                     ) : (
                                         <Text className="text-center font-bold text-gray-900 text-lg">
-                                            Pay ₹{rechargeAmount || '0'}
+                                            Pay ₹{payableAmount.toFixed(2) || '0'}
                                         </Text>
                                     )}
                                 </TouchableOpacity>

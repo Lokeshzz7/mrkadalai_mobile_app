@@ -45,6 +45,8 @@ interface Order {
         name: string;
         address: string;
     };
+    deliveryDate: string;     // raw deliveryDate from backend
+    deliverySlot: string;
 }
 
 interface TransformedOrderItem {
@@ -168,6 +170,24 @@ const formatTime = (dateStr: string) => {
     return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
 };
 
+const formatSlot = (slot: string) => {
+    // Example: "SLOT_14_15"
+    const match = slot.match(/SLOT_(\d{1,2})_(\d{1,2})/);
+    if (!match) return slot;
+
+    const start24 = parseInt(match[1], 10);
+    const end24 = parseInt(match[2], 10);
+
+    const formatHour = (h: number) => {
+        const period = h >= 12 ? 'PM' : 'AM';
+        const hour12 = h % 12 === 0 ? 12 : h % 12;
+        return `${hour12} ${period}`;
+    }
+
+    return `${formatHour(start24)} - ${formatHour(end24)}`;
+}
+
+
 
 const OngoingOrderCard = React.memo(
     ({ item, index, onViewReceipt, onCancel }: OngoingOrderCardProps) => (
@@ -212,7 +232,10 @@ const OngoingOrderCard = React.memo(
 
                     {/* Delivery Date */}
                     <Text className="text-sm text-gray-500 mb-2">
-                        Delivery: {formatDate(item.deliveryDate)} ({item.deliverySlot})
+                        Delivery: {formatDate(item.deliveryDate)}
+                    </Text>
+                    <Text className="text-sm text-gray-500 mb-2">
+                        SLOT : {formatSlot(item.deliverySlot)}
                     </Text>
 
                     {/* Bottom Row → Status + Actions */}

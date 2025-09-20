@@ -8,7 +8,8 @@ import {
     Alert,
     ActivityIndicator,
     RefreshControl,
-    TextInput
+    TextInput,
+    Image
 } from 'react-native'
 import { MotiView } from 'moti'
 import { useRouter } from 'expo-router'
@@ -111,8 +112,16 @@ const CartItem = React.memo<CartItemProps>(({ item, getItemQuantity,
 
     return (
         <View className="bg-white mx-4 mb-1 px-4 py-4 flex-row items-center">
-            <View className="w-16 h-16 bg-yellow-100 rounded-2xl items-center justify-center mr-4">
-                <Text className="text-2xl">{getCategoryIcon(item.product.category)}</Text>
+            <View className="w-16 h-16 bg-yellow-100 rounded-2xl items-center justify-center mr-4 overflow-hidden">
+                {item.product.imageUrl ? (
+                    <Image
+                        source={{ uri: item.product.imageUrl }}
+                        style={{ width: 64, height: 64, borderRadius: 16 }}
+                        resizeMode="cover"
+                    />
+                ) : (
+                    <Text className="text-2xl">{getCategoryIcon(item.product.category)}</Text>
+                )}
             </View>
 
             <View className="flex-1">
@@ -126,10 +135,10 @@ const CartItem = React.memo<CartItemProps>(({ item, getItemQuantity,
                 )}
                 <View className="flex-row items-center justify-between">
                     <Text className="text-lg font-bold text-green-600">
-                        ${item.product.price.toFixed(2)}
+                        ₹{item.product.price.toFixed(2)}
                     </Text>
 
-                    <View className="flex-row items-center">
+                    {/* <View className="flex-row items-center">
                         {isOutOfStock ? (
                             <View className="bg-red-100 px-2 py-1 rounded-full mr-2">
                                 <Text className="text-red-600 text-xs font-medium">Out of Stock</Text>
@@ -143,10 +152,10 @@ const CartItem = React.memo<CartItemProps>(({ item, getItemQuantity,
                                 <Text className="text-green-600 text-xs font-medium">In Stock</Text>
                             </View>
                         )}
-                    </View>
+                    </View> */}
                 </View>
                 <Text className="text-sm font-medium text-gray-700 mt-1">
-                    Subtotal: ${(item.product.price * cartQuantity).toFixed(2)}
+                    Subtotal: ₹{(item.product.price * cartQuantity).toFixed(2)}
                 </Text>
             </View>
 
@@ -685,7 +694,7 @@ const Cart: React.FC = () => {
             <ScrollView
                 className="flex-1"
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 70 }}
+                contentContainerStyle={{ paddingBottom: 40 }}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -766,7 +775,7 @@ const Cart: React.FC = () => {
                                                 </View>
                                             </View>
                                             <Text className="text-sm text-green-600">{appliedCoupon.description}</Text>
-                                            <Text className="text-sm font-medium text-green-700">You saved ${discount.toFixed(2)}!</Text>
+                                            <Text className="text-sm font-medium text-green-700">You saved ₹{discount.toFixed(2)}!</Text>
                                         </View>
                                         <TouchableOpacity
                                             onPress={removeCoupon}
@@ -843,7 +852,7 @@ const Cart: React.FC = () => {
                             <View className="flex-row justify-between items-center">
                                 <Text className="text-base text-gray-600">Subtotal</Text>
                                 <Text className="text-base font-medium text-gray-900">
-                                    ${subtotal.toFixed(2)}
+                                    ₹{subtotal.toFixed(2)}
                                 </Text>
                             </View>
 
@@ -851,7 +860,7 @@ const Cart: React.FC = () => {
                                 <View className="flex-row justify-between items-center">
                                     <Text className="text-base text-green-600">Discount ({appliedCoupon.code})</Text>
                                     <Text className="text-base font-medium text-green-600">
-                                        -${discount.toFixed(2)}
+                                        -₹{discount.toFixed(2)}
                                     </Text>
                                 </View>
                             )}
@@ -859,7 +868,7 @@ const Cart: React.FC = () => {
                             <View className="flex-row justify-between items-center pt-4 border-t border-gray-100">
                                 <Text className="text-lg font-semibold text-gray-700">Total Amount</Text>
                                 <Text className="text-2xl font-bold text-green-600">
-                                    ${finalTotal.toFixed(2)}
+                                    ₹{finalTotal.toFixed(2)}
                                 </Text>
                             </View>
                         </View>
@@ -893,7 +902,7 @@ const Cart: React.FC = () => {
 
                 {/* Checkout Button */}
                 {cartItems.length > 0 && (
-                    <View className="mx-4 mb-8">
+                    <View className="mx-4 mb-4">
                         <TouchableOpacity
                             onPress={handleCheckout}
                             activeOpacity={0.8}
@@ -903,7 +912,6 @@ const Cart: React.FC = () => {
                                 }`}
                         >
                             <View className="flex-row items-center justify-center">
-                                <Text className="text-xl">🛍️</Text>
                                 <View className="ml-2">
                                     <Text className={`text-lg font-bold ${cartItems.length > 0 && selectedTimeSlot
                                         ? 'text-gray-900'
@@ -917,7 +925,7 @@ const Cart: React.FC = () => {
                                                 ? 'text-gray-600'
                                                 : 'text-gray-400'
                                                 }`}>
-                                                ${subtotal.toFixed(2)}
+                                                ₹{subtotal.toFixed(2)}
                                             </Text>
                                         )}
                                         <Text className={`text-lg font-bold ${cartItems.length > 0 && selectedTimeSlot
@@ -934,7 +942,7 @@ const Cart: React.FC = () => {
                 )}
 
                 {/* Security Info */}
-                <View className="items-center pb-8">
+                <View className="items-center ">
                     <Text className="text-gray-500 text-sm">Secure Checkout</Text>
                     <Text className="text-gray-400 text-xs mt-1">🔒 Your payment is protected</Text>
                 </View>

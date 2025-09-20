@@ -7,7 +7,8 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
-    Vibration
+    Vibration,
+    Image
 } from 'react-native'
 import { MotiView } from 'moti'
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router'
@@ -83,6 +84,7 @@ const OrderPayment = () => {
 
     const outletId = user?.outletId;
     const { config } = useContext(AppConfigContext);
+
 
 
     // Parse cart data from params
@@ -192,11 +194,15 @@ const OrderPayment = () => {
     }, [])
 
     // Additional fees
-    const deliveryFee = 2.99
-    const serviceFee = 1.50
-    const finalTotalAmount = orderTotalAmount + deliveryFee + serviceFee
+    // const deliveryFee = 2.99
+    // const serviceFee = 1.50
+    const finalTotalAmountBefore = orderTotalAmount // + deliveryFee + serviceFee
+    const platformFee = selectedPaymentMethod === 'UPI' ? finalTotalAmountBefore * 0.02 : 0;
+    const finalTotalAmount = orderTotalAmount + platformFee
 
-    const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`
+
+
+    const formatCurrency = (amount: number) => `₹${amount.toFixed(2)}`
 
     // ✅ ENHANCED SUCCESS ALERT
     const showSuccessAlert = (orderData: any, paymentId: string) => {
@@ -344,7 +350,7 @@ const OrderPayment = () => {
                 key: 'rzp_test_CqJOLIOhHoCry6', // ✅ Your actual key
                 amount: razorpayOrder.amount, // ✅ Use amount from backend (already in paise)
                 order_id: razorpayOrder.id,
-                name: 'Delicious Bites Restaurant',
+                name: 'Mr Kadali',
                 prefill: {
                     email: user?.email || 'customer@restaurant.com',
                     name: user?.name || 'Valued Customer'
@@ -592,8 +598,16 @@ const OrderPayment = () => {
 
     const OrderItem = ({ item }: { item: CartItem }) => (
         <View className="flex-row items-center py-3 border-b border-gray-100 last:border-b-0">
-            <View className="w-10 h-10 bg-yellow-100 rounded-xl items-center justify-center mr-3">
-                <Text className="text-lg">{getCategoryIcon(item.product.category)}</Text>
+            <View className="w-10 h-10 bg-yellow-100 rounded-xl items-center justify-center mr-3 overflow-hidden">
+                {item.product.imageUrl ? (
+                    <Image
+                        source={{ uri: item.product.imageUrl }}
+                        style={{ width: 40, height: 40, borderRadius: 8 }}
+                        resizeMode="cover"
+                    />
+                ) : (
+                    <Text className="text-lg">{getCategoryIcon(item.product.category)}</Text>
+                )}
             </View>
             <View className="flex-1">
                 <Text className="text-base font-medium text-gray-900">{item.product.name}</Text>
@@ -611,7 +625,8 @@ const OrderPayment = () => {
         subtitle,
         icon,
         onPress,
-        disabled = false
+        disabled = false,
+        note = null, // ✅ new optional prop
     }: {
         type: 'WALLET' | 'UPI'
         title: string
@@ -619,6 +634,7 @@ const OrderPayment = () => {
         icon: string
         onPress: () => void
         disabled?: boolean
+        note?: string | null
     }) => (
         <TouchableOpacity
             onPress={onPress}
@@ -642,6 +658,11 @@ const OrderPayment = () => {
                     <Text className={`text-sm ${disabled ? 'text-gray-400' : 'text-gray-600'}`}>
                         {subtitle}
                     </Text>
+                    {note && (
+                        <Text className="text-lg text-yellow-700 mt-1">
+                            {note}
+                        </Text>
+                    )}
                 </View>
                 <View className={`w-6 h-6 rounded-full border-2 ${selectedPaymentMethod === type
                     ? 'bg-yellow-400 border-yellow-400'
@@ -656,6 +677,7 @@ const OrderPayment = () => {
             </View>
         </TouchableOpacity>
     )
+
 
     // Loading state
     if (!cartData || walletLoading) {
@@ -673,20 +695,14 @@ const OrderPayment = () => {
         <SafeAreaView className="flex-1 bg-gray-50">
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100">
-                <TouchableOpacity
-                    className="p-2"
-                    onPress={() => router.back()}
-                    disabled={loading}
-                >
+                <TouchableOpacity className="p-2" onPress={() => router.back()} disabled={loading}>
                     <Text className="text-2xl">←</Text>
                 </TouchableOpacity>
                 <Text className="text-xl font-bold text-gray-900">Order Summary</Text>
                 <View className="w-10" />
             </View>
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 80 }}
-            >
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
                 {/* Order Info */}
                 <MotiView
                     from={{ opacity: 0, translateY: 20 }}
@@ -696,36 +712,30 @@ const OrderPayment = () => {
                 >
                     <View className="bg-white rounded-2xl p-6 mb-6 shadow-sm border border-gray-100">
                         <View className="items-center mb-4">
-                            <Text className="text-3xl mb-2">📋</Text>
-                            <Text className="text-xl font-bold text-gray-900">Order Summary</Text>
+                            {/* <Text className="text-3xl mb-2">📋</Text> */}
+                            <Text className="text-3xl font-bold text-gray-900">Order Summary</Text>
                         </View>
 
                         <View className="bg-yellow-50 rounded-xl p-4 mb-4">
-                            <View className="flex-row justify-between items-center mb-2">
+                            {/* <View className="flex-row justify-between items-center mb-2">
                                 <Text className="text-lg font-bold text-gray-900">
                                     Order #{new Date().getTime().toString().slice(-6)}
                                 </Text>
                                 <View className="bg-blue-100 px-3 py-1 rounded-full">
                                     <Text className="text-xs font-medium text-blue-800">Pending</Text>
                                 </View>
-                            </View>
-                            <Text className="text-sm text-gray-600">
-
-                                Delivery Time:
-                                {selectedTimeSlotDisplay}
-                            </Text>
+                            </View> */}
+                            <Text className="text-sm text-gray-600">Delivery Time: {selectedTimeSlotDisplay}</Text>
                             <Text className="text-sm text-gray-600">
                                 Selected Date:{" "}
                                 {selectedDate?.fullDate
-                                    ? new Date(selectedDate.fullDate).toLocaleDateString("en-US", {
-                                        day: "numeric",
-                                        month: "short",
+                                    ? new Date(selectedDate.fullDate).toLocaleDateString("en-GB", {
+                                        day: "2-digit",
+                                        month: "2-digit",
                                         year: "numeric",
                                     })
                                     : "Not selected"}
                             </Text>
-
-
                         </View>
 
                         {/* Order Items */}
@@ -746,7 +756,6 @@ const OrderPayment = () => {
                                     <Text className="text-gray-900 font-medium">{formatCurrency(subtotalAmount)}</Text>
                                 </View>
 
-                                {/* Show applied coupon discount */}
                                 {appliedCoupon && discountAmount > 0 && (
                                     <View className="bg-green-50 rounded-lg p-3 my-2 border border-green-200">
                                         <View className="flex-row items-center justify-between mb-1">
@@ -757,7 +766,9 @@ const OrderPayment = () => {
                                             <Text className="text-green-700 font-bold">-{formatCurrency(discountAmount)}</Text>
                                         </View>
                                         <Text className="text-sm text-green-600">{appliedCoupon.description}</Text>
-                                        <Text className="text-sm font-medium text-green-700">You saved {formatCurrency(discountAmount)}!</Text>
+                                        <Text className="text-sm font-medium text-green-700">
+                                            You saved {formatCurrency(discountAmount)}!
+                                        </Text>
                                     </View>
                                 )}
 
@@ -766,15 +777,22 @@ const OrderPayment = () => {
                                     <Text className="text-gray-900 font-medium">{formatCurrency(orderTotalAmount)}</Text>
                                 </View>
 
-                                <View className="flex-row justify-between">
+                                {/* <View className="flex-row justify-between">
                                     <Text className="text-gray-700">Delivery Fee</Text>
                                     <Text className="text-gray-900 font-medium">{formatCurrency(deliveryFee)}</Text>
-                                </View>
+                                </View> */}
 
-                                <View className="flex-row justify-between">
+                                {/* <View className="flex-row justify-between">
                                     <Text className="text-gray-700">Service Fee</Text>
                                     <Text className="text-gray-900 font-medium">{formatCurrency(serviceFee)}</Text>
-                                </View>
+                                </View> */}
+
+                                {selectedPaymentMethod === "UPI" && (
+                                    <View className="flex-row justify-between">
+                                        <Text className="text-gray-700">Platform Fee (2%)</Text>
+                                        <Text className="text-gray-900 font-medium">{formatCurrency(platformFee)}</Text>
+                                    </View>
+                                )}
 
                                 <View className="flex-row justify-between items-center border-t border-gray-200 pt-3 mt-3">
                                     <Text className="text-lg font-bold text-gray-900">Total Amount</Text>
@@ -798,16 +816,12 @@ const OrderPayment = () => {
                         <PaymentOption
                             type="WALLET"
                             title="Pay by Wallet"
-                            subtitle={walletData
-                                ? `Available Balance: ${formatCurrency(walletData.balance)}`
-                                : 'Loading wallet balance...'
-                            }
+                            subtitle={walletData ? `Available Balance: ${formatCurrency(walletData.balance)}` : 'Loading wallet balance...'}
                             icon="💳"
                             onPress={() => setSelectedPaymentMethod('WALLET')}
                             disabled={!walletData}
                         />
 
-                        {/* Wallet Balance Details */}
                         {selectedPaymentMethod === 'WALLET' && walletData && (
                             <MotiView
                                 from={{ opacity: 0, height: 0 }}
@@ -827,8 +841,7 @@ const OrderPayment = () => {
                                     </View>
                                     <View className="flex-row justify-between items-center border-t border-blue-200 pt-2 mt-2">
                                         <Text className="text-base font-semibold text-gray-900">Balance After Payment</Text>
-                                        <Text className={`text-base font-bold ${walletData.balance - finalTotalAmount >= 0 ? 'text-green-600' : 'text-red-600'
-                                            }`}>
+                                        <Text className={`text-base font-bold ${walletData.balance - finalTotalAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                             {formatCurrency(walletData.balance - finalTotalAmount)}
                                         </Text>
                                     </View>
@@ -851,9 +864,10 @@ const OrderPayment = () => {
                                     subtitle="UPI, Card, Net Banking via Razorpay"
                                     icon="🌐"
                                     onPress={() => setSelectedPaymentMethod('UPI')}
+                                    note="2% platform fee added for online payments"
                                 />
 
-                                {/* Online Payment Details */}
+
                                 {selectedPaymentMethod === 'UPI' && (
                                     <MotiView
                                         from={{ opacity: 0, height: 0 }}
@@ -885,7 +899,6 @@ const OrderPayment = () => {
                                 )}
                             </>
                         )}
-
                     </View>
                 </MotiView>
 
@@ -894,10 +907,7 @@ const OrderPayment = () => {
                     <TouchableOpacity
                         onPress={handlePayment}
                         activeOpacity={0.8}
-                        className={`py-4 rounded-xl ${selectedPaymentMethod && !loading
-                            ? 'bg-yellow-400'
-                            : 'bg-gray-300'
-                            }`}
+                        className={`py-4 rounded-xl ${selectedPaymentMethod && !loading ? 'bg-yellow-400' : 'bg-gray-300'}`}
                         disabled={!selectedPaymentMethod || loading}
                     >
                         <View className="flex-row items-center justify-center">
@@ -911,14 +921,10 @@ const OrderPayment = () => {
                             ) : (
                                 <>
                                     <Text className="text-xl mr-2">💳</Text>
-                                    <Text className={`text-lg font-bold ${selectedPaymentMethod
-                                        ? 'text-gray-900'
-                                        : 'text-gray-500'
-                                        }`}>
+                                    <Text className={`text-lg font-bold ${selectedPaymentMethod ? 'text-gray-900' : 'text-gray-500'}`}>
                                         {selectedPaymentMethod === 'UPI'
                                             ? `Pay Online • ${formatCurrency(finalTotalAmount)}`
-                                            : `Pay Now • ${formatCurrency(finalTotalAmount)}`
-                                        }
+                                            : `Pay Now • ${formatCurrency(finalTotalAmount)}`}
                                     </Text>
                                 </>
                             )}
@@ -927,7 +933,8 @@ const OrderPayment = () => {
                 </View>
             </ScrollView>
         </SafeAreaView>
-    )
+    );
+
 }
 
 export default OrderPayment
