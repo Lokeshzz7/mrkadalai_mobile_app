@@ -1,13 +1,13 @@
 {
   "expo": {
     "name": "Mr Kadalai",
-    "slug": "mobile_movie_app",
+    "slug": "mr_kadalai_app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "movies",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pavan.mobilemovieapp",
