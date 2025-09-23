@@ -15,7 +15,7 @@ module.exports = function (api) {
                     },
                 },
             ],
-            "react-native-reanimated/plugin" // <-- ADD THIS AT THE END
+            "react-native-reanimated/plugin"
         ],
     };
 };
