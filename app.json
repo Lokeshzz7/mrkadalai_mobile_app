@@ -32,12 +32,7 @@
       "favicon": "./assets/images/logo.png"
     },
     "plugins": [
-      "expo-router",
-      ["react-native-worklets", {
-        "android": {
-          "newArchEnabled": true
-        }
-      }]
+      "expo-router"
     ],
     "experiments": {
       "typedRoutes": true
