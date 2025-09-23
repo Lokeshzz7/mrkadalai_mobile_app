@@ -33,7 +33,6 @@
     },
     "plugins": [
       "expo-router",
-      "react-native-reanimated",
       ["react-native-worklets", {
         "android": {
           "newArchEnabled": true
