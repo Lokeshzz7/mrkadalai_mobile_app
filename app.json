@@ -1,13 +1,13 @@
 {
   "expo": {
     "name": "Mr Kadalai",
-    "slug": "mr_kadalai_app",
+    "slug": "mobile_movie_app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "movies",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pavan.mobilemovieapp",
@@ -32,7 +32,13 @@
       "favicon": "./assets/images/logo.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "react-native-reanimated",
+      ["react-native-worklets", {
+        "android": {
+          "newArchEnabled": true
+        }
+      }]
     ],
     "experiments": {
       "typedRoutes": true
