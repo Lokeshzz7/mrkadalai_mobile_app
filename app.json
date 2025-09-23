@@ -7,7 +7,7 @@
     "icon": "./assets/images/logo.png",
     "scheme": "movies",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pavan.mobilemovieapp",
