@@ -8,7 +8,6 @@ import {
     ActivityIndicator,
     Alert
 } from 'react-native'
-import { MotiView } from 'moti'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { apiRequest } from '../../../utils/api'
 
@@ -169,7 +168,7 @@ const Cancel = () => {
                     <Text className="text-xl font-bold text-gray-900">Cancelling Order</Text>
                     <View className="w-10" />
                 </View>
-                
+
                 <View className="flex-1 items-center justify-center">
                     <ActivityIndicator size="large" color="#FCD34D" />
                     <Text className="text-gray-600 mt-4 text-lg">Cancelling your order...</Text>
@@ -197,7 +196,7 @@ const Cancel = () => {
 
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
                 {/* Sorry Message */}
-                <MotiView
+                <View
                     from={{ opacity: 0, translateY: 30 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 400 }}
@@ -237,7 +236,7 @@ const Cancel = () => {
                             const itemTotal = itemPrice * item.quantity
 
                             return (
-                                <MotiView
+                                <View
                                     key={item.id}
                                     from={{ opacity: 0, translateX: -20 }}
                                     animate={{ opacity: 1, translateX: 0 }}
@@ -259,7 +258,7 @@ const Cancel = () => {
                                     <View className="items-end justify-center">
                                         <Text className="text-lg font-bold text-gray-900">{formatCurrency(itemTotal)}</Text>
                                     </View>
-                                </MotiView>
+                                </View>
                             )
                         })}
 
@@ -335,7 +334,7 @@ const Cancel = () => {
                     {refundMethod === 'CASH' && (
                         <View className="bg-white rounded-2xl px-6 py-6 mb-6">
                             <Text className="text-lg font-bold text-gray-900 mb-4">Cash Refund Information</Text>
-                            
+
                             <View className="p-4 bg-blue-50 rounded-xl">
                                 <Text className="text-sm text-blue-800 text-center">
                                     💵 Since you paid with cash, your refund of {formatCurrency(refundAmount)} will be processed according to our refund policy. Please contact customer support for details.
@@ -383,7 +382,7 @@ const Cancel = () => {
                                         {refundMethod === 'WALLET' ? 'Instant Refund' : 'Refund Processing'}
                                     </Text>
                                     <Text className="text-sm text-gray-600">
-                                        {refundMethod === 'WALLET' 
+                                        {refundMethod === 'WALLET'
                                             ? 'Your refund has been added to your wallet and is ready to use.'
                                             : 'Your refund is being processed according to our refund policy.'
                                         }
@@ -396,7 +395,7 @@ const Cancel = () => {
                                 <View className="flex-1">
                                     <Text className="font-medium text-gray-900">Order Again</Text>
                                     <Text className="text-sm text-gray-600">
-                                        {refundMethod === 'WALLET' 
+                                        {refundMethod === 'WALLET'
                                             ? 'Use your wallet balance for your next delicious order.'
                                             : 'Place a new order anytime with our delicious menu.'
                                         }
@@ -453,7 +452,7 @@ const Cancel = () => {
                             <View className="flex-row items-start">
                                 <View className="w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3"></View>
                                 <Text className="text-sm text-gray-600 flex-1">
-                                    {refundMethod === 'WALLET' 
+                                    {refundMethod === 'WALLET'
                                         ? 'Wallet refunds are processed instantly.'
                                         : 'Cash refunds are processed according to our refund policy.'
                                     }
@@ -462,7 +461,7 @@ const Cancel = () => {
                             <View className="flex-row items-start">
                                 <View className="w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3"></View>
                                 <Text className="text-sm text-gray-600 flex-1">
-                                    {refundMethod === 'WALLET' 
+                                    {refundMethod === 'WALLET'
                                         ? 'Wallet balance can be used for future orders or withdrawn.'
                                         : 'For questions about cash refunds, please contact customer support.'
                                     }
@@ -479,7 +478,7 @@ const Cancel = () => {
                             Thank you for choosing us. We hope to serve you again soon with amazing food and great service!
                         </Text>
                     </View>
-                </MotiView>
+                </View>
             </ScrollView>
         </SafeAreaView>
     )

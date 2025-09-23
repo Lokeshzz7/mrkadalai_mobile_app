@@ -119,7 +119,6 @@ import {
   Image,
   Alert
 } from 'react-native'
-import { MotiView, MotiText } from 'moti'
 import { useAuth } from '@/context/AuthContext'
 import { apiRequest } from '../../../utils/api'
 import { router } from 'expo-router'
@@ -244,14 +243,14 @@ const Profile = () => {
         });
     }
   }
-  
+
 
   const ProfileMenuItem = ({ item, index }: any) => (
     <TouchableOpacity
       onPress={() => handleMenuItemPress(item)}
       activeOpacity={0.7}
     >
-      <MotiView
+      <View
         from={{ opacity: 0, translateX: -50 }}
         animate={{ opacity: 1, translateX: 0 }}
         transition={{
@@ -286,7 +285,7 @@ const Profile = () => {
           )}
           <Text className="text-gray-400 text-lg">→</Text>
         </View>
-      </MotiView>
+      </View>
 
       {index < profileMenuItems.length - 1 && (
         <View className="h-px bg-gray-200 mx-4" />
@@ -328,7 +327,7 @@ const Profile = () => {
         contentContainerStyle={{ paddingBottom: 70 }}
       >
         {/* User Profile Card */}
-        <MotiView
+        <View
           from={{ opacity: 0, translateY: -30 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 600 }}
@@ -381,7 +380,7 @@ const Profile = () => {
               </View>
             )}
           </View>
-        </MotiView>
+        </View>
 
         {/* Menu Items */}
         <View className="bg-white rounded-2xl mx-4 mb-6 shadow-md border border-gray-100 overflow-hidden">
@@ -391,7 +390,7 @@ const Profile = () => {
         </View>
 
         {/* Account Actions */}
-        <MotiView
+        <View
           from={{ opacity: 0, translateY: 30 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 600, delay: 800 }}
@@ -413,7 +412,7 @@ const Profile = () => {
               <Text className="text-gray-400 text-lg">→</Text>
             </TouchableOpacity>
           </View>
-        </MotiView>
+        </View>
       </ScrollView>
     </SafeAreaView>
   )

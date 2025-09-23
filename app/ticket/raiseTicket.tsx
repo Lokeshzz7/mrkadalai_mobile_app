@@ -3,7 +3,6 @@ import {
     View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Alert, Image,
     ActivityIndicator
 } from "react-native";
-import { MotiView, MotiText } from "moti";
 import { router } from "expo-router";
 import * as ImagePicker from 'expo-image-picker';
 import { apiRequest } from "../../utils/api";
@@ -222,7 +221,7 @@ const raiseTicket = () => {
                 keyboardShouldPersistTaps="handled" // Improves TextInput interaction
             >
                 {/* Issue Type Selection */}
-                <MotiView
+                <View
                     from={{ opacity: 0, translateY: 20 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 500 }}
@@ -243,7 +242,7 @@ const raiseTicket = () => {
 
                     {/* Custom Issue Input for "Others" */}
                     {selectedIssue === "others" && (
-                        <MotiView
+                        <View
                             from={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             transition={{ type: 'timing', duration: 300 }}
@@ -257,12 +256,12 @@ const raiseTicket = () => {
                                 onChangeText={setCustomIssue}
                                 multiline={false}
                             />
-                        </MotiView>
+                        </View>
                     )}
-                </MotiView>
+                </View>
 
                 {/* Description */}
-                <MotiView
+                <View
                     from={{ opacity: 0, translateY: 20 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 500, delay: 100 }}
@@ -280,10 +279,10 @@ const raiseTicket = () => {
                         multiline={true}
                         textAlignVertical="top"
                     />
-                </MotiView>
+                </View>
 
                 {/* Image Upload */}
-                <MotiView
+                <View
                     from={{ opacity: 0, translateY: 20 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 500, delay: 200 }}
@@ -316,10 +315,10 @@ const raiseTicket = () => {
                             </View>
                         )}
                     </TouchableOpacity>
-                </MotiView>
+                </View>
 
                 {/* Submit Button */}
-                <MotiView
+                <View
                     from={{ opacity: 0, translateY: 20 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 500, delay: 300 }}
@@ -340,7 +339,7 @@ const raiseTicket = () => {
                             <Text className="text-white text-lg font-bold">Submit Ticket</Text>
                         )}
                     </TouchableOpacity>
-                </MotiView>
+                </View>
             </ScrollView>
         </SafeAreaView>
     );

@@ -12,7 +12,6 @@ import {
     ActivityIndicator,
     RefreshControl
 } from 'react-native'
-import { MotiView, MotiText } from 'moti'
 import { apiRequest } from '../../../utils/api'
 import RazorpayCheckout from 'react-native-razorpay';
 import Toast from 'react-native-toast-message';
@@ -251,7 +250,7 @@ const ImportantNotice = () => {
     );
 
     return (
-        <MotiView
+        <View
             from={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ type: 'timing', duration: 600, delay: 400 }}
@@ -263,7 +262,7 @@ const ImportantNotice = () => {
                 </Text>
                 {noticeItems}
             </View>
-        </MotiView>
+        </View>
     );
 };
 
@@ -601,7 +600,7 @@ const Wallet = () => {
 
     const TabButton = ({ title, isActive, onPress }: TabButtonProps) => (
         <TouchableOpacity onPress={onPress} className="flex-1">
-            <MotiView
+            <View
                 animate={{
                     backgroundColor: isActive ? '#FCD34D' : '#F9FAFB',
                 }}
@@ -614,7 +613,7 @@ const Wallet = () => {
                 <Text className={`text-center font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>
                     {title}
                 </Text>
-            </MotiView>
+            </View>
         </TouchableOpacity>
     )
 
@@ -663,7 +662,7 @@ const Wallet = () => {
                 ListHeaderComponent={
                     <>
                         {/* Wallet Balance Section */}
-                        <MotiView
+                        <View
                             from={{ opacity: 0, translateY: -30 }}
                             animate={{ opacity: 1, translateY: 0 }}
                             transition={{ type: 'timing', duration: 600 }}
@@ -723,10 +722,10 @@ const Wallet = () => {
                                     </View>
                                 </View>
                             </View>
-                        </MotiView>
+                        </View>
 
                         {/* Recharge Section */}
-                        <MotiView
+                        <View
                             from={{ opacity: 0, translateY: 30 }}
                             animate={{ opacity: 1, translateY: 0 }}
                             transition={{ type: 'timing', duration: 600, delay: 200 }}
@@ -815,10 +814,10 @@ const Wallet = () => {
                                     )}
                                 </TouchableOpacity>
                             </View>
-                        </MotiView>
+                        </View>
 
                         {/* Caution Notice
-                        <MotiView
+                        <View
                             from={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ type: 'timing', duration: 600, delay: 400 }}
@@ -838,7 +837,7 @@ const Wallet = () => {
                                     • By proceeding, you agree to our Terms of Service and Refund Policy.
                                 </Text>
                             </View>
-                        </MotiView> */}
+                        </View> */}
 
                         <ImportantNotice />
                         {/* Tab Buttons */}

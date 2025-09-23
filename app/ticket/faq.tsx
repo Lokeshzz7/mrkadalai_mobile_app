@@ -3,7 +3,6 @@ import {
     View, Text, SafeAreaView, ScrollView, TouchableOpacity,
     FlatList
 } from "react-native";
-import { MotiView, MotiText } from "moti";
 import { router } from "expo-router";
 
 const faqData = [
@@ -63,7 +62,7 @@ interface FAQItemProps {
 }
 
 const FAQItem = React.memo<FAQItemProps>(({ item, isExpanded, onToggleExpand }) => (
-    <MotiView
+    <View
         className="bg-white rounded-lg mb-3 overflow-hidden"
         style={{
             shadowColor: "#000",
@@ -82,17 +81,17 @@ const FAQItem = React.memo<FAQItemProps>(({ item, isExpanded, onToggleExpand }) 
             <Text className="flex-1 text-base font-semibold text-black pr-3">
                 {item.question}
             </Text>
-            <MotiView
+            <View
                 animate={{ rotate: isExpanded ? '180deg' : '0deg' }}
                 transition={{ type: 'timing', duration: 150 }}
             >
                 <Text className="text-xl font-bold" style={{ color: '#EBB22F' }}>↓</Text>
-            </MotiView>
+            </View>
         </TouchableOpacity>
 
         {/* Answer */}
         {isExpanded && (
-            <MotiView
+            <View
                 from={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
@@ -104,9 +103,9 @@ const FAQItem = React.memo<FAQItemProps>(({ item, isExpanded, onToggleExpand }) 
                         {item.answer}
                     </Text>
                 </View>
-            </MotiView>
+            </View>
         )}
-    </MotiView>
+    </View>
 ));
 
 const FAQ = () => {

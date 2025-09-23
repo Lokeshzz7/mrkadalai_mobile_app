@@ -9,7 +9,6 @@ import {
   Alert,
   ScrollView
 } from 'react-native'
-import { MotiView, MotiText } from 'moti'
 import { router } from 'expo-router'
 import { apiRequest } from '../../../utils/api'
 import Toast from 'react-native-toast-message'
@@ -202,7 +201,7 @@ const EditProfile = () => {
       >
         <View className="flex-1 px-4 py-8">
           {/* Header */}
-          <MotiView
+          <View
             from={{ opacity: 0, translateY: -30 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 600 }}
@@ -211,26 +210,26 @@ const EditProfile = () => {
             <View className="w-24 h-24 bg-yellow-400 rounded-full items-center justify-center mb-6 shadow-md">
               <Text className="text-4xl">👤</Text>
             </View>
-            <MotiText
+            <Text
               from={{ opacity: 0, translateY: 20 }}
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ type: 'timing', duration: 600, delay: 200 }}
               className="text-gray-900 text-3xl font-bold mb-2"
             >
               Edit Profile
-            </MotiText>
-            <MotiText
+            </Text>
+            <Text
               from={{ opacity: 0, translateY: 20 }}
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ type: 'timing', duration: 600, delay: 400 }}
               className="text-gray-600 text-base"
             >
               Update your personal information
-            </MotiText>
-          </MotiView>
+            </Text>
+          </View>
 
           {/* Form Container */}
-          <MotiView
+          <View
             from={{ opacity: 0, translateY: 30 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 600, delay: 600 }}
@@ -415,7 +414,7 @@ const EditProfile = () => {
                 </Text>
               )}
             </TouchableOpacity>
-          </MotiView>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

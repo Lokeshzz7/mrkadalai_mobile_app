@@ -8,7 +8,6 @@ import {
     Share,
     Image
 } from 'react-native'
-import { MotiView } from 'moti'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
 // Define the OrderItem type based on actual API response
@@ -205,7 +204,7 @@ Thank you for your order!
             </View>
 
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                <MotiView
+                <View
                     from={{ opacity: 0, translateY: 30 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 400 }}
@@ -281,7 +280,7 @@ Thank you for your order!
                                 const itemTotal = price * quantity
 
                                 return (
-                                    <MotiView
+                                    <View
                                         key={item.id}
                                         from={{ opacity: 0, translateX: -20 }}
                                         animate={{ opacity: 1, translateX: 0 }}
@@ -318,7 +317,7 @@ Thank you for your order!
                                                 {formatCurrency(itemTotal)}
                                             </Text>
                                         </View>
-                                    </MotiView>
+                                    </View>
                                 )
                             })
                         ) : (
@@ -434,7 +433,7 @@ Thank you for your order!
                         Thank You!
                     </Text>
                 </View> */}
-                </MotiView>
+                </View>
 
                 {/* Action Buttons */}
                 <View className="px-4 mb-4 mt-4">

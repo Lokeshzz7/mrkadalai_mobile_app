@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
     View, Text, SafeAreaView, ScrollView, TouchableOpacity
 } from "react-native";
-import { MotiView, MotiText } from "moti";
 import { router, useLocalSearchParams } from "expo-router";
 import { apiRequest } from "../../utils/api";
 
@@ -76,7 +75,7 @@ const TimelineItem = React.memo<TimelineItemProps>(({ step, title, date, isCompl
     <View className="flex-row items-start">
         {/* Timeline Circle and Line */}
         <View className="items-center mr-4">
-            <MotiView
+            <View
                 from={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'timing', duration: 500, delay: step * 200 }}
@@ -86,19 +85,19 @@ const TimelineItem = React.memo<TimelineItemProps>(({ step, title, date, isCompl
                     }`}
             >
                 {isCompleted && (
-                    <MotiView
+                    <View
                         from={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: 'timing', duration: 300, delay: step * 200 + 200 }}
                     >
                         <Text className="text-white text-xs font-bold">✓</Text>
-                    </MotiView>
+                    </View>
                 )}
-            </MotiView>
+            </View>
 
             {/* Vertical Line */}
             {!isLast && (
-                <MotiView
+                <View
                     from={{ height: 0 }}
                     animate={{ height: 60 }}
                     transition={{ type: 'timing', duration: 400, delay: step * 200 + 100 }}
@@ -109,7 +108,7 @@ const TimelineItem = React.memo<TimelineItemProps>(({ step, title, date, isCompl
         </View>
 
         {/* Timeline Content */}
-        <MotiView
+        <View
             from={{ opacity: 0, translateX: -20 }}
             animate={{ opacity: 1, translateX: 0 }}
             transition={{ type: 'timing', duration: 400, delay: step * 200 + 300 }}
@@ -124,7 +123,7 @@ const TimelineItem = React.memo<TimelineItemProps>(({ step, title, date, isCompl
                     {formatDate(date)}
                 </Text>
             )}
-        </MotiView>
+        </View>
     </View>
 ));
 
@@ -222,7 +221,7 @@ const viewDetailsTicket = () => {
                 contentContainerStyle={{ paddingBottom: 20 }}
             >
                 {/* Ticket Information Card */}
-                <MotiView
+                <View
                     from={{ opacity: 0, translateY: 20 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 500 }}
@@ -300,10 +299,10 @@ const viewDetailsTicket = () => {
                             </View>
                         )}
                     </View>
-                </MotiView>
+                </View>
 
                 {/* Timeline Section */}
-                <MotiView
+                <View
                     from={{ opacity: 0, translateY: 20 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 500, delay: 200 }}
@@ -353,7 +352,7 @@ const viewDetailsTicket = () => {
                             </Text>
                         </View>
                         <View className="w-full h-2 bg-gray-200 rounded-full mt-2">
-                            <MotiView
+                            <View
                                 from={{ width: '0%' }}
                                 animate={{ width: `${ticketData.progressPercentage}%` }}
                                 transition={{ type: 'timing', duration: 1000, delay: 800 }}
@@ -361,7 +360,7 @@ const viewDetailsTicket = () => {
                             />
                         </View>
                     </View>
-                </MotiView>
+                </View>
             </ScrollView>
         </SafeAreaView>
     );

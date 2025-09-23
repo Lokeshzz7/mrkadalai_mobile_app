@@ -12,7 +12,7 @@ import {
   Alert,
   Image
 } from 'react-native'
-import { MotiView, MotiText } from 'moti'
+
 import { router } from 'expo-router'
 import { apiRequest } from '../../utils/api'
 import { useFocusEffect } from '@react-navigation/native'
@@ -63,7 +63,7 @@ interface FoodItemCardProps {
 
 const DateCard = React.memo(({ date, index, isSelected, onPress }: any) => (
   <TouchableOpacity onPress={onPress} style={{ width: 80, marginRight: 12 }}>
-    <MotiView
+    <View
       className={`px-3 py-3 rounded-2xl border-2 ${isSelected ? 'border-[#C1803F]' : 'border-gray-200'} ${isSelected ? 'bg-[#C1803F]' : 'bg-[#FFFFFF]'} shadow-sm`}
     >
       <Text className={`text-center text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-600'}`}>
@@ -75,14 +75,14 @@ const DateCard = React.memo(({ date, index, isSelected, onPress }: any) => (
       <Text className={`text-center text-xs ${isSelected ? 'text-white' : 'text-gray-500'}`}>
         {date.month}
       </Text>
-    </MotiView>
+    </View>
   </TouchableOpacity>
 ))
 
 // Memoized CategoryCard component
 const CategoryCard = React.memo(({ category, isSelected, onPress }: any) => (
   <TouchableOpacity onPress={onPress} className="mr-3">
-    <MotiView
+    <View
       animate={{
         backgroundColor: isSelected ? '#FCD34D' : '#e3e4e6',
         scale: isSelected ? 1.05 : 1,
@@ -96,7 +96,7 @@ const CategoryCard = React.memo(({ category, isSelected, onPress }: any) => (
           {category.name}
         </Text>
       </View>
-    </MotiView>
+    </View>
   </TouchableOpacity>
 ))
 

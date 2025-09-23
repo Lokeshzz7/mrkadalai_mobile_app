@@ -4,7 +4,6 @@ import {
     FlatList,
     RefreshControl
 } from "react-native";
-import { MotiView, MotiText } from "moti";
 import { router } from "expo-router";
 import { apiRequest } from "../../utils/api";
 import Toast from "react-native-toast-message";
@@ -64,7 +63,7 @@ const formatDate = (dateString: string) => {
 };
 
 const TicketCard = React.memo(({ ticket }: TicketCardProps) => (
-    <MotiView
+    <View
         from={{ opacity: 0, translateY: 20 }}
         animate={{ opacity: 1, translateY: 0 }}
         transition={{ type: 'timing', duration: 400 }}
@@ -161,7 +160,7 @@ const TicketCard = React.memo(({ ticket }: TicketCardProps) => (
                 </Text>
             </TouchableOpacity>
         </View>
-    </MotiView>
+    </View>
 ));
 
 const TabButton = React.memo(({ title, isActive, onPress }: TabButtonProps) => (
@@ -177,7 +176,7 @@ const TabButton = React.memo(({ title, isActive, onPress }: TabButtonProps) => (
 ));
 
 const EmptyState = React.memo(({ message }: EmptyStateProps) => (
-    <MotiView
+    <View
         from={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'timing', duration: 500 }}
@@ -190,7 +189,7 @@ const EmptyState = React.memo(({ message }: EmptyStateProps) => (
         <Text className="text-sm text-gray-500 text-center px-8">
             {message}
         </Text>
-    </MotiView>
+    </View>
 ));
 
 const myTicket = () => {

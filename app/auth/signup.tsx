@@ -10,7 +10,6 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native'
-import { MotiView, MotiText } from 'moti'
 import { Picker } from '@react-native-picker/picker'
 import { router } from 'expo-router'
 import { useAuth } from '../../context/AuthContext'
@@ -198,29 +197,29 @@ const Signup = () => {
           </View>
 
           {/* Header Text */}
-          <MotiView
+          <View
             from={{ opacity: 0, translateY: -30 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 600 }}
             className="items-center mb-10 mt-8"
           >
-            <MotiText
+            <Text
               from={{ opacity: 0, translateY: 20 }}
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ type: 'timing', duration: 600, delay: 200 }}
               className="text-white text-3xl font-bold mb-2"
             >
               Create Account
-            </MotiText>
-            <MotiText
+            </Text>
+            <Text
               from={{ opacity: 0, translateY: 20 }}
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ type: 'timing', duration: 600, delay: 400 }}
               className="text-gray-600 text-base text-center"
             >
               Join us and discover amazing food experiences
-            </MotiText>
-          </MotiView>
+            </Text>
+          </View>
 
           {/* Form + Login Link Container */}
           <View

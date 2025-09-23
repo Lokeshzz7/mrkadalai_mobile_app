@@ -11,7 +11,6 @@ import {
     TextInput,
     Image
 } from 'react-native'
-import { MotiView } from 'moti'
 import { useRouter } from 'expo-router'
 import { useFocusEffect, useIsFocused } from '@react-navigation/native'
 import { useCart } from '../../../context/CartContext'

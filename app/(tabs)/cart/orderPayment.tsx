@@ -10,7 +10,6 @@ import {
     Vibration,
     Image
 } from 'react-native'
-import { MotiView } from 'moti'
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router'
 import RazorpayCheckout from 'react-native-razorpay';
 import { apiRequest } from '../../../utils/api'
@@ -704,7 +703,7 @@ const OrderPayment = () => {
 
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
                 {/* Order Info */}
-                <MotiView
+                <View
                     from={{ opacity: 0, translateY: 20 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 400 }}
@@ -801,10 +800,10 @@ const OrderPayment = () => {
                             </View>
                         </View>
                     </View>
-                </MotiView>
+                </View>
 
                 {/* Payment Methods */}
-                <MotiView
+                <View
                     from={{ opacity: 0, translateY: 20 }}
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 400, delay: 200 }}
@@ -823,7 +822,7 @@ const OrderPayment = () => {
                         />
 
                         {selectedPaymentMethod === 'WALLET' && walletData && (
-                            <MotiView
+                            <View
                                 from={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 transition={{ type: 'timing', duration: 300 }}
@@ -853,7 +852,7 @@ const OrderPayment = () => {
                                         </Text>
                                     </View>
                                 )}
-                            </MotiView>
+                            </View>
                         )}
 
                         {config.UPI && (
@@ -869,7 +868,7 @@ const OrderPayment = () => {
 
 
                                 {selectedPaymentMethod === 'UPI' && (
-                                    <MotiView
+                                    <View
                                         from={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         transition={{ type: 'timing', duration: 300 }}
@@ -895,12 +894,12 @@ const OrderPayment = () => {
                                                 ✓ Secure payment powered by Razorpay. Your payment information is encrypted and secure.
                                             </Text>
                                         </View>
-                                    </MotiView>
+                                    </View>
                                 )}
                             </>
                         )}
                     </View>
-                </MotiView>
+                </View>
 
                 {/* Payment Button */}
                 <View className="px-4 pb-8">

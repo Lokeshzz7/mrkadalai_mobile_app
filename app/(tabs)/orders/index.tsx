@@ -12,7 +12,6 @@ import {
     Alert,
     RefreshControl
 } from 'react-native'
-import { MotiView, MotiText } from 'moti'
 import { useRouter } from 'expo-router'
 import { apiRequest } from '../../../utils/api'
 import Receipt from './receipt'
@@ -340,7 +339,7 @@ const HistoryOrderCard = React.memo(
 
 const TabButton = React.memo(({ title, isActive, onPress }: TabButtonProps) => (
     <TouchableOpacity onPress={onPress} className="flex-1">
-        <MotiView
+        <View
             animate={{
                 backgroundColor: isActive ? '#FCD34D' : '#F9FAFB',
             }}
@@ -355,7 +354,7 @@ const TabButton = React.memo(({ title, isActive, onPress }: TabButtonProps) => (
                 }`}>
                 {title}
             </Text>
-        </MotiView>
+        </View>
     </TouchableOpacity>
 ))
 
@@ -384,7 +383,7 @@ const CancelConfirmationModal = React.memo(
                     // zIndex: 9999, // <--- THIS LINE WAS REMOVED
                 }}
             >
-                <MotiView
+                <View
                     from={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ type: 'timing', duration: 250 }}
@@ -450,7 +449,7 @@ const CancelConfirmationModal = React.memo(
                             </Text>
                         </TouchableOpacity>
                     </View>
-                </MotiView>
+                </View>
             </View>
         </Modal>
     )
@@ -727,7 +726,7 @@ const MyOrders = () => {
                             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                         }
                         ListEmptyComponent={() => (
-                            <MotiView
+                            <View
                                 from={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ type: 'timing', duration: 400 }}
@@ -741,7 +740,7 @@ const MyOrders = () => {
                                         : "You haven't placed any orders yet."
                                     }
                                 </Text>
-                            </MotiView>
+                            </View>
                         )}
                     />
 
