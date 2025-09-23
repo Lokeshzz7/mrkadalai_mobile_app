@@ -13,13 +13,13 @@
     },
     "production": {
       "android": {
-        "buildType": "app-bundle"  // <-- add this
+        "buildType": "app-bundle" 
       },
       "autoIncrement": true,
       "env": {
         "NODE_ENV": "production"
       },
-      "distribution": "store"     // <-- ensures it's for Play Store
+      "distribution": "store"    
     }
   },
   "submit": {
