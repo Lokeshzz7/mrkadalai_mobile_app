@@ -128,11 +128,11 @@ const CartItem = React.memo<CartItemProps>(({ item, getItemQuantity,
                 <Text className="text-lg font-semibold text-gray-900 mb-1">
                     {item.product.name}
                 </Text>
-                {item.product.description && (
-                    <Text className="text-sm text-gray-600 mb-2">
+                {/* {item.product.description && (
+                    <Text className="text-sm text-gray-600 mb-2 " numberOfLines={2}>
                         {item.product.description}
                     </Text>
-                )}
+                )} */}
                 <View className="flex-row items-center justify-between">
                     <Text className="text-lg font-bold text-green-600">
                         ₹{item.product.price.toFixed(2)}
@@ -932,7 +932,7 @@ const Cart: React.FC = () => {
                                             ? 'text-gray-900'
                                             : 'text-gray-500'
                                             }`}>
-                                            ${finalTotal.toFixed(2)}
+                                            ₹{finalTotal.toFixed(2)}
                                         </Text>
                                     </View>
                                 </View>

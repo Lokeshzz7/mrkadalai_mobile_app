@@ -64,15 +64,15 @@ interface FoodItemCardProps {
 const DateCard = React.memo(({ date, index, isSelected, onPress }: any) => (
   <TouchableOpacity onPress={onPress} style={{ width: 80, marginRight: 12 }}>
     <MotiView
-      className={`px-3 py-3 rounded-2xl border-2 ${isSelected ? 'border-yellow-400' : 'border-gray-200'} ${isSelected ? 'bg-[#FCD34D]' : 'bg-[#FFFFFF]'} shadow-sm`}
+      className={`px-3 py-3 rounded-2xl border-2 ${isSelected ? 'border-[#C1803F]' : 'border-gray-200'} ${isSelected ? 'bg-[#C1803F]' : 'bg-[#FFFFFF]'} shadow-sm`}
     >
-      <Text className={`text-center text-sm font-medium ${isSelected ? 'text-gray-800' : 'text-gray-600'}`}>
+      <Text className={`text-center text-sm font-medium ${isSelected ? 'text-white' : 'text-gray-600'}`}>
         {date.day}
       </Text>
-      <Text className={`text-center text-lg font-bold ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>
+      <Text className={`text-center text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-800'}`}>
         {date.date}
       </Text>
-      <Text className={`text-center text-xs ${isSelected ? 'text-gray-700' : 'text-gray-500'}`}>
+      <Text className={`text-center text-xs ${isSelected ? 'text-white' : 'text-gray-500'}`}>
         {date.month}
       </Text>
     </MotiView>
@@ -84,7 +84,7 @@ const CategoryCard = React.memo(({ category, isSelected, onPress }: any) => (
   <TouchableOpacity onPress={onPress} className="mr-3">
     <MotiView
       animate={{
-        backgroundColor: isSelected ? '#FCD34D' : '#F9FAFB',
+        backgroundColor: isSelected ? '#FCD34D' : '#e3e4e6',
         scale: isSelected ? 1.05 : 1,
       }}
       transition={{ type: 'timing', duration: 200 }}
@@ -116,15 +116,17 @@ const FoodItemCard = React.memo(({
   const availableStock = getAvailableStock(item)
   const cartQuantity = getItemQuantity(item.id)
   const canAddMoreItems = canAddMore(item.id, item)
+  const [expanded, setExpanded] = useState(false)
+
 
   return (
     <View
       className={`bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100 ${!isAvailable ? 'opacity-60' : ''
         }`}
     >
-      <View className="flex-row items-center">
+      <View className="flex-row items-start">
         {/* LEFT SIDE → Text content */}
-        <View className="flex-1 pr-3 justify-between">
+        <View className="flex-1 pr-3">
           {/* Title + Category */}
           <View>
             <Text className="text-xl font-bold text-gray-900 mb-1">
@@ -135,26 +137,37 @@ const FoodItemCard = React.memo(({
               <Text className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full mr-2">
                 {item.category}
               </Text>
-              {/* <Text className="text-sm text-gray-500">
-                {getCategoryIcon(item.category)}
-              </Text> */}
             </View>
 
+            {/* Description with Read More / Read Less */}
             {item.description && (
-              <Text className="text-sm text-gray-600 mb-3" numberOfLines={2}>
-                {item.description}
-              </Text>
-            )}
-          </View>
+              <>
+                <Text
+                  className="text-sm text-gray-600 mb-1"
+                  numberOfLines={expanded ? undefined : 2}
+                >
+                  {item.description}
+                </Text>
 
-          {/* Price */}
-          <Text className="text-lg font-extrabold text-yellow-600">
-            ₹{item.price.toFixed(2)}
-          </Text>
+                {item.description.length > 80 && (
+                  <TouchableOpacity onPress={() => setExpanded(!expanded)}>
+                    <Text className="text-xs font-semibold text-yellow-600 mb-3">
+                      {expanded ? 'Read less' : 'Read more'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+
+            {/* Price */}
+            <Text className="text-lg font-extrabold text-yellow-600">
+              ₹{item.price.toFixed(2)}
+            </Text>
+          </View>
         </View>
 
         {/* RIGHT SIDE → Image + Cart Controls */}
-        <View className="items-center ml-4">
+        <View className="items-center ml-4 self-start">
           {/* Product Image */}
           <Image
             source={{ uri: item.imageUrl }}
@@ -189,9 +202,7 @@ const FoodItemCard = React.memo(({
             </View>
           ) : (
             <TouchableOpacity
-              className={`px-4 py-2 w-24 rounded-full items-center ${isAvailable && availableStock > 0
-                ? 'bg-yellow-400'
-                : 'bg-gray-300'
+              className={`px-4 py-2 w-24 rounded-full items-center ${isAvailable && availableStock > 0 ? 'bg-yellow-400' : 'bg-gray-300'
                 }`}
               activeOpacity={0.7}
               disabled={!isAvailable || availableStock <= 0}
@@ -209,6 +220,8 @@ const FoodItemCard = React.memo(({
           )}
         </View>
       </View>
+
+
     </View>
   )
 })
@@ -220,6 +233,7 @@ const RestaurantHome = () => {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false);
 
   // Use cart context
   const {

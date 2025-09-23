@@ -12,7 +12,14 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "android": {
+        "buildType": "app-bundle"  // <-- add this
+      },
+      "autoIncrement": true,
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "distribution": "store"     // <-- ensures it's for Play Store
     }
   },
   "submit": {
