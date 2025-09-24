@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logo.png",
+        "foregroundImage": "./assets/images/logo2.jpg",
         "backgroundColor": "#0f0d23"
       },
       "package": "com.anonymous.mobile_movie_app",
@@ -39,7 +39,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "http://51.21.198.214:5500/api",
+      "apiUrl": "https://api.mrkadalai.com/api",
       "router": {
         "origin": false
       },
