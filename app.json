@@ -24,7 +24,8 @@
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED"
-      ]
+      ],
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -38,6 +39,7 @@
       "typedRoutes": true
     },
     "extra": {
+      "apiUrl": "http://51.21.198.214:5500/api",
       "router": {
         "origin": false
       },

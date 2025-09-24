@@ -2,6 +2,8 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import Constants from 'expo-constants';
+
 
 type User = {
   id: string;
@@ -36,7 +38,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Make sure your backend server is running and accessible
 // const API_BASE_URL = 'http://51.21.198.214:5500/api'; // Update this to your backend URL
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+// const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl ?? '';
+
 
 // 7 days in milliseconds
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
