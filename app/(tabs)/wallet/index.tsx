@@ -15,6 +15,7 @@ import {
 import { apiRequest } from '../../../utils/api'
 import RazorpayCheckout from 'react-native-razorpay';
 import Toast from 'react-native-toast-message';
+import { router } from 'expo-router';
 
 
 interface RequestOptions extends RequestInit {
@@ -634,7 +635,7 @@ const Wallet = () => {
         <SafeAreaView className="flex-1 bg-white">
             {/* Header remains static at the top */}
             <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
-                <TouchableOpacity className="p-2">
+                <TouchableOpacity className="p-2" onPress={() => router.back()}>
                     <Text className="text-2xl">←</Text>
                 </TouchableOpacity>
                 <Text className="text-xl font-bold text-gray-900">Wallet</Text>

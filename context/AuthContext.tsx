@@ -25,7 +25,7 @@ type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, phoneNumber: string, college: string, yearOfStudy: string, password: string, confirmPassword: string) => Promise<void>;
+  signup: (name: string, email: string, phoneNumber: string, outletId: number, yearOfStudy: string, password: string, confirmPassword: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -155,15 +155,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signup = async (name: string, email: string, phoneNumber: string, college: string, yearOfStudy: string, password: string, confirmPassword: string) => {
+  const signup = async (name: string, email: string, phoneNumber: string, outletId: number, yearOfStudy: string, password: string, confirmPassword: string) => {
     setIsLoading(true);
 
     try {
       // Map college names to IDs
-      const collegeMap: { [key: string]: number } = {
-        'CIT': 1,
-        'REC': 2
-      };
 
       // Map year strings to numbers
       const yearMap: { [key: string]: number } = {
@@ -173,7 +169,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         '4 year': 4
       };
 
-      const outletId = collegeMap[college];
       const yearOfStudyNumber = yearMap[yearOfStudy];
 
       if (!outletId) {

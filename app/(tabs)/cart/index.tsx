@@ -9,7 +9,8 @@ import {
     ActivityIndicator,
     RefreshControl,
     TextInput,
-    Image
+    Image,
+    FlatList
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useFocusEffect, useIsFocused } from '@react-navigation/native'
@@ -199,7 +200,7 @@ const CartItem = React.memo<CartItemProps>(({ item, getItemQuantity,
 const CouponItem = React.memo<CouponItemProps>(({ coupon, onApply }) => (
     <TouchableOpacity
         onPress={() => onApply(coupon.code)}
-        className="bg-gradient-to-r from-purple-50 to-pink-50 mx-4 mb-2 p-4 rounded-2xl border border-purple-200"
+        className="bg-gradient-to-r from-purple-50 to-pink-50 mb-2 p-4 rounded-2xl border border-purple-200"
         activeOpacity={0.7}
     >
         <View className="flex-row items-center justify-between">
@@ -392,11 +393,59 @@ const Cart: React.FC = () => {
         }
     }, [getTotalPrice, cartState.cartData, availableCoupons])
 
+
+
     // Remove applied coupon
     const removeCoupon = useCallback(() => {
+        console.log('Removing coupon...');
         setAppliedCoupon(null)
         setCouponCode('')
     }, [])
+
+    const revalidateCoupon = useCallback(async (currentCartSubtotal: number) => {
+        if (!appliedCoupon) return; // Only run if a coupon is currently applied
+
+        const couponCodeToRevalidate = appliedCoupon.code;
+        const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
+
+        setCouponLoading(true);
+
+        try {
+            const response = await apiRequest('/customer/outlets/apply-coupon', {
+                method: 'POST',
+                body: {
+                    code: couponCodeToRevalidate,
+                    currentTotal: currentCartSubtotal, // Pass the new total for validation
+                    outletId
+                }
+            });
+
+            // Success: Update the applied coupon (in case the discount amount changed)
+            const couponDetails = availableCoupons.find(c => c.code.toUpperCase() === couponCodeToRevalidate.toUpperCase());
+            setAppliedCoupon({
+                code: couponCodeToRevalidate,
+                discount: response.discount,
+                description: couponDetails?.description || 'Discount Re-applied'
+            });
+
+        } catch (error: any) {
+            // Failure: If min order value isn't met or coupon expired/invalid for new total
+            console.log('Coupon re-validation failed:', error.message);
+            setAppliedCoupon(null); // Directly set to null instead of calling removeCoupon
+            setCouponCode('');
+            Toast.show({
+                type: 'info',
+                text1: 'Coupon Removed',
+                text2: `The coupon '${couponCodeToRevalidate}' no longer meets the order requirements.`,
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 5000,
+                autoHide: true,
+            });
+        } finally {
+            setCouponLoading(false);
+        }
+    }, [appliedCoupon, availableCoupons]);
 
     // Calculate final amounts
     const discount = appliedCoupon?.discount || 0
@@ -436,6 +485,24 @@ const Cart: React.FC = () => {
             }
         }, [cartState.syncInProgress, fetchCartData])
     )
+
+    useEffect(() => {
+        // Only run if cart data has loaded and we have a coupon applied
+        if (!cartState.loading && appliedCoupon) {
+            const currentTotal = getTotalPrice();
+
+            // Always remove coupon if the cart total is 0 after a sync
+            if (currentTotal === 0) {
+                removeCoupon();
+            } else {
+                // Revalidate coupon on initial load/sync if it exists
+                revalidateCoupon(currentTotal);
+            }
+        }
+        // Dependency on cartState.cartData?.items.length ensures it runs after initial fetch
+    }, [cartState.loading,
+    cartState.cartData?.items?.length, // Only depend on items length, not the functions
+    appliedCoupon?.code]);
 
     // Handle pull to refresh
     const handleRefresh = useCallback(async () => {
@@ -489,7 +556,19 @@ const Cart: React.FC = () => {
 
         try {
             const success = await updateItemQuantity(productId, change, product, availableStock)
-            if (!success) {
+            if (success) {
+                // Get the cart details immediately after the update
+                const newSubtotal = getTotalPrice();
+                const newTotalItems = getTotalCartItems();
+
+                if (newTotalItems === 0) {
+                    // Scenario 1: Cart is now empty, always remove coupon
+                    removeCoupon();
+                } else if (appliedCoupon) {
+                    // Scenario 2: Cart still has items, re-validate the applied coupon
+                    await revalidateCoupon(newSubtotal);
+                }
+            } else {
                 console.log('Update failed, refreshing cart...')
                 await handleRefresh()
             }
@@ -540,6 +619,18 @@ const Cart: React.FC = () => {
                     onPress: async () => {
                         try {
                             await removeItem(productId)
+                            setTimeout(async () => {
+                                const newSubtotal = getTotalPrice();
+                                const newTotalItems = getTotalCartItems();
+
+                                if (newTotalItems === 0) {
+                                    // Scenario 1: Cart is now empty, always remove coupon
+                                    removeCoupon();
+                                } else if (appliedCoupon) {
+                                    // Scenario 2: Cart still has items, re-validate the applied coupon
+                                    await revalidateCoupon(newSubtotal);
+                                }
+                            }, 50);
                         } catch (error) {
                             console.error('Error removing item:', error)
                             Toast.show({
@@ -808,20 +899,32 @@ const Cart: React.FC = () => {
                                 </View>
                             )}
 
-                            {/* Available Coupons */}
                             {showCoupons && availableCoupons.length > 0 && (
                                 <View>
                                     <Text className="text-gray-600 mb-3">Available Coupons:</Text>
-                                    <View className="max-h-60">
-                                        <ScrollView showsVerticalScrollIndicator={false}>
-                                            {availableCoupons.map(coupon => (
+                                    <View className="max-h-60 px-0">
+                                        <FlatList
+                                            data={availableCoupons}
+                                            keyExtractor={(item) => item.id.toString()}
+                                            renderItem={({ item }) => (
                                                 <CouponItem
-                                                    key={coupon.id}
-                                                    coupon={coupon}
+                                                    key={item.id}
+                                                    coupon={item}
                                                     onApply={applyCoupon}
                                                 />
-                                            ))}
-                                        </ScrollView>
+                                            )}
+                                            nestedScrollEnabled={true}
+                                            showsVerticalScrollIndicator={true}
+                                            contentContainerStyle={{ paddingVertical: 4 }}
+                                            // These props help with nested scrolling
+                                            scrollEnabled={true}
+                                            bounces={false}
+                                            onStartShouldSetResponder={() => true}
+                                            onMoveShouldSetResponderCapture={() => true}
+                                            // Prevent parent from intercepting scroll
+                                            onScrollBeginDrag={() => { }}
+                                            onScrollEndDrag={() => { }}
+                                        />
                                     </View>
                                 </View>
                             )}

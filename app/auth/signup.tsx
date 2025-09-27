@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext'
 import Toast from 'react-native-toast-message'
 import { images } from '@/constants/images'
 import Icon from 'react-native-vector-icons/Feather'
+import { apiRequest } from '@/utils/api'
 
 const { width } = Dimensions.get('window')
 
@@ -30,8 +31,49 @@ const Signup = () => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false)
   const { signup, isLoading } = useAuth()
+  const [collegeList, setCollegeList] = useState<string[]>(['Select your college'])
+  const [outletMap, setOutletMap] = useState<{ [name: string]: number }>({});
+  const [isCollegeLoading, setIsCollegeLoading] = useState(false)
 
-  const collegeList = ['Select your college', 'CIT', 'REC']
+
+  // const collegeList = ['Select your college', 'CIT', 'REC']
+
+  useEffect(() => {
+    const fetchColleges = async () => {
+      try {
+        setIsCollegeLoading(true)
+        const data = await apiRequest('/customer/get-outlets/', {
+          method: 'GET',
+        })
+        // Assuming API returns { outlets: [{ id, name, ... }] }
+        if (data?.outlets && Array.isArray(data.outlets)) {
+          // console.log('Fetched outlets:', data.outlets);
+          const names = data.outlets.map((outlet: any) => outlet.name)
+          setCollegeList(['Select your college', ...names])
+
+          const map: { [name: string]: number } = {};
+          data.outlets.forEach((outlet: any) => {
+            map[outlet.name] = outlet.id;
+          });
+          setOutletMap(map);
+        } else {
+          throw new Error('Invalid response format')
+        }
+      } catch (error: any) {
+        console.error('Error fetching college list:', error)
+        Toast.show({
+          type: 'error',
+          text1: 'Failed to Load Colleges',
+          text2: error.message || 'Please try again later',
+          position: 'top',
+        })
+      } finally {
+        setIsCollegeLoading(false)
+      }
+    }
+
+    fetchColleges()
+  }, [])
 
   const yearOfStudy = ['Select your year', '1 year', '2 year', '3 year', '4 year']
 
@@ -108,12 +150,23 @@ const Signup = () => {
       return
     }
 
+    const outletId = outletMap[college];
+    if (!outletId) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid College',
+        text2: 'Please select a valid college',
+        position: 'top',
+      });
+      return;
+    }
+
     try {
       await signup(
         name,
         email,
         phoneNumber,
-        college,
+        outletId,
         customerYear,
         password,
         confirmPassword
@@ -369,12 +422,12 @@ const Signup = () => {
                     autoCorrect={false}
                   />
                   <TouchableOpacity
-                    onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                    onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}
                     disabled={isLoading}
                     className="ml-2 p-1"
                   >
                     <Icon
-                      name={isPasswordVisible ? 'eye' : 'eye-off'}
+                      name={isConfirmPasswordVisible ? 'eye' : 'eye-off'}
                       size={20}
                       color="#374151"
                     />
