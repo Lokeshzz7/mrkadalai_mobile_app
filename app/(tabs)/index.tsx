@@ -1,4 +1,4 @@
-// RestaurantHome.tsx - Key fixes for stock validation
+// RestaurantHome.tsx - Final layout and behavior adjustments
 
 import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react'
 import {
@@ -79,16 +79,10 @@ const DateCard = React.memo(({ date, index, isSelected, onPress }: any) => (
   </TouchableOpacity>
 ))
 
-// Memoized CategoryCard component
 const CategoryCard = React.memo(({ category, isSelected, onPress }: any) => (
   <TouchableOpacity onPress={onPress} className="mr-3">
     <View
-      animate={{
-        backgroundColor: isSelected ? '#FCD34D' : '#e3e4e6',
-        scale: isSelected ? 1.05 : 1,
-      }}
-      transition={{ type: 'timing', duration: 200 }}
-      className={`px-6 py-3 rounded-full border ${isSelected ? 'border-yellow-400' : 'border-gray-200'}`}
+      className={`px-6 py-3 rounded-full ${isSelected ? 'bg-yellow-400' : 'bg-gray-200'}`}
     >
       <View className="flex-row items-center">
         <Text className="text-lg mr-2">{category.icon}</Text>
@@ -100,131 +94,112 @@ const CategoryCard = React.memo(({ category, isSelected, onPress }: any) => (
   </TouchableOpacity>
 ))
 
-// ⭐ FIXED: Enhanced FoodItemCard with consistent stock handling
 const FoodItemCard = React.memo(({
   item,
-  index,
   getItemQuantity,
   onAddToCart,
   onQuantityChange,
-  getCategoryIcon,
   isProductAvailable,
   getAvailableStock,
   canAddMore
 }: FoodItemCardProps) => {
-  const isAvailable = isProductAvailable(item)
-  const availableStock = getAvailableStock(item)
-  const cartQuantity = getItemQuantity(item.id)
-  const canAddMoreItems = canAddMore(item.id, item)
-  const [expanded, setExpanded] = useState(false)
+  const isAvailable = isProductAvailable(item);
+  const availableStock = getAvailableStock(item);
+  const cartQuantity = getItemQuantity(item.id);
+  const canAddMoreItems = canAddMore(item.id, item);
+  const [expanded, setExpanded] = useState(false);
 
+  const descriptionText = item.description || '';
+  const isLongDescription = descriptionText.length > 80;
+  const displayedDescription = expanded ? descriptionText : `${descriptionText.substring(0, 60)}`;
 
   return (
     <View
-      className={`bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100 ${!isAvailable ? 'opacity-60' : ''
-        }`}
+      className={`bg-white rounded-xl p-4 mb-5 shadow-sm border border-gray-200 ${!isAvailable ? 'opacity-60' : ''}`}
     >
-      <View className="flex-row items-start">
-        {/* LEFT SIDE → Text content */}
-        <View className="flex-1 pr-3">
-          {/* Title + Category */}
-          <View>
-            <Text className="text-xl font-bold text-gray-900 mb-1">
-              {item.name}
+      <View className="flex-row justify-between items-start">
+        <View className="flex-1 pr-4">
+          <Text className="text-xl font-extrabold text-gray-900">{item.name}</Text>
+          {isAvailable && availableStock <= 10 && (
+            <Text className="text-red-500 text-sm font-medium mt-1">
+              Only a few left - hurry up!
             </Text>
-
-            <View className="flex-row items-center mb-2">
-              <Text className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full mr-2">
-                {item.category}
-              </Text>
-            </View>
-
-            {/* Description with Read More / Read Less */}
-            {item.description && (
-              <>
+          )}
+          <Text className="text-2xl font-extrabold text-black mt-2">
+            ₹{item.price.toFixed(0)}
+          </Text>
+          {descriptionText && (
+            <Text className="text-gray-600 text-base mt-2 leading-6">
+              {displayedDescription}
+              {!expanded && isLongDescription && '... '}
+              {isLongDescription && (
                 <Text
-                  className="text-sm text-gray-600 mb-1"
-                  numberOfLines={expanded ? undefined : 2}
+                  className="text-black font-bold"
+                  onPress={() => setExpanded(!expanded)}
                 >
-                  {item.description}
+                  {expanded ? ' Read Less' : 'Read More'}
                 </Text>
-
-                {item.description.length > 80 && (
-                  <TouchableOpacity onPress={() => setExpanded(!expanded)}>
-                    <Text className="text-xs font-semibold text-yellow-600 mb-3">
-                      {expanded ? 'Read less' : 'Read more'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-
-            {/* Price */}
-            <Text className="text-lg font-extrabold text-yellow-600">
-              ₹{item.price.toFixed(2)}
+              )}
             </Text>
-          </View>
-        </View>
-
-        {/* RIGHT SIDE → Image + Cart Controls */}
-        <View className="items-center ml-4 self-start">
-          {/* Product Image */}
-          <Image
-            source={{ uri: item.imageUrl }}
-            className="w-32 h-32 rounded-2xl mb-3"
-            resizeMode="cover"
-          />
-
-          {/* Cart Controls */}
-          {cartQuantity > 0 ? (
-            <View className="flex-row items-center bg-gray-100 rounded-full px-1">
-              <TouchableOpacity
-                onPress={() => onQuantityChange(item, -1)}
-                className="w-8 h-8 bg-red-500 rounded-full items-center justify-center"
-                activeOpacity={0.7}
-              >
-                <Text className="text-white font-bold text-sm">−</Text>
-              </TouchableOpacity>
-
-              <Text className="mx-3 text-sm font-bold text-gray-900 min-w-6 text-center">
-                {cartQuantity}
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => onQuantityChange(item, 1)}
-                className={`w-8 h-8 rounded-full items-center justify-center ${canAddMoreItems ? 'bg-green-500' : 'bg-gray-400'
-                  }`}
-                activeOpacity={0.7}
-                disabled={!canAddMoreItems}
-              >
-                <Text className="text-white font-bold text-sm">+</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              className={`px-4 py-2 w-24 rounded-full items-center ${isAvailable && availableStock > 0 ? 'bg-yellow-400' : 'bg-gray-300'
-                }`}
-              activeOpacity={0.7}
-              disabled={!isAvailable || availableStock <= 0}
-              onPress={() => onAddToCart(item)}
-            >
-              <Text
-                className={`font-semibold text-xs ${isAvailable && availableStock > 0
-                  ? 'text-gray-900'
-                  : 'text-gray-500'
-                  }`}
-              >
-                {isAvailable && availableStock > 0 ? 'Add' : 'Out'}
-              </Text>
-            </TouchableOpacity>
           )}
         </View>
+
+        <View className="w-36 items-center">
+          {item.imageUrl && (
+            <Image
+              source={{ uri: item.imageUrl }}
+              className="w-36 h-36 rounded-lg"
+              resizeMode="cover"
+            />
+          )}
+          {!isAvailable && (
+            <View className="absolute top-0 left-0 w-36 h-36 bg-black/50 rounded-lg flex items-center justify-center">
+              <Text className="text-white font-bold text-base">Out of Stock</Text>
+            </View>
+          )}
+          <View className="absolute -bottom-3 w-32">
+            {cartQuantity > 0 ? (
+              <View className="flex-row items-center justify-between bg-green-600 rounded-lg shadow-lg">
+                <TouchableOpacity
+                  onPress={() => onQuantityChange(item, -1)}
+                  className="px-4 py-2"
+                >
+                  <Text className="text-white font-bold text-2xl">-</Text>
+                </TouchableOpacity>
+                <Text className="text-white font-bold text-lg">{cartQuantity}</Text>
+                <TouchableOpacity
+                  onPress={() => onQuantityChange(item, 1)}
+                  disabled={!canAddMoreItems}
+                  className={`px-4 py-2 ${!canAddMoreItems ? 'opacity-50' : ''}`}
+                >
+                  <Text className="text-white font-bold text-2xl">+</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={() => onAddToCart(item)}
+                disabled={!isAvailable || availableStock <= 0}
+                className={`h-11 justify-center items-center rounded-lg shadow-lg ${isAvailable && availableStock > 0
+                  ? 'bg-white border border-green-300'
+                  : 'bg-gray-200'
+                  }`}
+              >
+                <Text className={`font-bold text-base ${isAvailable && availableStock > 0
+                  ? 'text-green-600'
+                  : 'text-gray-500'
+                  }`}
+                >
+                  {isAvailable && availableStock > 0 ? 'ADD' : 'OUT'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       </View>
-
-
     </View>
-  )
-})
+  );
+});
+
 
 const RestaurantHome = () => {
   const { user } = useAuth()
@@ -233,20 +208,16 @@ const RestaurantHome = () => {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState(false);
 
-  // Use cart context
   const {
-    state: cartState,
     fetchCartData,
     updateItemQuantity,
     getTotalCartItems,
     getItemQuantity,
     canAddMore,
-    getAvailableStock  // ⭐ NEW: Use the consistent stock calculation
+    getAvailableStock
   } = useCart()
 
-  // Memoize dates to prevent re-calculation
   const [dates, setDates] = useState<DateItem[]>([]);
   const { config } = useContext(AppConfigContext);
 
@@ -258,11 +229,8 @@ const RestaurantHome = () => {
           method: 'GET'
         });
 
-        // console.log("Full API response:", response);
-
         let dateArray = response.data || [];
 
-        // If LIVE_COUNTER is false, remove the first date
         if (!config.LIVE_COUNTER) {
           dateArray = dateArray.slice(1);
         }
@@ -278,14 +246,10 @@ const RestaurantHome = () => {
             availableSlots: item.availableSlots
           };
         });
-
-        // console.log("Processed dateList:", dateList);
-
         setDates(dateList);
 
         if (dateList.length > 0) {
           await AsyncStorage.setItem("Date", JSON.stringify(dateList[0]));
-          // console.log("Default date saved:", dateList[0]);
         }
 
       } catch (error) {
@@ -296,7 +260,6 @@ const RestaurantHome = () => {
     fetchDates();
   }, [config.LIVE_COUNTER]);
 
-  // Category mapping with icons
   const categoryMapping = useMemo(() => ({
     'All': { id: 'all', name: 'All', icon: '🍽️' },
     'Starters': { id: 'starters', name: 'Starters', icon: '🥗' },
@@ -305,7 +268,6 @@ const RestaurantHome = () => {
     'Desserts': { id: 'desserts', name: 'Desserts', icon: '🍰' }
   }), [])
 
-  // Get unique categories from products
   const availableCategories = useMemo(() => {
     const categories = ['All']
     const productCategories = [...new Set(products.map(product => product.category))]
@@ -313,7 +275,6 @@ const RestaurantHome = () => {
     return categories.map(cat => categoryMapping[cat as keyof typeof categoryMapping]).filter(Boolean)
   }, [products, categoryMapping])
 
-  // Get category icon based on product category
   const getCategoryIcon = useCallback((category: string) => {
     const iconMap: { [key: string]: string } = {
       'Starters': '🥗',
@@ -324,32 +285,23 @@ const RestaurantHome = () => {
     return iconMap[category] || '🍽️'
   }, [])
 
-  // Fetch products from API
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
-      )
-
       const apiPromise = apiRequest('/customer/outlets/get-product/', {
         method: 'GET'
       })
-
-      const response: ApiResponse = await Promise.race([apiPromise, timeoutPromise]) as ApiResponse
+      const response: ApiResponse = await apiPromise;
 
       if (response && response.products && Array.isArray(response.products)) {
         setProducts(response.products)
-        // console.log("products : ", response.products)
       } else if (response && Array.isArray(response)) {
         setProducts(response)
       } else {
         console.warn('Unexpected API response structure:', response)
         setProducts([])
       }
-
     } catch (err) {
       console.error('Error fetching products:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch products')
@@ -358,36 +310,28 @@ const RestaurantHome = () => {
     }
   }, [])
 
-  // Initial load
   useEffect(() => {
     fetchProducts()
   }, [fetchProducts])
 
-  // ⭐ FIX: Refresh both cart and products when screen is focused
   useFocusEffect(
     useCallback(() => {
-      // Refresh both cart data and product data (including stock)
       fetchCartData()
-      fetchProducts() // This will get fresh stock data
+      fetchProducts()
     }, [fetchCartData, fetchProducts])
   )
 
-  // Filter products based on selected category - memoized
   const filteredProducts = useMemo(() => {
     return selectedCategory === 'All'
       ? products
       : products.filter(product => product.category === selectedCategory)
   }, [products, selectedCategory])
 
-  // Check if product is available (has stock)
   const isProductAvailable = useCallback((product: Product) => {
     if (!product.inventory) return true
     return getAvailableStock(product) > 0
   }, [getAvailableStock])
 
-  // ⭐ REMOVED: Old validateStock method - now using cart context's consistent validation
-
-  // ⭐ SIMPLIFIED: Add to cart with consistent validation
   const handleAddToCart = useCallback((product: Product) => {
     if (!isProductAvailable(product)) {
       Toast.show({
@@ -402,14 +346,10 @@ const RestaurantHome = () => {
       });
       return
     }
-
-    // ⭐ SIMPLIFIED: Let the cart context handle all validation
     updateItemQuantity(product.id, 1, product)
   }, [isProductAvailable, updateItemQuantity])
 
-  // ⭐ SIMPLIFIED: Quantity changes with consistent validation
   const handleQuantityChange = useCallback((product: Product, change: number) => {
-    // ⭐ SIMPLIFIED: Let the cart context handle all validation
     updateItemQuantity(product.id, change, product)
   }, [updateItemQuantity])
 
@@ -422,28 +362,17 @@ const RestaurantHome = () => {
     }
   }, []);
 
-  // Loading component
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-white">
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#FCD34D" />
           <Text className="mt-4 text-gray-600">Loading products...</Text>
-          {/* <TouchableOpacity
-            className="mt-4 bg-yellow-400 px-6 py-3 rounded-full"
-            onPress={() => {
-              setLoading(false)
-              setProducts([])
-            }}
-          >
-            <Text className="font-semibold text-gray-900">Skip Loading</Text>
-          </TouchableOpacity> */}
         </View>
       </SafeAreaView>
     )
   }
 
-  // Error component
   if (error) {
     return (
       <SafeAreaView className="flex-1 bg-white">
@@ -462,14 +391,87 @@ const RestaurantHome = () => {
 
   const totalCartItems = getTotalCartItems()
 
+  const StaticHeader = () => (
+    <View className="bg-white pt-3 px-4">
+      <View className="flex-row justify-between items-center pt-2">
+        <Text className="text-2xl font-bold text-gray-900">
+          {`Hello ${user?.name || "User"}`}
+        </Text>
+        <View className="flex-row items-center gap-3">
+          {totalCartItems > 0 && (
+            <TouchableOpacity
+              className="flex-row items-center bg-yellow-400 px-4 py-2 rounded-full"
+              onPress={() => router.push("/(tabs)/cart")}
+              activeOpacity={0.8}
+            >
+              <Text className="text-black font-semibold mr-2">Cart</Text>
+              <View className="bg-white rounded-full min-w-6 h-6 items-center justify-center">
+                <Text className="text-black text-xs font-bold">
+                  {totalCartItems}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            className="bg-yellow-400 px-4 py-2 rounded-full"
+            onPress={() => router.push("/ticket/faq")}
+          >
+            <Text className="font-semibold text-gray-900">🎫 Faq</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View className="my-6">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {dates.map((date, index) => (
+            <DateCard
+              key={date.id}
+              date={date}
+              index={index}
+              isSelected={selectedDate === index}
+              onPress={() => handleDateSelect(date, index)}
+            />
+          ))}
+        </ScrollView>
+      </View>
+
+      <View className="mb-4">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" >
+          {availableCategories.map((category) => (
+            <CategoryCard
+              key={category.id}
+              category={category}
+              isSelected={selectedCategory === category.name}
+              onPress={() => setSelectedCategory(category.name)}
+            />
+          ))}
+        </ScrollView>
+      </View>
+
+      <View className="flex-row justify-between items-center mb-4">
+        <Text className="text-lg font-semibold text-gray-900">
+          {selectedCategory === 'All' ? 'All Products' : selectedCategory}
+        </Text>
+        <Text className="text-sm text-gray-500">
+          {filteredProducts.length} items
+        </Text>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-white">
+      <StaticHeader />
       <FlatList
         data={filteredProducts}
         keyExtractor={(item) => item.id.toString()}
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 40 }}
         renderItem={({ item, index }) => (
           <FoodItemCard
             item={item}
@@ -479,98 +481,10 @@ const RestaurantHome = () => {
             onQuantityChange={handleQuantityChange}
             getCategoryIcon={getCategoryIcon}
             isProductAvailable={isProductAvailable}
-            getAvailableStock={getAvailableStock}  // ⭐ Pass the consistent method
-            canAddMore={canAddMore}  // ⭐ Pass the consistent method
+            getAvailableStock={getAvailableStock}
+            canAddMore={canAddMore}
           />
         )}
-        ListHeaderComponent={
-          <>
-            {/* Header with greeting, cart button, and FAQ button */}
-            <View className="bg-white mt-3">
-              <View className="flex-row justify-between items-center px-4 pt-2">
-                <Text className="text-2xl font-bold text-gray-900">
-                  {`Hello ${user?.name || "User"}`}
-                </Text>
-                <View className="flex-row items-center gap-3">
-                  {/* Cart Button - Instant Updates */}
-                  {totalCartItems > 0 && (
-                    <TouchableOpacity
-                      className="flex-row items-center bg-yellow-400 px-4 py-2 rounded-full"
-                      onPress={() => router.push("/(tabs)/cart")}
-                      activeOpacity={0.8}
-                    >
-                      <Text className="text-black font-semibold mr-2">Cart</Text>
-                      <View className="bg-white rounded-full min-w-6 h-6 items-center justify-center">
-                        <Text className="text-black text-xs font-bold">
-                          {totalCartItems}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-                  {/* FAQ Button */}
-                  <TouchableOpacity
-                    className="bg-yellow-400 px-4 py-2 rounded-full"
-                    onPress={() => router.push("/ticket/faq")}
-                  >
-                    <Text className="font-semibold text-gray-900">🎫 Faq</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Date Selection */}
-              <View className="my-6">
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                  contentContainerStyle={{ paddingHorizontal: 16 }}
-                >
-                  {dates.map((date, index) => (
-                    <DateCard
-                      key={date.id}
-                      date={date}
-                      index={index}
-                      isSelected={selectedDate === index}
-                      onPress={() => handleDateSelect(date, index)}
-                    />
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* Categories Header */}
-              {/* <View className="flex-row justify-between items-center px-4 mb-4">
-                <Text className="text-lg font-semibold text-gray-900">All Categories</Text>
-                <TouchableOpacity>
-                  <Text className="text-yellow-600 font-medium">See All</Text>
-                </TouchableOpacity>
-              </View> */}
-
-              {/* Categories */}
-              <View className="mb-4">
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 16 }}>
-                  {availableCategories.map((category) => (
-                    <CategoryCard
-                      key={category.id}
-                      category={category}
-                      isSelected={selectedCategory === category.name}
-                      onPress={() => setSelectedCategory(category.name)}
-                    />
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* Section Title */}
-              <View className="flex-row justify-between items-center px-4 mb-4">
-                <Text className="text-lg font-semibold text-gray-900">
-                  {selectedCategory === 'All' ? 'All Products' : selectedCategory}
-                </Text>
-                <Text className="text-sm text-gray-500">
-                  {filteredProducts.length} items
-                </Text>
-              </View>
-            </View>
-          </>
-        }
         ListEmptyComponent={
           <View className="flex-1 justify-center items-center mt-10">
             <Text className="text-gray-500 text-lg">No products available</Text>
