@@ -261,7 +261,7 @@ const Profile = () => {
         className="bg-white mx-4 mb-1 px-4 py-4 flex-row items-center justify-between"
       >
         <View className="flex-row items-center flex-1">
-          <View className="w-12 h-12 bg-yellow-100 rounded-full items-center justify-center mr-4">
+          <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center mr-4">
             <Text className="text-xl">{item.icon}</Text>
           </View>
 
@@ -335,7 +335,7 @@ const Profile = () => {
         >
           <View className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
             <View className="flex-row items-center">
-              <View className="w-20 h-20 bg-yellow-400 rounded-full items-center justify-center mr-4">
+              <View className="w-20 h-20 bg-gray-200 rounded-full items-center justify-center mr-4">
                 <Text className="text-4xl">{userDetails.profileImage}</Text>
               </View>
 
@@ -354,21 +354,6 @@ const Profile = () => {
                     {userDetails.bio}
                   </Text>
                 )}
-              </View>
-            </View>
-
-            <View className="flex-row justify-around mt-6 pt-4 border-t border-gray-100">
-              <View className="items-center">
-                <Text className="text-xl font-bold text-gray-900">127</Text>
-                <Text className="text-sm text-gray-600">Orders</Text>
-              </View>
-              <View className="items-center">
-                <Text className="text-xl font-bold text-gray-900">45</Text>
-                <Text className="text-sm text-gray-600">Reviews</Text>
-              </View>
-              <View className="items-center">
-                <Text className="text-xl font-bold text-gray-900">4.8</Text>
-                <Text className="text-sm text-gray-600">Rating</Text>
               </View>
             </View>
 
@@ -402,7 +387,7 @@ const Profile = () => {
               onPress={logout}
             >
               <View className="flex-row items-center">
-                <View className="w-12 h-12 bg-red-100 rounded-full items-center justify-center mr-4">
+                <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center mr-4">
                   <Text className="text-xl">🚪</Text>
                 </View>
                 <Text className="text-lg font-semibold text-red-600">
