@@ -16,13 +16,12 @@ import { useRouter } from 'expo-router'
 import { useFocusEffect, useIsFocused } from '@react-navigation/native'
 import { useCart } from '../../../context/CartContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { apiRequest } from '../../../utils/api' // Import your API utility
+import { apiRequest } from '../../../utils/api'
 import Toast from 'react-native-toast-message'
 import { useContext } from 'react';
 import { AppConfigContext } from '@/context/AppConfigContext';
 
-
-// Types
+// Types remain the same
 interface CartProduct {
     id: number;
     name: string;
@@ -97,162 +96,124 @@ const CartItem = React.memo<CartItemProps>(({ item, getItemQuantity,
     const totalStock = inventory?.quantity || 0
     const reservedStock = inventory?.reserved || 0
     const cartQuantity = getItemQuantity(item.productId)
-
     const availableStock = Math.max(0, totalStock - reservedStock - cartQuantity)
-
-    const isOutOfStock = availableStock <= 0
-    const isLowStock = availableStock > 0 && availableStock <= 5
     const canAddMoreItems = availableStock > 0
 
-    console.log(`${item.product.name}:`, {
-        totalStock,
-        reservedStock,
-        canAddMoreItems
-    })
-
     return (
-        <View className="bg-white mx-4 mb-1 px-4 py-4 flex-row items-center">
-            <View className="w-16 h-16 bg-yellow-100 rounded-2xl items-center justify-center mr-4 overflow-hidden">
-                {item.product.imageUrl ? (
-                    <Image
-                        source={{ uri: item.product.imageUrl }}
-                        style={{ width: 64, height: 64, borderRadius: 16 }}
-                        resizeMode="cover"
-                    />
-                ) : (
-                    <Text className="text-2xl">{getCategoryIcon(item.product.category)}</Text>
-                )}
-            </View>
-
-            <View className="flex-1">
-                <Text className="text-lg font-semibold text-gray-900 mb-1">
-                    {item.product.name}
-                </Text>
-                {/* {item.product.description && (
-                    <Text className="text-sm text-gray-600 mb-2 " numberOfLines={2}>
-                        {item.product.description}
-                    </Text>
-                )} */}
-                <View className="flex-row items-center justify-between">
-                    <Text className="text-lg font-bold text-green-600">
-                        ₹{item.product.price.toFixed(2)}
-                    </Text>
-
-                    {/* <View className="flex-row items-center">
-                        {isOutOfStock ? (
-                            <View className="bg-red-100 px-2 py-1 rounded-full mr-2">
-                                <Text className="text-red-600 text-xs font-medium">Out of Stock</Text>
-                            </View>
-                        ) : isLowStock ? (
-                            <View className="bg-orange-100 px-2 py-1 rounded-full mr-2">
-                                <Text className="text-orange-600 text-xs font-medium">Low Stock</Text>
-                            </View>
-                        ) : (
-                            <View className="bg-green-100 px-2 py-1 rounded-full mr-2">
-                                <Text className="text-green-600 text-xs font-medium">In Stock</Text>
-                            </View>
-                        )}
-                    </View> */}
+        <View className="bg-white mx-4 mb-4 p-4">
+            <View className="flex-row items-center">
+                {/* Image Section */}
+                <View className="mr-4">
+                    {item.product.imageUrl ? (
+                        <View className="w-20 h-20 bg-blue-100 rounded-2xl overflow-hidden items-center justify-center">
+                            <Image
+                                source={{ uri: item.product.imageUrl }}
+                                style={{ width: 80, height: 80 }}
+                                resizeMode="cover"
+                            />
+                        </View>
+                    ) : (
+                        <View className="w-20 h-20 bg-blue-100 rounded-2xl items-center justify-center">
+                            <Text className="text-3xl">{getCategoryIcon(item.product.category)}</Text>
+                        </View>
+                    )}
                 </View>
-                <Text className="text-sm font-medium text-gray-700 mt-1">
-                    Subtotal: ₹{(item.product.price * cartQuantity).toFixed(2)}
-                </Text>
-            </View>
 
-            <View className="items-center">
-                <View className="flex-row items-center bg-gray-100 rounded-full px-1 mb-2">
+                {/* Content Section */}
+                <View className="flex-1">
+                    <Text className="text-base font-bold text-gray-900 mb-1">
+                        {item.product.name}
+                    </Text>
+                    
+                    <Text className="text-sm text-gray-500 mb-2">
+                        {item.product.category}
+                    </Text>
+
+                    <Text className="text-lg font-bold text-gray-900">
+                        ₹{(item.product.price * cartQuantity).toFixed(2)}
+                    </Text>
+                </View>
+
+                {/* Quantity Controls */}
+                <View className="flex-row items-center bg-gray-100 rounded-lg px-1">
                     <TouchableOpacity
                         onPress={() => handleQuantityChange(item.productId, -1, item.product)}
-                        className="w-8 h-8 bg-red-500 rounded-full items-center justify-center"
+                        className="px-3 py-2"
                         activeOpacity={0.7}
                         disabled={cartQuantity <= 0}
                     >
-                        <Text className="text-white font-bold text-lg">−</Text>
+                        <Text className="text-gray-900 font-bold text-lg">−</Text>
                     </TouchableOpacity>
 
-                    <Text className="mx-4 text-lg font-semibold text-gray-900 min-w-8 text-center">
+                    <Text className="px-3 text-base font-bold text-gray-900">
                         {cartQuantity}
                     </Text>
 
                     <TouchableOpacity
                         onPress={() => handleQuantityChange(item.productId, 1, item.product)}
-                        className={`w-8 h-8 rounded-full items-center justify-center ${canAddMoreItems ? 'bg-green-500' : 'bg-gray-400'
-                            }`}
+                        className="px-3 py-2"
                         activeOpacity={0.7}
                         disabled={!canAddMoreItems}
                     >
-                        <Text className="text-white font-bold text-lg">+</Text>
+                        <Text className={`font-bold text-lg ${canAddMoreItems ? 'text-gray-900' : 'text-gray-400'}`}>+</Text>
                     </TouchableOpacity>
                 </View>
-
-                <TouchableOpacity
-                    onPress={() => removeItemCompletely(item.productId)}
-                    className="bg-red-100 px-3 py-1 rounded-full"
-                >
-                    <Text className="text-red-600 text-xs font-medium">Remove</Text>
-                </TouchableOpacity>
             </View>
+            
+            {/* Item Total */}
+            {/* <View className="mt-3 pt-3 border-t border-gray-100">
+                <Text className="text-sm text-gray-600">
+                    {cartQuantity} × ₹{item.product.price.toFixed(0)} = <Text className="font-bold text-gray-900">₹{(item.product.price * cartQuantity).toFixed(2)}</Text>
+                </Text>
+            </View> */}
         </View>
     )
 })
 
-// Coupon Item Component
 const CouponItem = React.memo<CouponItemProps>(({ coupon, onApply }) => (
     <TouchableOpacity
         onPress={() => onApply(coupon.code)}
-        className="bg-gradient-to-r from-purple-50 to-pink-50 mb-2 p-4 rounded-2xl border border-purple-200"
+        className="bg-white mb-3 p-4 rounded-lg border border-gray-200"
         activeOpacity={0.7}
     >
         <View className="flex-row items-center justify-between">
             <View className="flex-1">
-                <View className="flex-row items-center mb-1">
-                    <Text className="text-lg font-bold text-purple-700">{coupon.code}</Text>
-                    <View className="bg-purple-100 px-2 py-1 rounded-full ml-2">
-                        <Text className="text-purple-600 text-xs font-medium">
-                            {coupon.rewardValue < 1 ? `${(coupon.rewardValue * 100)}% OFF` : `$${coupon.rewardValue} OFF`}
-                        </Text>
-                    </View>
-                </View>
+                <Text className="text-base font-bold text-gray-900 mb-1">{coupon.code}</Text>
                 <Text className="text-sm text-gray-600 mb-1">{coupon.description}</Text>
-                <Text className="text-xs text-gray-500">Min order: ${coupon.minOrderValue}</Text>
+                <Text className="text-xs text-gray-500">Min order: ₹{coupon.minOrderValue}</Text>
             </View>
-            <Text className="text-purple-600 text-lg">🎫</Text>
+            <View className="bg-green-50 px-3 py-1 rounded-lg ml-3">
+                <Text className="text-green-600 text-sm font-bold">
+                    {coupon.rewardValue < 1 ? `${(coupon.rewardValue * 100)}% OFF` : `₹${coupon.rewardValue} OFF`}
+                </Text>
+            </View>
         </View>
     </TouchableOpacity>
 ))
 
-// Memoized Time Slot Component
 const TimeSlotItem = React.memo<TimeSlotItemProps>(({ slot, isSelected, onSelect }) => (
     <TouchableOpacity
         onPress={() => slot.available && onSelect(slot.id)}
         activeOpacity={0.7}
         disabled={!slot.available}
+        className="mb-3"
     >
-        <View
-            className={`mx-4 mb-2 px-4 py-3 rounded-2xl border-2 ${isSelected
-                ? 'bg-yellow-100 border-yellow-400'
-                : slot.available
-                    ? 'bg-white border-gray-200'
-                    : 'bg-gray-100 border-gray-200'
-                }`}
-        >
-            <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center">
-                    <View className={`w-4 h-4 rounded-full mr-3 ${isSelected
-                        ? 'bg-yellow-500'
-                        : slot.available
-                            ? 'bg-green-500'
-                            : 'bg-gray-400'
-                        }`} />
-                    <Text className={`text-base font-medium ${slot.available ? 'text-gray-900' : 'text-gray-500'
-                        }`}>
-                        {slot.time}
-                    </Text>
+        <View className="mx-4 flex-row items-center justify-between">
+            <View className="flex-row items-center">
+                <View className={`w-5 h-5 rounded-full border-2 items-center justify-center mr-3 ${isSelected
+                    ? 'border-gray-900'
+                    : 'border-gray-300'
+                    }`}>
+                    {isSelected && <View className="w-3 h-3 rounded-full bg-gray-900" />}
                 </View>
-                {!slot.available && (
-                    <Text className="text-sm text-red-500 font-medium">Unavailable</Text>
-                )}
+                <Text className={`text-base font-medium ${slot.available ? 'text-gray-900' : 'text-gray-400'
+                    }`}>
+                    {slot.time}
+                </Text>
             </View>
+            {!slot.available && (
+                <Text className="text-sm text-gray-400">Unavailable</Text>
+            )}
         </View>
     </TouchableOpacity>
 ))
@@ -263,8 +224,6 @@ const Cart: React.FC = () => {
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null)
     const [refreshing, setRefreshing] = useState(false)
     const [lastOrderCheck, setLastOrderCheck] = useState<string>('')
-
-    // Coupon related states
     const [couponCode, setCouponCode] = useState<string>('')
     const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
     const [couponLoading, setCouponLoading] = useState<boolean>(false)
@@ -272,8 +231,6 @@ const Cart: React.FC = () => {
     const [showCoupons, setShowCoupons] = useState<boolean>(false)
     const { config } = useContext(AppConfigContext);
 
-
-    // Use cart context
     const {
         state: cartState,
         fetchCartData,
@@ -296,7 +253,6 @@ const Cart: React.FC = () => {
         { id: 6, time: '4:00 PM - 5:00 PM', available: true, slot: 'SLOT_16_17' }
     ]
 
-    // Get category icon
     const getCategoryIcon = (category: string): string => {
         const iconMap: { [key: string]: string } = {
             'Starters': '🥗',
@@ -307,21 +263,18 @@ const Cart: React.FC = () => {
         return iconMap[category] || '🍽️'
     }
 
-    // Fetch available coupons
     const fetchCoupons = useCallback(async () => {
         const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
         try {
             const coupons = await apiRequest(`/customer/outlets/coupons/${outletId}`, {
                 method: 'GET'
             })
-            console.log("coupons : ", coupons);
             setAvailableCoupons(coupons?.coupons ?? [])
         } catch (error) {
             console.error('Error fetching coupons:', error)
         }
     }, [])
 
-    // Apply coupon
     const applyCoupon = useCallback(async (code: string) => {
         if (!code.trim()) {
             Toast.show({
@@ -338,13 +291,9 @@ const Cart: React.FC = () => {
         }
 
         const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
-
         setCouponLoading(true)
         try {
             const currentTotal = getTotalPrice()
-
-
-            console.log(outletId)
             const response = await apiRequest('/customer/outlets/apply-coupon', {
                 method: 'POST',
                 body: {
@@ -354,9 +303,7 @@ const Cart: React.FC = () => {
                 }
             })
 
-            // Find the coupon details for description
             const couponDetails = availableCoupons.find(c => c.code.toUpperCase() === code.toUpperCase())
-
             setAppliedCoupon({
                 code: code,
                 discount: response.discount,
@@ -368,7 +315,7 @@ const Cart: React.FC = () => {
             Toast.show({
                 type: 'success',
                 text1: 'Success',
-                text2: `Coupon applied successfully! You saved $${response.discount.toFixed(2)}`,
+                text2: `Coupon applied successfully! You saved ₹${response.discount.toFixed(2)}`,
                 position: 'top',
                 topOffset: 200,
                 visibilityTime: 5000,
@@ -386,28 +333,21 @@ const Cart: React.FC = () => {
                 autoHide: true,
                 onPress: () => Toast.hide(),
             });
-            console.error(outletId);
-            console.error('Error applying coupon:', error)
         } finally {
             setCouponLoading(false)
         }
     }, [getTotalPrice, cartState.cartData, availableCoupons])
 
-
-
-    // Remove applied coupon
     const removeCoupon = useCallback(() => {
-        console.log('Removing coupon...');
         setAppliedCoupon(null)
         setCouponCode('')
     }, [])
 
     const revalidateCoupon = useCallback(async (currentCartSubtotal: number) => {
-        if (!appliedCoupon) return; // Only run if a coupon is currently applied
+        if (!appliedCoupon) return;
 
         const couponCodeToRevalidate = appliedCoupon.code;
         const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
-
         setCouponLoading(true);
 
         try {
@@ -415,12 +355,11 @@ const Cart: React.FC = () => {
                 method: 'POST',
                 body: {
                     code: couponCodeToRevalidate,
-                    currentTotal: currentCartSubtotal, // Pass the new total for validation
+                    currentTotal: currentCartSubtotal,
                     outletId
                 }
             });
 
-            // Success: Update the applied coupon (in case the discount amount changed)
             const couponDetails = availableCoupons.find(c => c.code.toUpperCase() === couponCodeToRevalidate.toUpperCase());
             setAppliedCoupon({
                 code: couponCodeToRevalidate,
@@ -429,9 +368,7 @@ const Cart: React.FC = () => {
             });
 
         } catch (error: any) {
-            // Failure: If min order value isn't met or coupon expired/invalid for new total
-            console.log('Coupon re-validation failed:', error.message);
-            setAppliedCoupon(null); // Directly set to null instead of calling removeCoupon
+            setAppliedCoupon(null);
             setCouponCode('');
             Toast.show({
                 type: 'info',
@@ -447,12 +384,10 @@ const Cart: React.FC = () => {
         }
     }, [appliedCoupon, availableCoupons]);
 
-    // Calculate final amounts
     const discount = appliedCoupon?.discount || 0
     const subtotal = getTotalPrice()
     const finalTotal = subtotal - discount
 
-    // Check if we need to refresh after order completion
     useEffect(() => {
         const checkOrderCompletion = async () => {
             try {
@@ -473,38 +408,26 @@ const Cart: React.FC = () => {
         checkOrderCompletion()
     }, [fetchCartData, refreshProducts, lastOrderCheck])
 
-    // Fetch cart data and coupons when screen is focused
     useFocusEffect(
         useCallback(() => {
-            // Only refresh the cart if another sync operation isn't already running.
             if (!cartState.syncInProgress) {
-                console.log('Cart screen focused, refreshing cart data.');
                 fetchCartData();
-            } else {
-                console.log('Cart screen focused, but a sync is already in progress. Skipping refresh.');
             }
         }, [cartState.syncInProgress, fetchCartData])
     )
 
     useEffect(() => {
-        // Only run if cart data has loaded and we have a coupon applied
         if (!cartState.loading && appliedCoupon) {
             const currentTotal = getTotalPrice();
 
-            // Always remove coupon if the cart total is 0 after a sync
             if (currentTotal === 0) {
                 removeCoupon();
             } else {
-                // Revalidate coupon on initial load/sync if it exists
                 revalidateCoupon(currentTotal);
             }
         }
-        // Dependency on cartState.cartData?.items.length ensures it runs after initial fetch
-    }, [cartState.loading,
-    cartState.cartData?.items?.length, // Only depend on items length, not the functions
-    appliedCoupon?.code]);
+    }, [cartState.loading, cartState.cartData?.items?.length, appliedCoupon?.code]);
 
-    // Handle pull to refresh
     const handleRefresh = useCallback(async () => {
         setRefreshing(true)
         try {
@@ -520,23 +443,13 @@ const Cart: React.FC = () => {
         }
     }, [fetchCartData, refreshProducts, fetchCoupons])
 
-    // Handle quantity changes with enhanced stock validation
     const handleQuantityChange = useCallback(async (productId: number, change: number, product: CartProduct) => {
         const inventory = product.inventory
         const totalStock = inventory?.quantity || 0
         const reservedStock = inventory?.reserved || 0
         const currentQuantity = getItemQuantity?.(productId) ?? 0
         const newQuantity = currentQuantity + change
-
         const availableStock = Math.max(0, totalStock - reservedStock - currentQuantity)
-
-        console.log(`Updating quantity for ${product.name}:`, {
-            currentQuantity,
-            newQuantity,
-            totalStock,
-            reservedStock,
-            availableStock
-        })
 
         if (change > 0 && availableStock <= 0) {
             Toast.show({
@@ -557,23 +470,18 @@ const Cart: React.FC = () => {
         try {
             const success = await updateItemQuantity(productId, change, product, availableStock)
             if (success) {
-                // Get the cart details immediately after the update
                 const newSubtotal = getTotalPrice();
                 const newTotalItems = getTotalCartItems();
 
                 if (newTotalItems === 0) {
-                    // Scenario 1: Cart is now empty, always remove coupon
                     removeCoupon();
                 } else if (appliedCoupon) {
-                    // Scenario 2: Cart still has items, re-validate the applied coupon
                     await revalidateCoupon(newSubtotal);
                 }
             } else {
-                console.log('Update failed, refreshing cart...')
                 await handleRefresh()
             }
         } catch (error) {
-            console.error('Error updating quantity:', error)
             Toast.show({
                 type: 'error',
                 text1: 'Error',
@@ -587,26 +495,6 @@ const Cart: React.FC = () => {
         }
     }, [updateItemQuantity, getItemQuantity, handleRefresh])
 
-    const debugInventory = useCallback(() => {
-        console.log('=== CART DEBUG INFO ===')
-        cartState.cartData?.items.forEach(item => {
-            const currentQuantity = getItemQuantity(item.productId)
-            const totalStock = item.product.inventory?.quantity || 0
-            const reservedStock = item.product.inventory?.reserved || 0
-            const availableStock = Math.max(0, totalStock - reservedStock)
-
-            console.log(`${item.product.name}:`)
-            console.log(`  - Current in cart: ${currentQuantity}`)
-            console.log(`  - Total stock: ${totalStock}`)
-            console.log(`  - Reserved stock: ${reservedStock}`)
-            console.log(`  - Available stock: ${availableStock}`)
-            console.log(`  - Inventory object:`, item.product.inventory)
-            console.log('---')
-        })
-        console.log('======================')
-    }, [cartState.cartData, getItemQuantity])
-
-    // Remove item completely
     const removeItemCompletely = useCallback((productId: number) => {
         Alert.alert(
             'Remove Item',
@@ -624,15 +512,12 @@ const Cart: React.FC = () => {
                                 const newTotalItems = getTotalCartItems();
 
                                 if (newTotalItems === 0) {
-                                    // Scenario 1: Cart is now empty, always remove coupon
                                     removeCoupon();
                                 } else if (appliedCoupon) {
-                                    // Scenario 2: Cart still has items, re-validate the applied coupon
                                     await revalidateCoupon(newSubtotal);
                                 }
                             }, 50);
                         } catch (error) {
-                            console.error('Error removing item:', error)
                             Toast.show({
                                 type: 'error',
                                 text1: 'Error',
@@ -678,7 +563,6 @@ const Cart: React.FC = () => {
             return
         }
 
-        // Final stock validation before checkout
         try {
             const stockValid = await validateCartStock()
             if (!stockValid) {
@@ -692,7 +576,6 @@ const Cart: React.FC = () => {
                 return
             }
         } catch (error) {
-            console.error('Error validating stock:', error)
             Alert.alert(
                 'Validation Error',
                 'Unable to validate stock. Please try again.',
@@ -705,16 +588,14 @@ const Cart: React.FC = () => {
         }
 
         const selectedSlot = timeSlots.find(slot => slot.id === selectedTimeSlot)
-
-        // Set flag for order completion tracking
         await AsyncStorage.setItem('orderInProgress', 'true')
 
-        // Calculate all amounts
         const subtotalAmount = getTotalPrice()
         const discountAmount = appliedCoupon?.discount || 0
         const finalTotalAmount = subtotalAmount - discountAmount
         const payCoupon = appliedCoupon ? JSON.stringify(appliedCoupon) : ''
         setAppliedCoupon(null);
+        
         router.push({
             pathname: '/(tabs)/cart/orderPayment',
             params: {
@@ -723,14 +604,12 @@ const Cart: React.FC = () => {
                 selectedTimeSlotDisplay: selectedSlot?.time || '',
                 subtotalAmount: subtotalAmount.toFixed(2),
                 discountAmount: discountAmount.toFixed(2),
-                totalAmount: finalTotalAmount.toFixed(2), // This is the final amount after discount
+                totalAmount: finalTotalAmount.toFixed(2),
                 appliedCoupon: payCoupon,
                 totalItems: getTotalCartItems().toString()
             }
         })
     }, [cartState.cartData, selectedTimeSlot, getTotalPrice, appliedCoupon, getTotalCartItems, router, validateCartStock, handleRefresh])
-
-
 
     if (!isFocused) {
         return (
@@ -740,13 +619,12 @@ const Cart: React.FC = () => {
         );
     }
 
-    // Initial loading state
     if (cartState.loading) {
         return (
-            <SafeAreaView className="flex-1 bg-gray-50">
+            <SafeAreaView className="flex-1 bg-white">
                 <View className="flex-1 justify-center items-center">
                     <ActivityIndicator size="large" color="#FCD34D" />
-                    <Text className="mt-4 text-gray-600">Loading cart...</Text>
+                    <Text className="mt-4 text-gray-600 font-medium">Loading cart...</Text>
                 </View>
             </SafeAreaView>
         )
@@ -756,14 +634,14 @@ const Cart: React.FC = () => {
     const totalItems = getTotalCartItems()
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50">
+        <SafeAreaView className="flex-1 bg-white">
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100">
                 <TouchableOpacity className="p-2" onPress={() => router.back()}>
                     <Text className="text-2xl">←</Text>
                 </TouchableOpacity>
 
-                <Text className="text-xl font-bold text-gray-900">Cart</Text>
+                <Text className="text-2xl font-bold text-gray-900">My Cart</Text>
 
                 <View className="flex-row items-center">
                     <TouchableOpacity
@@ -771,10 +649,10 @@ const Cart: React.FC = () => {
                         className="p-2 mr-2"
                         disabled={refreshing}
                     >
-                        <Text className="text-lg">🔄</Text>
+                        <Text className="text-xl">🔄</Text>
                     </TouchableOpacity>
-                    <View className="bg-red-500 rounded-full min-w-6 h-6 items-center justify-center">
-                        <Text className="text-white text-xs font-bold">
+                    <View className="bg-yellow-400 rounded-full min-w-7 h-7 items-center justify-center">
+                        <Text className="text-gray-900 text-sm font-bold">
                             {totalItems}
                         </Text>
                     </View>
@@ -794,92 +672,75 @@ const Cart: React.FC = () => {
                     />
                 }
             >
-                {/* Cart Summary */}
-
                 {/* Cart Items */}
                 {cartItems.length > 0 ? (
-                    <View className="bg-white rounded-2xl mx-4 mb-6 shadow-md border border-gray-100 overflow-hidden">
-                        {cartItems.map((item, index) => (
-                            <View key={item.id}>
-                                <CartItem
-                                    item={item}
-
-                                    getItemQuantity={getItemQuantity}
-                                    getCategoryIcon={getCategoryIcon}
-                                    handleQuantityChange={handleQuantityChange}
-                                    removeItemCompletely={removeItemCompletely}
-                                />
-                                {index < cartItems.length - 1 && (
-                                    <View className="h-px bg-gray-200 mx-4" />
-                                )}
-                            </View>
+                    <View className="mt-4">
+                        {cartItems.map((item) => (
+                            <CartItem
+                                key={item.id}
+                                item={item}
+                                getItemQuantity={getItemQuantity}
+                                getCategoryIcon={getCategoryIcon}
+                                handleQuantityChange={handleQuantityChange}
+                                removeItemCompletely={removeItemCompletely}
+                            />
                         ))}
                     </View>
                 ) : (
-                    <View className="mx-4 mb-6">
-                        <View className="bg-white rounded-2xl p-8 shadow-md border border-gray-100 items-center">
-                            <Text className="text-6xl mb-4">🛒</Text>
-                            <Text className="text-xl font-bold text-gray-900 mb-2">Your cart is empty</Text>
-                            <Text className="text-gray-600 text-center mb-4">Add some delicious items to get started!</Text>
+                    <View className="mx-4 mt-20">
+                        <View className="bg-gray-50 rounded-2xl p-10 items-center">
+                            <Text className="text-7xl mb-4">🛒</Text>
+                            <Text className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</Text>
+                            <Text className="text-gray-500 text-center mb-6 text-base">Add some delicious items to get started!</Text>
                             <TouchableOpacity
                                 onPress={() => router.back()}
-                                className="bg-yellow-400 px-6 py-3 rounded-full"
+                                className="bg-yellow-400 px-8 py-3 rounded-xl"
                             >
-                                <Text className="font-semibold text-gray-900">Browse Menu</Text>
+                                <Text className="font-bold text-gray-900 text-base">Browse Menu</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 )}
 
-
                 {/* Coupon Section */}
                 {config.COUPONS && cartItems.length > 0 && (
-                    <View className="mx-4 mb-6">
-                        <View className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <View className="mx-4 mt-4">
+                        <View className="bg-white rounded-xl p-5 border border-gray-200">
                             <View className="flex-row items-center justify-between mb-4">
                                 <View className="flex-row items-center">
-                                    <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center mr-3">
-                                        <Text className="text-lg">🎫</Text>
-                                    </View>
-                                    <Text className="text-xl font-bold text-gray-900">Coupon Code</Text>
+                                    <Text className="text-lg font-bold text-gray-900">Apply Coupon</Text>
                                 </View>
                                 <TouchableOpacity
                                     onPress={() => setShowCoupons(!showCoupons)}
-                                    className="bg-purple-100 px-3 py-1 rounded-full"
+                                    className="bg-gray-100 px-3 py-2 rounded-lg"
                                 >
-                                    <Text className="text-purple-600 text-sm font-medium">
-                                        {showCoupons ? 'Hide Coupons' : 'View Available'}
+                                    <Text className="text-gray-700 text-xs font-bold">
+                                        {showCoupons ? 'Hide' : 'View All'}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Applied Coupon Display */}
                             {appliedCoupon ? (
-                                <View className="bg-green-50 p-4 rounded-2xl border border-green-200 mb-4">
+                                <View className="bg-green-50 p-4 rounded-lg border border-green-200">
                                     <View className="flex-row items-center justify-between">
                                         <View className="flex-1">
-                                            <View className="flex-row items-center mb-1">
-                                                <Text className="text-lg font-bold text-green-700">{appliedCoupon.code}</Text>
-                                                <View className="bg-green-100 px-2 py-1 rounded-full ml-2">
-                                                    <Text className="text-green-600 text-xs font-medium">Applied</Text>
-                                                </View>
-                                            </View>
-                                            <Text className="text-sm text-green-600">{appliedCoupon.description}</Text>
-                                            <Text className="text-sm font-medium text-green-700">You saved ₹{discount.toFixed(2)}!</Text>
+                                            <Text className="text-base font-bold text-gray-900 mb-1">{appliedCoupon.code}</Text>
+                                            <Text className="text-sm text-gray-600 mb-1">{appliedCoupon.description}</Text>
+                                            <Text className="text-base font-bold text-green-600">Saved ₹{discount.toFixed(2)}</Text>
                                         </View>
                                         <TouchableOpacity
                                             onPress={removeCoupon}
-                                            className="bg-red-100 px-3 py-2 rounded-full ml-4"
+                                            className="bg-white px-3 py-2 rounded-lg border border-gray-200 ml-3"
                                         >
-                                            <Text className="text-red-600 text-xs font-medium">Remove</Text>
+                                            <Text className="text-gray-700 text-xs font-bold">Remove</Text>
                                         </TouchableOpacity>
                                     </View>
                                 </View>
                             ) : (
-                                <View className="flex-row items-center space-x-2 mb-4">
+                                <View className="flex-row items-center">
                                     <TextInput
-                                        className="flex-1 bg-gray-100 px-4 py-3 rounded-xl text-base"
-                                        placeholder="Enter coupon code"
+                                        className="flex-1 bg-gray-50 px-4 py-3 rounded-lg text-base border border-gray-200"
+                                        placeholder="Enter code"
                                         value={couponCode}
                                         onChangeText={setCouponCode}
                                         autoCapitalize="characters"
@@ -887,22 +748,21 @@ const Cart: React.FC = () => {
                                     />
                                     <TouchableOpacity
                                         onPress={() => applyCoupon(couponCode)}
-                                        className={`px-6 py-3 rounded-xl ${couponCode.trim() ? 'bg-purple-500' : 'bg-gray-400'}`}
+                                        className={`ml-3 px-5 py-3 rounded-lg ${couponCode.trim() ? 'bg-gray-900' : 'bg-gray-300'}`}
                                         disabled={!couponCode.trim() || couponLoading}
                                     >
                                         {couponLoading ? (
                                             <ActivityIndicator size="small" color="white" />
                                         ) : (
-                                            <Text className="text-white font-semibold">Apply</Text>
+                                            <Text className="text-white font-bold text-sm">Apply</Text>
                                         )}
                                     </TouchableOpacity>
                                 </View>
                             )}
 
                             {showCoupons && availableCoupons.length > 0 && (
-                                <View>
-                                    <Text className="text-gray-600 mb-3">Available Coupons:</Text>
-                                    <View className="max-h-60 px-0">
+                                <View className="mt-4">
+                                    <View className="max-h-60">
                                         <FlatList
                                             data={availableCoupons}
                                             keyExtractor={(item) => item.id.toString()}
@@ -916,12 +776,10 @@ const Cart: React.FC = () => {
                                             nestedScrollEnabled={true}
                                             showsVerticalScrollIndicator={true}
                                             contentContainerStyle={{ paddingVertical: 4 }}
-                                            // These props help with nested scrolling
                                             scrollEnabled={true}
                                             bounces={false}
                                             onStartShouldSetResponder={() => true}
                                             onMoveShouldSetResponderCapture={() => true}
-                                            // Prevent parent from intercepting scroll
                                             onScrollBeginDrag={() => { }}
                                             onScrollEndDrag={() => { }}
                                         />
@@ -930,67 +788,23 @@ const Cart: React.FC = () => {
                             )}
 
                             {showCoupons && availableCoupons.length === 0 && (
-                                <View className="items-center py-4">
-                                    <Text className="text-gray-500">No coupons available at the moment</Text>
+                                <View className="items-center py-4 mt-2">
+                                    <Text className="text-gray-500">No coupons available</Text>
                                 </View>
                             )}
                         </View>
                     </View>
                 )}
 
-                <View className="mx-4 mt-6 mb-6">
-                    <View className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-                        <View className="flex-row items-center justify-between mb-4">
-                            <Text className="text-xl font-bold text-gray-900">Order Summary</Text>
-                            <View className="bg-yellow-100 px-3 py-1 rounded-full">
-                                <Text className="text-yellow-800 text-sm font-medium">
-                                    {totalItems} items
-                                </Text>
-                            </View>
-                        </View>
-
-                        {/* Breakdown */}
-                        <View className="space-y-2">
-                            <View className="flex-row justify-between items-center">
-                                <Text className="text-base text-gray-600">Subtotal</Text>
-                                <Text className="text-base font-medium text-gray-900">
-                                    ₹{subtotal.toFixed(2)}
-                                </Text>
-                            </View>
-
-                            {appliedCoupon && (
-                                <View className="flex-row justify-between items-center">
-                                    <Text className="text-base text-green-600">Discount ({appliedCoupon.code})</Text>
-                                    <Text className="text-base font-medium text-green-600">
-                                        -₹{discount.toFixed(2)}
-                                    </Text>
-                                </View>
-                            )}
-
-                            <View className="flex-row justify-between items-center pt-4 border-t border-gray-100">
-                                <Text className="text-lg font-semibold text-gray-700">Total Amount</Text>
-                                <Text className="text-2xl font-bold text-green-600">
-                                    ₹{finalTotal.toFixed(2)}
-                                </Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-
                 {/* Delivery Time Selection */}
                 {cartItems.length > 0 && (
-                    <View className="mx-4 mb-6">
-                        <View className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <View className="mx-4 mt-4">
+                        <View className="bg-white rounded-xl p-5 border border-gray-200">
                             <View className="flex-row items-center mb-4">
-                                <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center mr-3">
-                                    <Text className="text-lg">🕐</Text>
-                                </View>
-                                <Text className="text-xl font-bold text-gray-900">Select Delivery Time</Text>
+                                <Text className="text-lg font-bold text-gray-900">Select Time Slot</Text>
                             </View>
 
-                            <Text className="text-gray-600 mb-4">Choose your preferred delivery time slot</Text>
-
-                            {timeSlots.map((slot, index) => (
+                            {timeSlots.map((slot) => (
                                 <TimeSlotItem
                                     key={slot.id}
                                     slot={slot}
@@ -1002,41 +816,83 @@ const Cart: React.FC = () => {
                     </View>
                 )}
 
+                {/* Order Summary */}
+                {cartItems.length > 0 && (
+                    <View className="mx-4 mt-4">
+                        <View className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                            <View className="flex-row items-center justify-between mb-4">
+                                <Text className="text-lg font-bold text-gray-900">Bill Summary</Text>
+                                <View className="bg-yellow-100 px-3 py-1 rounded-lg">
+                                    <Text className="text-yellow-800 text-sm font-bold">
+                                        {totalItems} items
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View className="space-y-3">
+                                <View className="flex-row justify-between items-center py-2">
+                                    <Text className="text-base text-gray-600">Item Total</Text>
+                                    <Text className="text-base font-semibold text-gray-900">
+                                        ₹{subtotal.toFixed(2)}
+                                    </Text>
+                                </View>
+
+                                {appliedCoupon && (
+                                    <View className="flex-row justify-between items-center py-2 border-t border-gray-200">
+                                        <Text className="text-base text-green-600 font-medium">Coupon Discount</Text>
+                                        <Text className="text-base font-bold text-green-600">
+                                            -₹{discount.toFixed(2)}
+                                        </Text>
+                                    </View>
+                                )}
+
+                                <View className="flex-row justify-between items-center pt-3 border-t-2 border-gray-300">
+                                    <Text className="text-lg font-bold text-gray-900">Total Amount</Text>
+                                    <Text className="text-2xl font-extrabold text-black">
+                                        ₹{finalTotal.toFixed(2)}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                )}
+
+                
+
                 {/* Checkout Button */}
                 {cartItems.length > 0 && (
-                    <View className="mx-4 mb-4">
+                    <View className="mx-4 mt-6 mb-4">
                         <TouchableOpacity
                             onPress={handleCheckout}
                             activeOpacity={0.8}
-                            className={`rounded-2xl p-4 shadow-md ${cartItems.length > 0 && selectedTimeSlot
+                            className={`rounded-xl p-4 shadow-lg ${cartItems.length > 0 && selectedTimeSlot
                                 ? 'bg-yellow-400'
                                 : 'bg-gray-300'
                                 }`}
+                            disabled={!(cartItems.length > 0 && selectedTimeSlot)}
                         >
-                            <View className="flex-row items-center justify-center">
-                                <View className="ml-2">
-                                    <Text className={`text-lg font-bold ${cartItems.length > 0 && selectedTimeSlot
-                                        ? 'text-gray-900'
+                            <View className="items-center">
+                                <Text className={`text-xl font-extrabold mb-1 ${cartItems.length > 0 && selectedTimeSlot
+                                    ? 'text-gray-900'
+                                    : 'text-gray-500'
+                                    }`}>
+                                    Proceed to Payment
+                                </Text>
+                                <View className="flex-row items-center">
+                                    {appliedCoupon && (
+                                        <Text className={`text-sm line-through mr-2 ${cartItems.length > 0 && selectedTimeSlot
+                                            ? 'text-gray-600'
+                                            : 'text-gray-400'
+                                            }`}>
+                                            ₹{subtotal.toFixed(2)}
+                                        </Text>
+                                    )}
+                                    <Text className={`text-2xl font-extrabold ${cartItems.length > 0 && selectedTimeSlot
+                                        ? 'text-black'
                                         : 'text-gray-500'
                                         }`}>
-                                        Proceed to Checkout
+                                        ₹{finalTotal.toFixed(2)}
                                     </Text>
-                                    <View className="flex-row items-center justify-center">
-                                        {appliedCoupon && (
-                                            <Text className={`text-sm line-through mr-2 ${cartItems.length > 0 && selectedTimeSlot
-                                                ? 'text-gray-600'
-                                                : 'text-gray-400'
-                                                }`}>
-                                                ₹{subtotal.toFixed(2)}
-                                            </Text>
-                                        )}
-                                        <Text className={`text-lg font-bold ${cartItems.length > 0 && selectedTimeSlot
-                                            ? 'text-gray-900'
-                                            : 'text-gray-500'
-                                            }`}>
-                                            ₹{finalTotal.toFixed(2)}
-                                        </Text>
-                                    </View>
                                 </View>
                             </View>
                         </TouchableOpacity>
@@ -1044,9 +900,11 @@ const Cart: React.FC = () => {
                 )}
 
                 {/* Security Info */}
-                <View className="items-center ">
-                    <Text className="text-gray-500 text-sm">Secure Checkout</Text>
-                    <Text className="text-gray-400 text-xs mt-1">🔒 Your payment is protected</Text>
+                <View className="items-center mb-6">
+                    <View className="flex-row items-center">
+                        <Text className="text-lg mr-1">🔒</Text>
+                        <Text className="text-gray-500 text-sm">Secure Checkout • Your payment is protected</Text>
+                    </View>
                 </View>
             </ScrollView>
         </SafeAreaView>

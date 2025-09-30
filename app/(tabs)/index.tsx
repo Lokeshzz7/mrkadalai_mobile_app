@@ -1,5 +1,3 @@
-// RestaurantHome.tsx - Final layout and behavior adjustments
-
 import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react'
 import {
   FlatList,
@@ -22,7 +20,6 @@ import Toast from 'react-native-toast-message'
 import { AppConfigContext } from '@/context/AppConfigContext'
 import { useAuth } from '@/context/AuthContext'
 
-// Types (keeping existing types)
 interface Product {
   id: number;
   name: string;
