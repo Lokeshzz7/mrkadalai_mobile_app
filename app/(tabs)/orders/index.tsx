@@ -678,14 +678,14 @@ const MyOrders = () => {
     return (
         <SafeAreaView className="flex-1 bg-white">
             {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
+            <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100 relative">
                 <TouchableOpacity className="p-2" onPress={() => router.back()}>
                     <Text className="text-2xl">←</Text>
                 </TouchableOpacity>
-                <Text className="text-xl font-bold text-gray-900">My Orders</Text>
-                <TouchableOpacity className="p-2" onPress={onRefresh}>
+                <Text className="absolute left-0 right-0 text-center text-xl font-bold text-gray-900">My Orders</Text>
+                {/* <TouchableOpacity className="p-2" onPress={onRefresh}>
                     <Text className="text-lg">🔄</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
             </View>
 
             {/* Tab Navigation */}

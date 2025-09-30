@@ -198,8 +198,8 @@ Thank you for your order!
                     <Text className="text-2xl">←</Text>
                 </TouchableOpacity>
                 <Text className="text-xl font-bold text-gray-900">Receipt</Text>
-                <TouchableOpacity className="p-2" onPress={handleShare}>
-                    <Text className="text-xl">📤</Text>
+                <TouchableOpacity className="bg-yellow-400 px-4 py-2 rounded-full" onPress={handleShare}>
+                    <Text className="font-semibold text-gray-900">Share</Text>
                 </TouchableOpacity>
             </View>
 

@@ -546,7 +546,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             dispatch({ type: 'REVERT_ITEM', payload: { productId, quantity: serverQuantity } })
 
             // Refresh cart to get current stock info
-            await fetchCartData()
+            Toast.show({
+              type: 'error',
+              text1: 'Stock Limit',
+              text2: 'Item quantity adjusted due to stock availability',
+              position: 'top',
+              topOffset: 200,
+              visibilityTime: 3000,
+              autoHide: true,
+            })
           } else {
             dispatch({
               type: 'SET_UPDATE_ERROR',
@@ -703,9 +711,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error(`❌ Error removing item ${productId}:`, error)
       // Refresh cart on error to get correct state
-      await fetchCartData()
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to remove item. Please try again.',
+        position: 'top',
+        topOffset: 200,
+        visibilityTime: 3000,
+        autoHide: true,
+      })
     }
-  }, [state.cartItems, state.serverQuantities, fetchCartData])
+  }, [state.cartItems, state.serverQuantities])
 
   const getTotalCartItems = useCallback(() => {
     return Object.values(state.cartItems).reduce((total, quantity) => total + quantity, 0)

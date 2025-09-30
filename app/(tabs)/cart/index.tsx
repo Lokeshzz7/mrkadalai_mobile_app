@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import {
     Text,
     View,
@@ -8,9 +8,7 @@ import {
     Alert,
     ActivityIndicator,
     RefreshControl,
-    TextInput,
-    Image,
-    FlatList
+    Image
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useFocusEffect, useIsFocused } from '@react-navigation/native'
@@ -50,25 +48,6 @@ interface TimeSlot {
     slot: string;
 }
 
-interface Coupon {
-    id: number;
-    code: string;
-    description: string;
-    rewardValue: number;
-    minOrderValue: number;
-    validFrom: string;
-    validUntil: string;
-    isActive: boolean;
-    usageLimit: number;
-    usedCount: number;
-}
-
-interface AppliedCoupon {
-    code: string;
-    discount: number;
-    description: string;
-}
-
 interface CartItemProps {
     item: CartItem;
     getItemQuantity: (id: number) => number;
@@ -81,11 +60,6 @@ interface TimeSlotItemProps {
     slot: TimeSlot;
     isSelected: boolean;
     onSelect: (id: number) => void;
-}
-
-interface CouponItemProps {
-    coupon: Coupon;
-    onApply: (code: string) => void;
 }
 
 const CartItem = React.memo<CartItemProps>(({ item, getItemQuantity,
@@ -124,7 +98,7 @@ const CartItem = React.memo<CartItemProps>(({ item, getItemQuantity,
                     <Text className="text-base font-bold text-gray-900 mb-1">
                         {item.product.name}
                     </Text>
-                    
+
                     <Text className="text-sm text-gray-500 mb-2">
                         {item.product.category}
                     </Text>
@@ -159,37 +133,9 @@ const CartItem = React.memo<CartItemProps>(({ item, getItemQuantity,
                     </TouchableOpacity>
                 </View>
             </View>
-            
-            {/* Item Total */}
-            {/* <View className="mt-3 pt-3 border-t border-gray-100">
-                <Text className="text-sm text-gray-600">
-                    {cartQuantity} × ₹{item.product.price.toFixed(0)} = <Text className="font-bold text-gray-900">₹{(item.product.price * cartQuantity).toFixed(2)}</Text>
-                </Text>
-            </View> */}
         </View>
     )
 })
-
-const CouponItem = React.memo<CouponItemProps>(({ coupon, onApply }) => (
-    <TouchableOpacity
-        onPress={() => onApply(coupon.code)}
-        className="bg-white mb-3 p-4 rounded-lg border border-gray-200"
-        activeOpacity={0.7}
-    >
-        <View className="flex-row items-center justify-between">
-            <View className="flex-1">
-                <Text className="text-base font-bold text-gray-900 mb-1">{coupon.code}</Text>
-                <Text className="text-sm text-gray-600 mb-1">{coupon.description}</Text>
-                <Text className="text-xs text-gray-500">Min order: ₹{coupon.minOrderValue}</Text>
-            </View>
-            <View className="bg-green-50 px-3 py-1 rounded-lg ml-3">
-                <Text className="text-green-600 text-sm font-bold">
-                    {coupon.rewardValue < 1 ? `${(coupon.rewardValue * 100)}% OFF` : `₹${coupon.rewardValue} OFF`}
-                </Text>
-            </View>
-        </View>
-    </TouchableOpacity>
-))
 
 const TimeSlotItem = React.memo<TimeSlotItemProps>(({ slot, isSelected, onSelect }) => (
     <TouchableOpacity
@@ -224,12 +170,8 @@ const Cart: React.FC = () => {
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null)
     const [refreshing, setRefreshing] = useState(false)
     const [lastOrderCheck, setLastOrderCheck] = useState<string>('')
-    const [couponCode, setCouponCode] = useState<string>('')
-    const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
-    const [couponLoading, setCouponLoading] = useState<boolean>(false)
-    const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([])
-    const [showCoupons, setShowCoupons] = useState<boolean>(false)
     const { config } = useContext(AppConfigContext);
+    const hasInitializedRef = useRef(false);
 
     const {
         state: cartState,
@@ -263,185 +205,68 @@ const Cart: React.FC = () => {
         return iconMap[category] || '🍽️'
     }
 
-    const fetchCoupons = useCallback(async () => {
-        const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
-        try {
-            const coupons = await apiRequest(`/customer/outlets/coupons/${outletId}`, {
-                method: 'GET'
-            })
-            setAvailableCoupons(coupons?.coupons ?? [])
-        } catch (error) {
-            console.error('Error fetching coupons:', error)
-        }
-    }, [])
-
-    const applyCoupon = useCallback(async (code: string) => {
-        if (!code.trim()) {
-            Toast.show({
-                type: 'error',
-                text1: 'Invalid Input',
-                text2: 'Please enter a coupon code',
-                position: 'top',
-                topOffset: 200,
-                visibilityTime: 5000,
-                autoHide: true,
-                onPress: () => Toast.hide(),
-            });
-            return
-        }
-
-        const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
-        setCouponLoading(true)
-        try {
-            const currentTotal = getTotalPrice()
-            const response = await apiRequest('/customer/outlets/apply-coupon', {
-                method: 'POST',
-                body: {
-                    code: code,
-                    currentTotal,
-                    outletId
-                }
-            })
-
-            const couponDetails = availableCoupons.find(c => c.code.toUpperCase() === code.toUpperCase())
-            setAppliedCoupon({
-                code: code,
-                discount: response.discount,
-                description: couponDetails?.description || 'Discount Applied'
-            })
-
-            setCouponCode('')
-            setShowCoupons(false)
-            Toast.show({
-                type: 'success',
-                text1: 'Success',
-                text2: `Coupon applied successfully! You saved ₹${response.discount.toFixed(2)}`,
-                position: 'top',
-                topOffset: 200,
-                visibilityTime: 5000,
-                autoHide: true,
-                onPress: () => Toast.hide(),
-            });
-        } catch (error) {
-            Toast.show({
-                type: 'error',
-                text1: 'Coupon Error',
-                text2: error.message || 'Failed to apply coupon',
-                position: 'top',
-                topOffset: 200,
-                visibilityTime: 5000,
-                autoHide: true,
-                onPress: () => Toast.hide(),
-            });
-        } finally {
-            setCouponLoading(false)
-        }
-    }, [getTotalPrice, cartState.cartData, availableCoupons])
-
-    const removeCoupon = useCallback(() => {
-        setAppliedCoupon(null)
-        setCouponCode('')
-    }, [])
-
-    const revalidateCoupon = useCallback(async (currentCartSubtotal: number) => {
-        if (!appliedCoupon) return;
-
-        const couponCodeToRevalidate = appliedCoupon.code;
-        const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
-        setCouponLoading(true);
-
-        try {
-            const response = await apiRequest('/customer/outlets/apply-coupon', {
-                method: 'POST',
-                body: {
-                    code: couponCodeToRevalidate,
-                    currentTotal: currentCartSubtotal,
-                    outletId
-                }
-            });
-
-            const couponDetails = availableCoupons.find(c => c.code.toUpperCase() === couponCodeToRevalidate.toUpperCase());
-            setAppliedCoupon({
-                code: couponCodeToRevalidate,
-                discount: response.discount,
-                description: couponDetails?.description || 'Discount Re-applied'
-            });
-
-        } catch (error: any) {
-            setAppliedCoupon(null);
-            setCouponCode('');
-            Toast.show({
-                type: 'info',
-                text1: 'Coupon Removed',
-                text2: `The coupon '${couponCodeToRevalidate}' no longer meets the order requirements.`,
-                position: 'top',
-                topOffset: 200,
-                visibilityTime: 5000,
-                autoHide: true,
-            });
-        } finally {
-            setCouponLoading(false);
-        }
-    }, [appliedCoupon, availableCoupons]);
-
-    const discount = appliedCoupon?.discount || 0
-    const subtotal = getTotalPrice()
-    const finalTotal = subtotal - discount
-
-    useEffect(() => {
-        const checkOrderCompletion = async () => {
-            try {
-                const lastOrder = await AsyncStorage.getItem('lastOrderCompleted')
-                if (lastOrder && lastOrder !== lastOrderCheck) {
-                    setLastOrderCheck(lastOrder)
-                    await Promise.all([
-                        fetchCartData(),
-                        refreshProducts()
-                    ])
-                    await AsyncStorage.removeItem('lastOrderCompleted')
-                }
-            } catch (error) {
-                console.error('Error checking order completion:', error)
-            }
-        }
-
-        checkOrderCompletion()
-    }, [fetchCartData, refreshProducts, lastOrderCheck])
+    const isMountedRef = useRef(false);
 
     useFocusEffect(
         useCallback(() => {
-            if (!cartState.syncInProgress) {
-                fetchCartData();
+            const initializeCart = async () => {
+                // Only fetch if this is the first mount OR returning after order
+                if (isMountedRef.current && hasInitializedRef.current) {
+                    return; // Already initialized, don't fetch again
+                }
+
+                const lastOrder = await AsyncStorage.getItem('lastOrderCompleted')
+
+                if (lastOrder) {
+                    await Promise.all([fetchCartData(), refreshProducts()])
+                    await AsyncStorage.removeItem('lastOrderCompleted')
+                } else if (!hasInitializedRef.current) {
+                    await fetchCartData()
+                }
+
+                hasInitializedRef.current = true
+                isMountedRef.current = true
             }
-        }, [cartState.syncInProgress, fetchCartData])
+
+            initializeCart()
+
+            return () => {
+                // Don't reset on every blur - only reset when truly unmounting
+                isMountedRef.current = false
+            }
+        }, [])
     )
 
-    useEffect(() => {
-        if (!cartState.loading && appliedCoupon) {
-            const currentTotal = getTotalPrice();
 
-            if (currentTotal === 0) {
-                removeCoupon();
-            } else {
-                revalidateCoupon(currentTotal);
-            }
-        }
-    }, [cartState.loading, cartState.cartData?.items?.length, appliedCoupon?.code]);
+    // const [hasInitiallyFetched, setHasInitiallyFetched] = useState(false);
+
+    // useFocusEffect(
+    //     useCallback(() => {
+    //         if (!cartState.syncInProgress && !hasInitiallyFetched) {
+    //             fetchCartData();
+    //             setHasInitiallyFetched(true);
+    //         }
+
+    //         return () => {
+    //             // Reset on blur so it fetches fresh data when returning to cart
+    //             setHasInitiallyFetched(false);
+    //         };
+    //     }, [cartState.syncInProgress, fetchCartData, hasInitiallyFetched])
+    // )
 
     const handleRefresh = useCallback(async () => {
         setRefreshing(true)
         try {
             await Promise.all([
                 fetchCartData(),
-                refreshProducts(),
-                fetchCoupons()
+                refreshProducts()
             ])
         } catch (error) {
             console.error('Error refreshing cart:', error)
         } finally {
             setRefreshing(false)
         }
-    }, [fetchCartData, refreshProducts, fetchCoupons])
+    }, [fetchCartData, refreshProducts])
 
     const handleQuantityChange = useCallback(async (productId: number, change: number, product: CartProduct) => {
         const inventory = product.inventory
@@ -468,19 +293,7 @@ const Cart: React.FC = () => {
         if (newQuantity < 0) return
 
         try {
-            const success = await updateItemQuantity(productId, change, product, availableStock)
-            if (success) {
-                const newSubtotal = getTotalPrice();
-                const newTotalItems = getTotalCartItems();
-
-                if (newTotalItems === 0) {
-                    removeCoupon();
-                } else if (appliedCoupon) {
-                    await revalidateCoupon(newSubtotal);
-                }
-            } else {
-                await handleRefresh()
-            }
+            await updateItemQuantity(productId, change, product, availableStock)
         } catch (error) {
             Toast.show({
                 type: 'error',
@@ -493,7 +306,7 @@ const Cart: React.FC = () => {
                 onPress: () => Toast.hide(),
             });
         }
-    }, [updateItemQuantity, getItemQuantity, handleRefresh])
+    }, [updateItemQuantity, getItemQuantity])
 
     const removeItemCompletely = useCallback((productId: number) => {
         Alert.alert(
@@ -507,16 +320,6 @@ const Cart: React.FC = () => {
                     onPress: async () => {
                         try {
                             await removeItem(productId)
-                            setTimeout(async () => {
-                                const newSubtotal = getTotalPrice();
-                                const newTotalItems = getTotalCartItems();
-
-                                if (newTotalItems === 0) {
-                                    removeCoupon();
-                                } else if (appliedCoupon) {
-                                    await revalidateCoupon(newSubtotal);
-                                }
-                            }, 50);
                         } catch (error) {
                             Toast.show({
                                 type: 'error',
@@ -591,11 +394,7 @@ const Cart: React.FC = () => {
         await AsyncStorage.setItem('orderInProgress', 'true')
 
         const subtotalAmount = getTotalPrice()
-        const discountAmount = appliedCoupon?.discount || 0
-        const finalTotalAmount = subtotalAmount - discountAmount
-        const payCoupon = appliedCoupon ? JSON.stringify(appliedCoupon) : ''
-        setAppliedCoupon(null);
-        
+
         router.push({
             pathname: '/(tabs)/cart/orderPayment',
             params: {
@@ -603,13 +402,10 @@ const Cart: React.FC = () => {
                 selectedTimeSlot: selectedSlot?.slot || '',
                 selectedTimeSlotDisplay: selectedSlot?.time || '',
                 subtotalAmount: subtotalAmount.toFixed(2),
-                discountAmount: discountAmount.toFixed(2),
-                totalAmount: finalTotalAmount.toFixed(2),
-                appliedCoupon: payCoupon,
                 totalItems: getTotalCartItems().toString()
             }
         })
-    }, [cartState.cartData, selectedTimeSlot, getTotalPrice, appliedCoupon, getTotalCartItems, router, validateCartStock, handleRefresh])
+    }, [cartState.cartData, selectedTimeSlot, getTotalPrice, getTotalCartItems, router, validateCartStock, handleRefresh])
 
     if (!isFocused) {
         return (
@@ -632,18 +428,19 @@ const Cart: React.FC = () => {
 
     const cartItems = cartState.cartData?.items || []
     const totalItems = getTotalCartItems()
+    const subtotal = getTotalPrice()
 
     return (
         <SafeAreaView className="flex-1 bg-white">
             {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100">
+            <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100 relative">
                 <TouchableOpacity className="p-2" onPress={() => router.back()}>
                     <Text className="text-2xl">←</Text>
                 </TouchableOpacity>
 
-                <Text className="text-2xl font-bold text-gray-900">My Cart</Text>
+                <Text className="absolute left-0 right-0 text-center text-xl font-bold text-gray-900">My Cart</Text>
 
-                <View className="flex-row items-center">
+                {/* <View className="flex-row items-center">
                     <TouchableOpacity
                         onPress={handleRefresh}
                         className="p-2 mr-2"
@@ -656,7 +453,7 @@ const Cart: React.FC = () => {
                             {totalItems}
                         </Text>
                     </View>
-                </View>
+                </View> */}
             </View>
 
             <ScrollView
@@ -702,100 +499,6 @@ const Cart: React.FC = () => {
                     </View>
                 )}
 
-                {/* Coupon Section */}
-                {config.COUPONS && cartItems.length > 0 && (
-                    <View className="mx-4 mt-4">
-                        <View className="bg-white rounded-xl p-5 border border-gray-200">
-                            <View className="flex-row items-center justify-between mb-4">
-                                <View className="flex-row items-center">
-                                    <Text className="text-lg font-bold text-gray-900">Apply Coupon</Text>
-                                </View>
-                                <TouchableOpacity
-                                    onPress={() => setShowCoupons(!showCoupons)}
-                                    className="bg-gray-100 px-3 py-2 rounded-lg"
-                                >
-                                    <Text className="text-gray-700 text-xs font-bold">
-                                        {showCoupons ? 'Hide' : 'View All'}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            {appliedCoupon ? (
-                                <View className="bg-green-50 p-4 rounded-lg border border-green-200">
-                                    <View className="flex-row items-center justify-between">
-                                        <View className="flex-1">
-                                            <Text className="text-base font-bold text-gray-900 mb-1">{appliedCoupon.code}</Text>
-                                            <Text className="text-sm text-gray-600 mb-1">{appliedCoupon.description}</Text>
-                                            <Text className="text-base font-bold text-green-600">Saved ₹{discount.toFixed(2)}</Text>
-                                        </View>
-                                        <TouchableOpacity
-                                            onPress={removeCoupon}
-                                            className="bg-white px-3 py-2 rounded-lg border border-gray-200 ml-3"
-                                        >
-                                            <Text className="text-gray-700 text-xs font-bold">Remove</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            ) : (
-                                <View className="flex-row items-center">
-                                    <TextInput
-                                        className="flex-1 bg-gray-50 px-4 py-3 rounded-lg text-base border border-gray-200"
-                                        placeholder="Enter code"
-                                        value={couponCode}
-                                        onChangeText={setCouponCode}
-                                        autoCapitalize="characters"
-                                        autoCorrect={false}
-                                    />
-                                    <TouchableOpacity
-                                        onPress={() => applyCoupon(couponCode)}
-                                        className={`ml-3 px-5 py-3 rounded-lg ${couponCode.trim() ? 'bg-gray-900' : 'bg-gray-300'}`}
-                                        disabled={!couponCode.trim() || couponLoading}
-                                    >
-                                        {couponLoading ? (
-                                            <ActivityIndicator size="small" color="white" />
-                                        ) : (
-                                            <Text className="text-white font-bold text-sm">Apply</Text>
-                                        )}
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-
-                            {showCoupons && availableCoupons.length > 0 && (
-                                <View className="mt-4">
-                                    <View className="max-h-60">
-                                        <FlatList
-                                            data={availableCoupons}
-                                            keyExtractor={(item) => item.id.toString()}
-                                            renderItem={({ item }) => (
-                                                <CouponItem
-                                                    key={item.id}
-                                                    coupon={item}
-                                                    onApply={applyCoupon}
-                                                />
-                                            )}
-                                            nestedScrollEnabled={true}
-                                            showsVerticalScrollIndicator={true}
-                                            contentContainerStyle={{ paddingVertical: 4 }}
-                                            scrollEnabled={true}
-                                            bounces={false}
-                                            onStartShouldSetResponder={() => true}
-                                            onMoveShouldSetResponderCapture={() => true}
-                                            onScrollBeginDrag={() => { }}
-                                            onScrollEndDrag={() => { }}
-                                        />
-                                    </View>
-                                </View>
-                            )}
-
-                            {showCoupons && availableCoupons.length === 0 && (
-                                <View className="items-center py-4 mt-2">
-                                    <Text className="text-gray-500">No coupons available</Text>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-                )}
-
                 {/* Delivery Time Selection */}
                 {cartItems.length > 0 && (
                     <View className="mx-4 mt-4">
@@ -837,27 +540,16 @@ const Cart: React.FC = () => {
                                     </Text>
                                 </View>
 
-                                {appliedCoupon && (
-                                    <View className="flex-row justify-between items-center py-2 border-t border-gray-200">
-                                        <Text className="text-base text-green-600 font-medium">Coupon Discount</Text>
-                                        <Text className="text-base font-bold text-green-600">
-                                            -₹{discount.toFixed(2)}
-                                        </Text>
-                                    </View>
-                                )}
-
                                 <View className="flex-row justify-between items-center pt-3 border-t-2 border-gray-300">
                                     <Text className="text-lg font-bold text-gray-900">Total Amount</Text>
                                     <Text className="text-2xl font-extrabold text-black">
-                                        ₹{finalTotal.toFixed(2)}
+                                        ₹{subtotal.toFixed(2)}
                                     </Text>
                                 </View>
                             </View>
                         </View>
                     </View>
                 )}
-
-                
 
                 {/* Checkout Button */}
                 {cartItems.length > 0 && (
@@ -879,19 +571,11 @@ const Cart: React.FC = () => {
                                     Proceed to Payment
                                 </Text>
                                 <View className="flex-row items-center">
-                                    {appliedCoupon && (
-                                        <Text className={`text-sm line-through mr-2 ${cartItems.length > 0 && selectedTimeSlot
-                                            ? 'text-gray-600'
-                                            : 'text-gray-400'
-                                            }`}>
-                                            ₹{subtotal.toFixed(2)}
-                                        </Text>
-                                    )}
                                     <Text className={`text-2xl font-extrabold ${cartItems.length > 0 && selectedTimeSlot
                                         ? 'text-black'
                                         : 'text-gray-500'
                                         }`}>
-                                        ₹{finalTotal.toFixed(2)}
+                                        ₹{subtotal.toFixed(2)}
                                     </Text>
                                 </View>
                             </View>

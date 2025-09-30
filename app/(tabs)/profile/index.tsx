@@ -304,12 +304,12 @@ const Profile = () => {
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100">
+      <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100 relative">
         <TouchableOpacity className="p-2" onPress={() => router.back()}>
           <Text className="text-2xl">←</Text>
         </TouchableOpacity>
 
-        <Text className="text-xl font-bold text-gray-900">Profile</Text>
+        <Text className="absolute left-0 right-0 text-center text-xl font-bold text-gray-900">Profile</Text>
 
         <View className="flex-row">
           {/* <TouchableOpacity

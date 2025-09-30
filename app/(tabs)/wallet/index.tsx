@@ -634,7 +634,7 @@ const Wallet = () => {
     return (
         <SafeAreaView className="flex-1 bg-white">
             {/* Header remains static at the top */}
-            <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
+            {/* <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
                 <TouchableOpacity className="p-2" onPress={() => router.back()}>
                     <Text className="text-2xl">←</Text>
                 </TouchableOpacity>
@@ -642,6 +642,15 @@ const Wallet = () => {
                 <TouchableOpacity onPress={refreshData} className="p-2">
                     <Text className="text-lg">🔄</Text>
                 </TouchableOpacity>
+            </View> */}
+            <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100 relative">
+                <TouchableOpacity className="p-2" onPress={() => router.back()}>
+                    <Text className="text-2xl">←</Text>
+                </TouchableOpacity>
+
+                <Text className="absolute left-0 right-0 text-center text-xl font-bold text-gray-900">
+                    Wallet
+                </Text>
             </View>
 
             {/* The main FlatList now controls all scrolling */}

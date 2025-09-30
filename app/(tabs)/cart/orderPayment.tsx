@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
     Text,
     View,
@@ -8,7 +8,9 @@ import {
     Alert,
     ActivityIndicator,
     Vibration,
-    Image
+    Image,
+    TextInput,
+    FlatList
 } from 'react-native'
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router'
 import RazorpayCheckout from 'react-native-razorpay';
@@ -19,8 +21,6 @@ import { useCart } from '@/context/CartContext';
 import Toast from 'react-native-toast-message';
 import { useContext } from 'react';
 import { AppConfigContext } from '@/context/AppConfigContext';
-
-
 
 interface CartProduct {
     id: number;
@@ -65,12 +65,51 @@ interface AppliedCoupon {
     description: string;
 }
 
+interface Coupon {
+    id: number;
+    code: string;
+    description: string;
+    rewardValue: number;
+    minOrderValue: number;
+    validFrom: string;
+    validUntil: string;
+    isActive: boolean;
+    usageLimit: number;
+    usedCount: number;
+}
+
+interface CouponItemProps {
+    coupon: Coupon;
+    onApply: (code: string) => void;
+}
+
+const CouponItem = React.memo<CouponItemProps>(({ coupon, onApply }) => (
+    <TouchableOpacity
+        onPress={() => onApply(coupon.code)}
+        className="bg-white mb-3 p-4 rounded-lg border border-gray-200"
+        activeOpacity={0.7}
+    >
+        <View className="flex-row items-center justify-between">
+            <View className="flex-1">
+                <Text className="text-base font-bold text-gray-900 mb-1">{coupon.code}</Text>
+                <Text className="text-sm text-gray-600 mb-1">{coupon.description}</Text>
+                <Text className="text-xs text-gray-500">Min order: ₹{coupon.minOrderValue}</Text>
+            </View>
+            <View className="bg-green-50 px-3 py-1 rounded-lg ml-3">
+                <Text className="text-green-600 text-sm font-bold">
+                    {coupon.rewardValue < 1 ? `${(coupon.rewardValue * 100)}% OFF` : `₹${coupon.rewardValue} OFF`}
+                </Text>
+            </View>
+        </View>
+    </TouchableOpacity>
+))
 
 const OrderPayment = () => {
     const router = useRouter()
     const navigation = useNavigation();
     const params = useLocalSearchParams()
     const { clearCart } = useCart()
+
     // States
     const [walletData, setWalletData] = useState<WalletData | null>(null)
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'WALLET' | 'UPI' | null>(null)
@@ -78,13 +117,26 @@ const OrderPayment = () => {
     const [walletLoading, setWalletLoading] = useState(true)
     const [cartData, setCartData] = useState<CartData | null>(null)
     const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
+    const [couponCode, setCouponCode] = useState<string>('')
+    const [couponLoading, setCouponLoading] = useState<boolean>(false)
+    const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([])
+    const [showCoupons, setShowCoupons] = useState<boolean>(false)
 
     const { user } = useAuth();
-
     const outletId = user?.outletId;
     const { config } = useContext(AppConfigContext);
 
+    const [selectedDate, setSelectedDate] = useState(null);
 
+    useEffect(() => {
+        const fetchSelectedDate = async () => {
+            const storedDate = await AsyncStorage.getItem('Date');
+            if (storedDate) {
+                setSelectedDate(JSON.parse(storedDate));
+            }
+        };
+        fetchSelectedDate();
+    }, []);
 
     // Parse cart data from params
     useEffect(() => {
@@ -98,45 +150,22 @@ const OrderPayment = () => {
                     type: 'error',
                     text1: 'Error',
                     text2: 'Invalid cart data',
-                    position: 'top',       // shows at the top
-                    topOffset: 200,        // adjust to move it towards center
-                    visibilityTime: 4000,  // stays visible for 4 seconds
+                    position: 'top',
+                    topOffset: 200,
+                    visibilityTime: 4000,
                     autoHide: true,
-                    onPress: () => Toast.hide(), // tap to dismiss
+                    onPress: () => Toast.hide(),
                 });
                 router.back()
             }
         }
+    }, [params.cartData])
 
-        // Parse applied coupon
-        if (params.appliedCoupon) {
-            try {
-                const parsedCoupon = JSON.parse(params.appliedCoupon as string)
-                setAppliedCoupon(parsedCoupon)
-            } catch (error) {
-                console.error('Error parsing coupon data:', error)
-            }
-        }
-    }, [params.cartData, params.appliedCoupon])
-
-    // Get order details from params or cart data
+    // Get order details from params
     const selectedTimeSlot = params.selectedTimeSlot as string
     const selectedTimeSlotDisplay = params.selectedTimeSlotDisplay as string
     const subtotalAmount = parseFloat(params.subtotalAmount as string || '0')
-    const discountAmount = parseFloat(params.discountAmount as string || '0')
-    const orderTotalAmount = parseFloat(params.totalAmount as string || '0')
     const totalItems = parseInt(params.totalItems as string || '0')
-    const [selectedDate, setSelectedDate] = useState(null);
-
-    useEffect(() => {
-        const fetchSelectedDate = async () => {
-            const storedDate = await AsyncStorage.getItem('Date');
-            if (storedDate) {
-                setSelectedDate(JSON.parse(storedDate));
-            }
-        };
-        fetchSelectedDate();
-    }, []);
 
     // Get category icon based on product category
     const getCategoryIcon = (category: string) => {
@@ -149,16 +178,100 @@ const OrderPayment = () => {
         return iconMap[category] || '🍽️'
     }
 
-    // Calculate totals from cart data
-    function calculateTotal() {
-        if (!cartData) return 0
-        return cartData.items.reduce((total, item) => total + (item.product.price * item.quantity), 0)
-    }
+    // Fetch coupons
+    const fetchCoupons = useCallback(async () => {
+        const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
+        try {
+            const coupons = await apiRequest(`/customer/outlets/coupons/${outletId}`, {
+                method: 'GET'
+            })
+            setAvailableCoupons(coupons?.coupons ?? [])
+        } catch (error) {
+            console.error('Error fetching coupons:', error)
+        }
+    }, [])
 
-    function calculateTotalItems() {
-        if (!cartData) return 0
-        return cartData.items.reduce((total, item) => total + item.quantity, 0)
-    }
+    useEffect(() => {
+        fetchCoupons()
+    }, [fetchCoupons])
+
+    // Apply coupon
+    const applyCoupon = useCallback(async (code: string) => {
+        if (!code.trim()) {
+            Toast.show({
+                type: 'error',
+                text1: 'Invalid Input',
+                text2: 'Please enter a coupon code',
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 5000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
+            return
+        }
+
+        const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
+        setCouponLoading(true)
+        try {
+            const currentTotal = subtotalAmount
+            const response = await apiRequest('/customer/outlets/apply-coupon', {
+                method: 'POST',
+                body: {
+                    code: code,
+                    currentTotal,
+                    outletId
+                }
+            })
+
+            const couponDetails = availableCoupons.find(c => c.code.toUpperCase() === code.toUpperCase())
+            setAppliedCoupon({
+                code: code,
+                discount: response.discount,
+                description: couponDetails?.description || 'Discount Applied'
+            })
+
+            setCouponCode('')
+            setShowCoupons(false)
+            Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: `Coupon applied successfully! You saved ₹${response.discount.toFixed(2)}`,
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 5000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
+        } catch (error) {
+            Toast.show({
+                type: 'error',
+                text1: 'Coupon Error',
+                text2: error.message || 'Failed to apply coupon',
+                position: 'top',
+                topOffset: 200,
+                visibilityTime: 5000,
+                autoHide: true,
+                onPress: () => Toast.hide(),
+            });
+        } finally {
+            setCouponLoading(false)
+        }
+    }, [subtotalAmount, availableCoupons])
+
+    // Remove coupon
+    const removeCoupon = useCallback(() => {
+        setAppliedCoupon(null)
+        setCouponCode('')
+    }, [])
+
+    // Calculate amounts
+    const discount = appliedCoupon?.discount || 0
+    const orderTotalAmount = subtotalAmount - discount
+    const platformFee = selectedPaymentMethod === 'UPI' ? orderTotalAmount * 0.02 : 0;
+    const finalTotalAmount = orderTotalAmount + platformFee
+
+    const formatCurrency = (amount: number) => `₹${amount.toFixed(2)}`
 
     // Fetch wallet details
     const fetchWalletData = async () => {
@@ -192,18 +305,7 @@ const OrderPayment = () => {
         fetchWalletData()
     }, [])
 
-    // Additional fees
-    // const deliveryFee = 2.99
-    // const serviceFee = 1.50
-    const finalTotalAmountBefore = orderTotalAmount // + deliveryFee + serviceFee
-    const platformFee = selectedPaymentMethod === 'UPI' ? finalTotalAmountBefore * 0.02 : 0;
-    const finalTotalAmount = orderTotalAmount + platformFee
-
-
-
-    const formatCurrency = (amount: number) => `₹${amount.toFixed(2)}`
-
-    // ✅ ENHANCED SUCCESS ALERT
+    // Success alert
     const showSuccessAlert = (orderData: any, paymentId: string) => {
         const orderNumber = `#${String(orderData.id).padStart(6, '0')}`
         const amount = formatCurrency(finalTotalAmount)
@@ -232,7 +334,6 @@ const OrderPayment = () => {
         )
     }
 
-    // ✅ PAYMENT CANCELLED ALERT
     const showCancelledAlert = () => {
         Alert.alert(
             '😔 Payment Cancelled',
@@ -253,7 +354,6 @@ const OrderPayment = () => {
         )
     }
 
-    // ✅ ERROR ALERT
     const showErrorAlert = (title: string, message: string) => {
         Alert.alert(
             `❌ ${title}`,
@@ -276,7 +376,6 @@ const OrderPayment = () => {
         )
     }
 
-    // ✅ WALLET SUCCESS ALERT
     const showWalletSuccessAlert = (orderData: any) => {
         const orderNumber = `#${String(orderData.id).padStart(6, '0')}`
         const amount = formatCurrency(finalTotalAmount)
@@ -294,7 +393,6 @@ const OrderPayment = () => {
                     onPress: () => {
                         clearCart();
                         navigation.popToTop();
-
                         router.replace('/(tabs)')
                     }
                 }
@@ -305,7 +403,6 @@ const OrderPayment = () => {
         )
     }
 
-    // Create Razorpay order
     const createRazorpayOrder = async (amount: number) => {
         try {
             console.log('Creating Razorpay order for amount:', amount)
@@ -313,7 +410,7 @@ const OrderPayment = () => {
             const response = await apiRequest('/customer/outlets/create-razorpay-order', {
                 method: 'POST',
                 body: {
-                    amount: Math.round(amount * 100), // Convert to paise
+                    amount: Math.round(amount * 100),
                     currency: 'INR',
                     receipt: `order_${new Date().getTime()}`
                 }
@@ -332,33 +429,29 @@ const OrderPayment = () => {
         }
     }
 
-    // ✅ ENHANCED RAZORPAY PAYMENT HANDLER
     const handleRazorpayPayment = async () => {
         try {
             setLoading(true)
             console.log('Starting payment process...')
             console.log('Final amount:', finalTotalAmount)
 
-            // Create order on your backend
             const razorpayOrder = await createRazorpayOrder(finalTotalAmount)
             console.log('Razorpay order created:', razorpayOrder)
 
             const options = {
                 description: 'Food Order Payment',
                 currency: 'INR',
-                key: 'rzp_test_CqJOLIOhHoCry6', // ✅ Your actual key
-                amount: razorpayOrder.amount, // ✅ Use amount from backend (already in paise)
+                key: 'rzp_test_CqJOLIOhHoCry6',
+                amount: razorpayOrder.amount,
                 order_id: razorpayOrder.id,
                 name: 'Mr Kadali',
                 prefill: {
                     email: user?.email || 'customer@restaurant.com',
                     name: user?.name || 'Valued Customer'
-                    // ✅ NO contact field - removes phone requirement
                 },
                 theme: {
                     color: '#FCD34D'
                 },
-                // ✅ Better UX options
                 modal: {
                     backdropclose: false,
                     escape: true,
@@ -378,17 +471,13 @@ const OrderPayment = () => {
             RazorpayCheckout.open(options)
                 .then(async (paymentData) => {
                     console.log('✅ Payment successful:', paymentData)
-
-                    // ✅ Success vibration
                     Vibration.vibrate([100, 200, 100])
-
                     await verifyPaymentAndCreateOrder(paymentData)
                 })
                 .catch((error) => {
                     console.log('❌ Payment error:', error)
                     setLoading(false)
 
-                    // Handle different error types
                     if (error.description && error.description.includes('cancelled')) {
                         showCancelledAlert()
                     } else if (error.code === 'BAD_REQUEST_ERROR') {
@@ -407,7 +496,6 @@ const OrderPayment = () => {
         }
     }
 
-    // ✅ ENHANCED VERIFY PAYMENT FUNCTION
     const verifyPaymentAndCreateOrder = async (paymentData: any) => {
         try {
             console.log('Verifying payment and creating order...')
@@ -431,8 +519,7 @@ const OrderPayment = () => {
                 }
             }
 
-
-            console.error(orderData);
+            // console.error(orderData);
 
             const response = await apiRequest('/customer/outlets/customer-order', {
                 method: 'POST',
@@ -441,15 +528,10 @@ const OrderPayment = () => {
 
             if (response.order) {
                 setLoading(false)
-
-                // ✅ Success vibration
                 Vibration.vibrate([200, 100, 200])
-
-                // ✅ Show beautiful success alert
                 setTimeout(() => {
                     showSuccessAlert(response.order, paymentData.razorpay_payment_id)
                 }, 500)
-
             } else {
                 throw new Error('Invalid response from server')
             }
@@ -457,7 +539,6 @@ const OrderPayment = () => {
             console.error('Order creation error:', error)
             setLoading(false)
 
-            // Payment successful but order failed
             Alert.alert(
                 '⚠️ Order Processing Issue',
                 `Your payment of ${formatCurrency(finalTotalAmount)} was successful!\n\n` +
@@ -481,12 +562,10 @@ const OrderPayment = () => {
         }
     }
 
-    // ✅ ENHANCED WALLET PAYMENT
     const handleWalletPayment = async () => {
         try {
             setLoading(true)
 
-            // Prepare order data
             const orderData = {
                 totalAmount: finalTotalAmount,
                 paymentMethod: 'WALLET',
@@ -494,7 +573,6 @@ const OrderPayment = () => {
                 outletId: outletId,
                 couponCode: appliedCoupon?.code || "",
                 deliveryDate: selectedDate?.fullDate ? new Date(selectedDate.fullDate) : null,
-
                 items: cartData!.items.map(item => ({
                     productId: item.productId,
                     quantity: item.quantity,
@@ -502,7 +580,7 @@ const OrderPayment = () => {
                 }))
             }
 
-            console.error(orderData);
+            // console.error(orderData);
             const response = await apiRequest('/customer/outlets/customer-order', {
                 method: 'POST',
                 body: orderData
@@ -510,11 +588,7 @@ const OrderPayment = () => {
 
             if (response.order) {
                 setLoading(false)
-
-                // ✅ Success vibration
                 Vibration.vibrate([200, 100, 200])
-
-                // ✅ Show wallet success alert
                 setTimeout(() => {
                     showWalletSuccessAlert(response.order)
                 }, 500)
@@ -531,7 +605,6 @@ const OrderPayment = () => {
         }
     }
 
-    // Main payment handler
     const handlePayment = async () => {
         if (!selectedPaymentMethod) {
             Toast.show({
@@ -539,10 +612,10 @@ const OrderPayment = () => {
                 text1: 'Select Payment Method',
                 text2: 'Please choose how you want to pay',
                 position: 'top',
-                topOffset: 200,      // Adjust to center if needed
+                topOffset: 200,
                 visibilityTime: 4000,
                 autoHide: true,
-                onPress: () => Toast.hide(), // Tap anywhere to close
+                onPress: () => Toast.hide(),
             });
             return
         }
@@ -553,10 +626,10 @@ const OrderPayment = () => {
                 text1: 'Error',
                 text2: 'Cart data not found',
                 position: 'top',
-                topOffset: 200,       // adjust vertical position if needed
-                visibilityTime: 4000, // 4 seconds
+                topOffset: 200,
+                visibilityTime: 4000,
                 autoHide: true,
-                onPress: () => Toast.hide(), // tap anywhere to close
+                onPress: () => Toast.hide(),
             });
             return
         }
@@ -567,10 +640,10 @@ const OrderPayment = () => {
                 text1: 'Error',
                 text2: 'Delivery time slot not selected',
                 position: 'top',
-                topOffset: 200,       // adjust vertical position if needed
-                visibilityTime: 4000, // 4 seconds
+                topOffset: 200,
+                visibilityTime: 4000,
                 autoHide: true,
-                onPress: () => Toast.hide(), // tap anywhere to close
+                onPress: () => Toast.hide(),
             });
             return
         }
@@ -582,10 +655,10 @@ const OrderPayment = () => {
                     text1: 'Insufficient Balance',
                     text2: 'Your wallet balance is insufficient for this order',
                     position: 'top',
-                    topOffset: 200,       // adjust vertical position if needed
-                    visibilityTime: 4000, // 4 seconds
+                    topOffset: 200,
+                    visibilityTime: 4000,
                     autoHide: true,
-                    onPress: () => Toast.hide(), // tap anywhere to close
+                    onPress: () => Toast.hide(),
                 });
                 return
             }
@@ -625,7 +698,7 @@ const OrderPayment = () => {
         icon,
         onPress,
         disabled = false,
-        note = null, // ✅ new optional prop
+        note = null,
     }: {
         type: 'WALLET' | 'UPI'
         title: string
@@ -677,8 +750,6 @@ const OrderPayment = () => {
         </TouchableOpacity>
     )
 
-
-    // Loading state
     if (!cartData || walletLoading) {
         return (
             <SafeAreaView className="flex-1 bg-gray-50">
@@ -692,7 +763,6 @@ const OrderPayment = () => {
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
-            {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100">
                 <TouchableOpacity className="p-2" onPress={() => router.back()} disabled={loading}>
                     <Text className="text-2xl">←</Text>
@@ -702,28 +772,13 @@ const OrderPayment = () => {
             </View>
 
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-                {/* Order Info */}
-                <View
-                    from={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: 'timing', duration: 400 }}
-                    className="mx-4 mt-6"
-                >
+                <View className="mx-4 mt-6">
                     <View className="bg-white rounded-2xl p-6 mb-6 shadow-sm border border-gray-100">
                         <View className="items-center mb-4">
-                            {/* <Text className="text-3xl mb-2">📋</Text> */}
                             <Text className="text-3xl font-bold text-gray-900">Order Summary</Text>
                         </View>
 
                         <View className="bg-yellow-50 rounded-xl p-4 mb-4">
-                            {/* <View className="flex-row justify-between items-center mb-2">
-                                <Text className="text-lg font-bold text-gray-900">
-                                    Order #{new Date().getTime().toString().slice(-6)}
-                                </Text>
-                                <View className="bg-blue-100 px-3 py-1 rounded-full">
-                                    <Text className="text-xs font-medium text-blue-800">Pending</Text>
-                                </View>
-                            </View> */}
                             <Text className="text-sm text-gray-600">Delivery Time: {selectedTimeSlotDisplay}</Text>
                             <Text className="text-sm text-gray-600">
                                 Selected Date:{" "}
@@ -737,7 +792,6 @@ const OrderPayment = () => {
                             </Text>
                         </View>
 
-                        {/* Order Items */}
                         <View className="mb-4">
                             <Text className="text-lg font-bold text-gray-900 mb-3">Items Ordered</Text>
                             {cartData?.items.map((item) => (
@@ -745,7 +799,6 @@ const OrderPayment = () => {
                             ))}
                         </View>
 
-                        {/* Bill Summary */}
                         <View className="border-t border-gray-200 pt-4">
                             <Text className="text-lg font-bold text-gray-900 mb-3">Bill Summary</Text>
 
@@ -755,18 +808,18 @@ const OrderPayment = () => {
                                     <Text className="text-gray-900 font-medium">{formatCurrency(subtotalAmount)}</Text>
                                 </View>
 
-                                {appliedCoupon && discountAmount > 0 && (
+                                {appliedCoupon && discount > 0 && (
                                     <View className="bg-green-50 rounded-lg p-3 my-2 border border-green-200">
                                         <View className="flex-row items-center justify-between mb-1">
                                             <View className="flex-row items-center">
                                                 <Text className="text-lg mr-2">🎫</Text>
                                                 <Text className="text-green-700 font-semibold">{appliedCoupon.code}</Text>
                                             </View>
-                                            <Text className="text-green-700 font-bold">-{formatCurrency(discountAmount)}</Text>
+                                            <Text className="text-green-700 font-bold">-{formatCurrency(discount)}</Text>
                                         </View>
-                                        <Text className="text-sm text-green-600">{appliedCoupon.description}</Text>
+                                        <Text className="text-sm text-gray-600">{appliedCoupon.description}</Text>
                                         <Text className="text-sm font-medium text-green-700">
-                                            You saved {formatCurrency(discountAmount)}!
+                                            You saved {formatCurrency(discount)}!
                                         </Text>
                                     </View>
                                 )}
@@ -775,16 +828,6 @@ const OrderPayment = () => {
                                     <Text className="text-gray-700">Subtotal After Discount</Text>
                                     <Text className="text-gray-900 font-medium">{formatCurrency(orderTotalAmount)}</Text>
                                 </View>
-
-                                {/* <View className="flex-row justify-between">
-                                    <Text className="text-gray-700">Delivery Fee</Text>
-                                    <Text className="text-gray-900 font-medium">{formatCurrency(deliveryFee)}</Text>
-                                </View> */}
-
-                                {/* <View className="flex-row justify-between">
-                                    <Text className="text-gray-700">Service Fee</Text>
-                                    <Text className="text-gray-900 font-medium">{formatCurrency(serviceFee)}</Text>
-                                </View> */}
 
                                 {selectedPaymentMethod === "UPI" && (
                                     <View className="flex-row justify-between">
@@ -802,13 +845,92 @@ const OrderPayment = () => {
                     </View>
                 </View>
 
+                {/* Coupon Section */}
+                {config.COUPONS && (
+                    <View className="mx-4 mb-6">
+                        <View className="bg-white rounded-xl p-5 border border-gray-200">
+                            <View className="flex-row items-center justify-between mb-4">
+                                <View className="flex-row items-center">
+                                    <Text className="text-lg font-bold text-gray-900">Apply Coupon</Text>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => setShowCoupons(!showCoupons)}
+                                    className="bg-gray-100 px-3 py-2 rounded-lg"
+                                >
+                                    <Text className="text-gray-700 text-xs font-bold">
+                                        {showCoupons ? 'Hide' : 'View All'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {appliedCoupon ? (
+                                <View className="bg-green-50 p-4 rounded-lg border border-green-200">
+                                    <View className="flex-row items-center justify-between">
+                                        <View className="flex-1">
+                                            <Text className="text-base font-bold text-gray-900 mb-1">{appliedCoupon.code}</Text>
+                                            <Text className="text-sm text-gray-600 mb-1">{appliedCoupon.description}</Text>
+                                            <Text className="text-base font-bold text-green-600">Saved ₹{discount.toFixed(2)}</Text>
+                                        </View>
+                                        <TouchableOpacity
+                                            onPress={removeCoupon}
+                                            className="bg-white px-3 py-2 rounded-lg border border-gray-200 ml-3"
+                                        >
+                                            <Text className="text-gray-700 text-xs font-bold">Remove</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ) : (
+                                <View className="flex-row items-center">
+                                    <TextInput
+                                        className="flex-1 bg-gray-50 px-4 py-3 rounded-lg text-base border border-gray-200"
+                                        placeholder="Enter code"
+                                        value={couponCode}
+                                        onChangeText={setCouponCode}
+                                        autoCapitalize="characters"
+                                        autoCorrect={false}
+                                    />
+                                    <TouchableOpacity
+                                        onPress={() => applyCoupon(couponCode)}
+                                        className={`ml-3 px-5 py-3 rounded-lg ${couponCode.trim() ? 'bg-gray-900' : 'bg-gray-300'}`}
+                                        disabled={!couponCode.trim() || couponLoading}
+                                    >
+                                        {couponLoading ? (
+                                            <ActivityIndicator size="small" color="white" />
+                                        ) : (
+                                            <Text className="text-white font-bold text-sm">Apply</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            {showCoupons && availableCoupons.length > 0 && (
+                                <ScrollView
+                                    className="mt-4"
+                                    style={{ maxHeight: 400 }}
+                                    nestedScrollEnabled={true}
+                                    showsVerticalScrollIndicator={true}
+                                >
+                                    {availableCoupons.map((coupon) => (
+                                        <CouponItem
+                                            key={coupon.id}
+                                            coupon={coupon}
+                                            onApply={applyCoupon}
+                                        />
+                                    ))}
+                                </ScrollView>
+                            )}
+
+                            {showCoupons && availableCoupons.length === 0 && (
+                                <View className="items-center py-4 mt-2">
+                                    <Text className="text-gray-500">No coupons available</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                )}
+
                 {/* Payment Methods */}
-                <View
-                    from={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: 'timing', duration: 400, delay: 200 }}
-                    className="mx-4 mb-6"
-                >
+                <View className="mx-4 mb-6">
                     <View className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                         <Text className="text-lg font-bold text-gray-900 mb-4">Choose Payment Method</Text>
 
@@ -822,12 +944,7 @@ const OrderPayment = () => {
                         />
 
                         {selectedPaymentMethod === 'WALLET' && walletData && (
-                            <View
-                                from={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                transition={{ type: 'timing', duration: 300 }}
-                                className="bg-blue-50 rounded-xl p-4 mb-4 border border-blue-200"
-                            >
+                            <View className="bg-blue-50 rounded-xl p-4 mb-4 border border-blue-200">
                                 <Text className="text-base font-semibold text-gray-900 mb-3">Wallet Transaction Details</Text>
                                 <View className="space-y-2">
                                     <View className="flex-row justify-between">
@@ -866,14 +983,8 @@ const OrderPayment = () => {
                                     note="2% platform fee added for online payments"
                                 />
 
-
                                 {selectedPaymentMethod === 'UPI' && (
-                                    <View
-                                        from={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        transition={{ type: 'timing', duration: 300 }}
-                                        className="bg-green-50 rounded-xl p-4 mb-4 border border-green-200"
-                                    >
+                                    <View className="bg-green-50 rounded-xl p-4 mb-4 border border-green-200">
                                         <Text className="text-base font-semibold text-gray-900 mb-3">Online Payment Details</Text>
                                         <View className="space-y-2">
                                             <View className="flex-row justify-between">
@@ -933,7 +1044,6 @@ const OrderPayment = () => {
             </ScrollView>
         </SafeAreaView>
     );
-
 }
 
 export default OrderPayment
