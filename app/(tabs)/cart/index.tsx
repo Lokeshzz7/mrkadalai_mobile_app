@@ -18,6 +18,7 @@ import { apiRequest } from '../../../utils/api'
 import Toast from 'react-native-toast-message'
 import { useContext } from 'react';
 import { AppConfigContext } from '@/context/AppConfigContext';
+import CustomNativeLoader from '@/components/CustomNativeLoader'
 
 // Types remain the same
 interface CartProduct {
@@ -169,9 +170,7 @@ const Cart: React.FC = () => {
     const isFocused = useIsFocused();
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null)
     const [refreshing, setRefreshing] = useState(false)
-    const [lastOrderCheck, setLastOrderCheck] = useState<string>('')
     const { config } = useContext(AppConfigContext);
-    const hasInitializedRef = useRef(false);
 
     const {
         state: cartState,
@@ -205,54 +204,24 @@ const Cart: React.FC = () => {
         return iconMap[category] || '🍽️'
     }
 
-    const isMountedRef = useRef(false);
-
+    // FIXED: Always fetch cart data when screen comes into focus
     useFocusEffect(
         useCallback(() => {
             const initializeCart = async () => {
-                // Only fetch if this is the first mount OR returning after order
-                if (isMountedRef.current && hasInitializedRef.current) {
-                    return; // Already initialized, don't fetch again
-                }
-
                 const lastOrder = await AsyncStorage.getItem('lastOrderCompleted')
 
                 if (lastOrder) {
                     await Promise.all([fetchCartData(), refreshProducts()])
                     await AsyncStorage.removeItem('lastOrderCompleted')
-                } else if (!hasInitializedRef.current) {
+                } else {
+                    // Always fetch fresh cart data when screen is focused
                     await fetchCartData()
                 }
-
-                hasInitializedRef.current = true
-                isMountedRef.current = true
             }
 
             initializeCart()
-
-            return () => {
-                // Don't reset on every blur - only reset when truly unmounting
-                isMountedRef.current = false
-            }
-        }, [])
+        }, [fetchCartData, refreshProducts])
     )
-
-
-    // const [hasInitiallyFetched, setHasInitiallyFetched] = useState(false);
-
-    // useFocusEffect(
-    //     useCallback(() => {
-    //         if (!cartState.syncInProgress && !hasInitiallyFetched) {
-    //             fetchCartData();
-    //             setHasInitiallyFetched(true);
-    //         }
-
-    //         return () => {
-    //             // Reset on blur so it fetches fresh data when returning to cart
-    //             setHasInitiallyFetched(false);
-    //         };
-    //     }, [cartState.syncInProgress, fetchCartData, hasInitiallyFetched])
-    // )
 
     const handleRefresh = useCallback(async () => {
         setRefreshing(true)
@@ -418,15 +387,18 @@ const Cart: React.FC = () => {
     if (cartState.loading) {
         return (
             <SafeAreaView className="flex-1 bg-white">
-                <View className="flex-1 justify-center items-center">
-                    <ActivityIndicator size="large" color="#FCD34D" />
-                    <Text className="mt-4 text-gray-600 font-medium">Loading cart...</Text>
-                </View>
+
+                <CustomNativeLoader />
             </SafeAreaView>
         )
     }
 
-    const cartItems = cartState.cartData?.items || []
+    // FIXED: Filter out items with 0 quantity
+    const cartItems = (cartState.cartData?.items || []).filter(item => {
+        const quantity = getItemQuantity(item.productId)
+        return quantity > 0
+    })
+
     const totalItems = getTotalCartItems()
     const subtotal = getTotalPrice()
 
@@ -439,21 +411,6 @@ const Cart: React.FC = () => {
                 </TouchableOpacity>
 
                 <Text className="absolute left-0 right-0 text-center text-xl font-bold text-gray-900">My Cart</Text>
-
-                {/* <View className="flex-row items-center">
-                    <TouchableOpacity
-                        onPress={handleRefresh}
-                        className="p-2 mr-2"
-                        disabled={refreshing}
-                    >
-                        <Text className="text-xl">🔄</Text>
-                    </TouchableOpacity>
-                    <View className="bg-yellow-400 rounded-full min-w-7 h-7 items-center justify-center">
-                        <Text className="text-gray-900 text-sm font-bold">
-                            {totalItems}
-                        </Text>
-                    </View>
-                </View> */}
             </View>
 
             <ScrollView

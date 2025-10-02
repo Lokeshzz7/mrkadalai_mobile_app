@@ -123,6 +123,7 @@ import { useAuth } from '@/context/AuthContext'
 import { apiRequest } from '../../../utils/api'
 import { router } from 'expo-router'
 import Toast from 'react-native-toast-message'
+import CustomNativeLoader from '@/components/CustomNativeLoader'
 
 const Profile = () => {
   const { user, logout } = useAuth()
@@ -296,7 +297,7 @@ const Profile = () => {
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 justify-center items-center">
-        <Text className="text-lg text-gray-600">Loading profile...</Text>
+        <CustomNativeLoader />
       </SafeAreaView>
     )
   }

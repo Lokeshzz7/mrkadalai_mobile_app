@@ -7,6 +7,7 @@ import {
 import { router } from "expo-router";
 import { apiRequest } from "../../utils/api";
 import Toast from "react-native-toast-message";
+import CustomNativeLoader from "@/components/CustomNativeLoader";
 
 interface Ticket {
     id: string;
@@ -237,8 +238,9 @@ const myTicket = () => {
     if (loading) {
         return (
             <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
-                <ActivityIndicator size="large" color="#EBB22F" />
-                <Text className="text-gray-600 mt-4">Loading tickets...</Text>
+                {/* <ActivityIndicator size="large" color="#EBB22F" />
+                <Text className="text-gray-600 mt-4">Loading tickets...</Text> */}
+                <CustomNativeLoader />
             </SafeAreaView>
         );
     }

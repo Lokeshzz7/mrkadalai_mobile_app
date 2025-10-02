@@ -19,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from 'react-native-toast-message'
 import { AppConfigContext } from '@/context/AppConfigContext'
 import { useAuth } from '@/context/AuthContext'
+import CustomNativeLoader from '@/components/CustomNativeLoader'
 
 interface Product {
   id: number;
@@ -363,8 +364,9 @@ const RestaurantHome = () => {
     return (
       <SafeAreaView className="flex-1 bg-white">
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#FCD34D" />
-          <Text className="mt-4 text-gray-600">Loading products...</Text>
+          {/* <ActivityIndicator size="large" color="#FCD34D" />
+          <Text className="mt-4 text-gray-600">Loading products...</Text> */}
+          <CustomNativeLoader />
         </View>
       </SafeAreaView>
     )

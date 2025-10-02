@@ -4,6 +4,7 @@ import { Tabs, Redirect } from 'expo-router';
 import { CartProvider } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { AntDesign, MaterialIcons, Feather, FontAwesome } from '@expo/vector-icons';
+import CustomNativeLoader from '../../components/CustomNativeLoader';
 
 interface TabIconProps {
     focused: boolean;
@@ -34,7 +35,7 @@ const TabsLayout = () => {
     if (isLoading) {
         return (
             <View className="flex-1 justify-center items-center">
-                <ActivityIndicator size="large" color="#EBB22F" />
+                <CustomNativeLoader />
             </View>
         );
     }

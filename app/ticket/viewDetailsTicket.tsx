@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { apiRequest } from "../../utils/api";
+import CustomNativeLoader from "@/components/CustomNativeLoader";
 
 export interface TicketData {
     id: string;
@@ -166,7 +167,8 @@ const viewDetailsTicket = () => {
     if (loading) {
         return (
             <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
-                <Text className="text-lg text-gray-500">Loading ticket details...</Text>
+                {/* <Text className="text-lg text-gray-500">Loading ticket details...</Text> */}
+                <CustomNativeLoader />
             </SafeAreaView>
         );
     }
