@@ -626,9 +626,9 @@ const Wallet = () => {
     if (isLoading) {
         return (
             <SafeAreaView className="flex-1 bg-white items-center justify-center">
-                {/* <ActivityIndicator size="large" color="#FCD34D" />
-                <Text className="mt-2 text-gray-600">Loading wallet...</Text> */}
-                <CustomNativeLoader />
+                <ActivityIndicator size="large" color="#FCD34D" />
+                <Text className="mt-2 text-gray-600">Loading wallet...</Text>
+                {/* <CustomNativeLoader /> */}
             </SafeAreaView>
         );
     }

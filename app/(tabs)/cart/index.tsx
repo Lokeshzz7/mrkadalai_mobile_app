@@ -388,7 +388,11 @@ const Cart: React.FC = () => {
         return (
             <SafeAreaView className="flex-1 bg-white">
 
-                <CustomNativeLoader />
+                {/* <CustomNativeLoader /> */}
+                <View className="flex-1 justify-center items-center">
+                    <ActivityIndicator size="large" color="#FCD34D" />
+                    <Text className="mt-4 text-gray-600 font-medium">Loading cart...</Text>
+                </View>
             </SafeAreaView>
         )
     }

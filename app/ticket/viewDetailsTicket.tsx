@@ -167,8 +167,8 @@ const viewDetailsTicket = () => {
     if (loading) {
         return (
             <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
-                {/* <Text className="text-lg text-gray-500">Loading ticket details...</Text> */}
-                <CustomNativeLoader />
+                <Text className="text-lg text-gray-500">Loading ticket details...</Text>
+                {/* <CustomNativeLoader /> */}
             </SafeAreaView>
         );
     }

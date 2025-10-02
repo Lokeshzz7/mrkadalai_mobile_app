@@ -297,7 +297,8 @@ const Profile = () => {
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 justify-center items-center">
-        <CustomNativeLoader />
+        {/* <CustomNativeLoader /> */}
+        <Text className="text-lg text-gray-600">Loading profile...</Text>
       </SafeAreaView>
     )
   }

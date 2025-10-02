@@ -35,7 +35,7 @@ const TabsLayout = () => {
     if (isLoading) {
         return (
             <View className="flex-1 justify-center items-center">
-                <CustomNativeLoader />
+                <ActivityIndicator size="large" color="#EBB22F" />
             </View>
         );
     }

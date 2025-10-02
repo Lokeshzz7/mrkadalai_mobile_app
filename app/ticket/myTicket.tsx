@@ -238,9 +238,9 @@ const myTicket = () => {
     if (loading) {
         return (
             <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
-                {/* <ActivityIndicator size="large" color="#EBB22F" />
-                <Text className="text-gray-600 mt-4">Loading tickets...</Text> */}
-                <CustomNativeLoader />
+                <ActivityIndicator size="large" color="#EBB22F" />
+                <Text className="text-gray-600 mt-4">Loading tickets...</Text>
+                {/* <CustomNativeLoader /> */}
             </SafeAreaView>
         );
     }
