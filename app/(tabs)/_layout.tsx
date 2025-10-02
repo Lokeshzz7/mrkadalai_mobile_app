@@ -1,7 +1,8 @@
 import React, { memo, ReactElement } from 'react';
-import { View, Platform } from 'react-native';
-import { Tabs } from 'expo-router';
+import { View, Platform, ActivityIndicator } from 'react-native';
+import { Tabs, Redirect } from 'expo-router';
 import { CartProvider } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { AntDesign, MaterialIcons, Feather, FontAwesome } from '@expo/vector-icons';
 
 interface TabIconProps {
@@ -9,7 +10,6 @@ interface TabIconProps {
     icon: ReactElement;
 }
 
-// Memoized TabIcon to prevent unnecessary re-renders
 const TabIcon = memo(({ focused, icon }: TabIconProps) => {
     return (
         <View
@@ -28,13 +28,29 @@ const TabIcon = memo(({ focused, icon }: TabIconProps) => {
 });
 
 const TabsLayout = () => {
+    const { user, isLoading } = useAuth();
+
+    // Wait for auth check to finish
+    if (isLoading) {
+        return (
+            <View className="flex-1 justify-center items-center">
+                <ActivityIndicator size="large" color="#EBB22F" />
+            </View>
+        );
+    }
+
+    // If no user, force redirect to login
+    if (!user) {
+        return <Redirect href="/auth/login" />;
+    }
+
     return (
         <CartProvider>
             <View style={{ flex: 1 }}>
                 <Tabs
                     screenOptions={{
                         tabBarShowLabel: false,
-                        lazy: true, // lazy load screens for faster navigation
+                        lazy: true,
                         tabBarStyle: {
                             height: 70,
                             backgroundColor: '#ffffff',
@@ -54,35 +70,35 @@ const TabsLayout = () => {
                         name="index"
                         options={{
                             headerShown: false,
-                            tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon={<AntDesign name="home" size={28} />} />,
+                            tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon={<AntDesign name="home" size={28} />} />,
                         }}
                     />
                     <Tabs.Screen
                         name="orders"
                         options={{
                             headerShown: false,
-                            tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon={<MaterialIcons name="receipt-long" size={28} />} />,
+                            tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon={<MaterialIcons name="receipt-long" size={28} />} />,
                         }}
                     />
                     <Tabs.Screen
                         name="wallet"
                         options={{
                             headerShown: false,
-                            tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon={<Feather name="credit-card" size={28} />} />,
+                            tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon={<Feather name="credit-card" size={28} />} />,
                         }}
                     />
                     <Tabs.Screen
                         name="cart"
                         options={{
                             headerShown: false,
-                            tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon={<AntDesign name="shoppingcart" size={28} />} />,
+                            tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon={<AntDesign name="shoppingcart" size={28} />} />,
                         }}
                     />
                     <Tabs.Screen
                         name="profile"
                         options={{
                             headerShown: false,
-                            tabBarIcon: ({ focused }: { focused: boolean }) => <TabIcon focused={focused} icon={<FontAwesome name="user-circle" size={28} />} />,
+                            tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon={<FontAwesome name="user-circle" size={28} />} />,
                         }}
                     />
                 </Tabs>
