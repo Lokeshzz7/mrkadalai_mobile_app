@@ -44,7 +44,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "https://api.mrkadalai.com/api",
+      "apiUrl": "http://13.201.49.59:5500/api",
       "router": {
         "origin": false
       },
