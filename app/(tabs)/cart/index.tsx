@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useContext } from 'react'
 import {
     Text,
     View,
@@ -14,11 +14,10 @@ import { useRouter } from 'expo-router'
 import { useFocusEffect, useIsFocused } from '@react-navigation/native'
 import { useCart } from '../../../context/CartContext'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { apiRequest } from '../../../utils/api'
 import Toast from 'react-native-toast-message'
-import { useContext } from 'react';
 import { AppConfigContext } from '@/context/AppConfigContext';
-import CustomNativeLoader from '@/components/CustomNativeLoader'
+
+// ... (Interface and CartItem/TimeSlotItem definitions remain the same) ...
 
 // Types remain the same
 interface CartProduct {
@@ -168,8 +167,9 @@ const TimeSlotItem = React.memo<TimeSlotItemProps>(({ slot, isSelected, onSelect
 const Cart: React.FC = () => {
     const router = useRouter()
     const isFocused = useIsFocused();
-    const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null)
+    const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null) 
     const [refreshing, setRefreshing] = useState(false)
+    const [selectedDate, setSelectedDate] = useState<any>(null)
     const { config } = useContext(AppConfigContext);
 
     const {
@@ -179,19 +179,51 @@ const Cart: React.FC = () => {
         removeItem,
         getTotalCartItems,
         getItemQuantity,
-        canAddMore,
         getTotalPrice,
         validateCartStock,
         refreshProducts
     } = useCart()
 
+
+    useEffect(() => {
+        const loadSelectedDate = async () => {
+            try {
+                const dateString = await AsyncStorage.getItem('Date')
+                if (dateString) {
+                    const date = JSON.parse(dateString)
+                    setSelectedDate(date)
+                }
+            } catch (error) {
+                console.error('Error loading selected date:', error)
+            }
+        }
+        loadSelectedDate()
+    }, [isFocused]) 
+
+    const isTimeSlotPassed = useCallback((endHour: number): boolean => {
+        if (!selectedDate) return false 
+
+        const now = new Date()
+        const selectedDateObj = new Date(selectedDate.fullDate)
+        
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const dateToCheck = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate());
+        
+        if (dateToCheck.getTime() === today.getTime()) {
+            const currentHour = now.getHours()
+            return currentHour >= endHour
+        }
+
+        return false
+    }, [selectedDate])
+
     const timeSlots: TimeSlot[] = [
-        { id: 1, time: '11:00 AM - 12:00 PM', available: true, slot: 'SLOT_11_12' },
-        { id: 2, time: '12:00 PM - 1:00 PM', available: true, slot: 'SLOT_12_13' },
-        { id: 3, time: '1:00 PM - 2:00 PM', available: true, slot: 'SLOT_13_14' },
-        { id: 4, time: '2:00 PM - 3:00 PM', available: true, slot: 'SLOT_14_15' },
-        { id: 5, time: '3:00 PM - 4:00 PM', available: true, slot: 'SLOT_15_16' },
-        { id: 6, time: '4:00 PM - 5:00 PM', available: true, slot: 'SLOT_16_17' }
+        { id: 1, time: '11:00 AM - 12:00 PM', available: !isTimeSlotPassed(12), slot: 'SLOT_11_12' },
+        { id: 2, time: '12:00 PM - 1:00 PM', available: !isTimeSlotPassed(13), slot: 'SLOT_12_13' },
+        { id: 3, time: '1:00 PM - 2:00 PM', available: !isTimeSlotPassed(14), slot: 'SLOT_13_14' },
+        { id: 4, time: '2:00 PM - 3:00 PM', available: !isTimeSlotPassed(15), slot: 'SLOT_14_15' },
+        { id: 5, time: '3:00 PM - 4:00 PM', available: !isTimeSlotPassed(16), slot: 'SLOT_15_16' },
+        { id: 6, time: '4:00 PM - 5:00 PM', available: !isTimeSlotPassed(17), slot: 'SLOT_16_17' }
     ]
 
     const getCategoryIcon = (category: string): string => {
@@ -204,17 +236,19 @@ const Cart: React.FC = () => {
         return iconMap[category] || '🍽️'
     }
 
-    // FIXED: Always fetch cart data when screen comes into focus
+    // FIXED: Clear selectedTimeSlot and fetch cart data when screen comes into focus
     useFocusEffect(
         useCallback(() => {
             const initializeCart = async () => {
+                // Clear selected time slot every time the user enters the cart
+                setSelectedTimeSlot(null); 
+
                 const lastOrder = await AsyncStorage.getItem('lastOrderCompleted')
 
                 if (lastOrder) {
                     await Promise.all([fetchCartData(), refreshProducts()])
                     await AsyncStorage.removeItem('lastOrderCompleted')
                 } else {
-                    // Always fetch fresh cart data when screen is focused
                     await fetchCartData()
                 }
             }
@@ -230,6 +264,8 @@ const Cart: React.FC = () => {
                 fetchCartData(),
                 refreshProducts()
             ])
+            // Ensure slots are re-evaluated based on new data
+            setSelectedTimeSlot(null); 
         } catch (error) {
             console.error('Error refreshing cart:', error)
         } finally {
@@ -242,7 +278,6 @@ const Cart: React.FC = () => {
         const totalStock = inventory?.quantity || 0
         const reservedStock = inventory?.reserved || 0
         const currentQuantity = getItemQuantity?.(productId) ?? 0
-        const newQuantity = currentQuantity + change
         const availableStock = Math.max(0, totalStock - reservedStock - currentQuantity)
 
         if (change > 0 && availableStock <= 0) {
@@ -259,7 +294,7 @@ const Cart: React.FC = () => {
             return
         }
 
-        if (newQuantity < 0) return
+        if (currentQuantity + change < 0) return
 
         try {
             await updateItemQuantity(productId, change, product, availableStock)
@@ -307,6 +342,10 @@ const Cart: React.FC = () => {
         )
     }, [removeItem])
 
+    // Get the selected slot object and check availability
+    const selectedSlotObject = timeSlots.find(slot => slot.id === selectedTimeSlot);
+    const isSlotAvailable = selectedSlotObject?.available ?? false;
+
     const handleCheckout = useCallback(async () => {
         if (!cartState.cartData || cartState.cartData.items.length === 0) {
             Toast.show({
@@ -321,11 +360,13 @@ const Cart: React.FC = () => {
             });
             return
         }
-        if (!selectedTimeSlot) {
+        
+        // Enforce re-selection and availability check
+        if (!selectedTimeSlot || !isSlotAvailable) { 
             Toast.show({
                 type: 'error',
                 text1: 'Select Time Slot',
-                text2: 'Please select a delivery time slot',
+                text2: 'Please select an available delivery time slot',
                 position: 'top',
                 topOffset: 200,
                 visibilityTime: 5000,
@@ -374,7 +415,7 @@ const Cart: React.FC = () => {
                 totalItems: getTotalCartItems().toString()
             }
         })
-    }, [cartState.cartData, selectedTimeSlot, getTotalPrice, getTotalCartItems, router, validateCartStock, handleRefresh])
+    }, [cartState.cartData, selectedTimeSlot, isSlotAvailable, getTotalPrice, getTotalCartItems, router, validateCartStock, handleRefresh, timeSlots])
 
     if (!isFocused) {
         return (
@@ -387,8 +428,6 @@ const Cart: React.FC = () => {
     if (cartState.loading) {
         return (
             <SafeAreaView className="flex-1 bg-white">
-
-                {/* <CustomNativeLoader /> */}
                 <View className="flex-1 justify-center items-center">
                     <ActivityIndicator size="large" color="#FCD34D" />
                     <Text className="mt-4 text-gray-600 font-medium">Loading cart...</Text>
@@ -397,7 +436,7 @@ const Cart: React.FC = () => {
         )
     }
 
-    // FIXED: Filter out items with 0 quantity
+    // Filter out items with 0 quantity
     const cartItems = (cartState.cartData?.items || []).filter(item => {
         const quantity = getItemQuantity(item.productId)
         return quantity > 0
@@ -405,6 +444,9 @@ const Cart: React.FC = () => {
 
     const totalItems = getTotalCartItems()
     const subtotal = getTotalPrice()
+
+    // Combined checkout button disabled logic
+    const isCheckoutDisabled = !(cartItems.length > 0 && selectedTimeSlot && isSlotAvailable);
 
     return (
         <SafeAreaView className="flex-1 bg-white">
@@ -456,6 +498,25 @@ const Cart: React.FC = () => {
                             >
                                 <Text className="font-bold text-gray-900 text-base">Browse Menu</Text>
                             </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
+
+                {/* Delivery Date Info */}
+                {selectedDate && cartItems.length > 0 && (
+                    <View className="mx-4 mt-4">
+                        <View className="bg-yellow-50 rounded-xl p-4 border border-yellow-200 flex-row items-center">
+                            <Text className="text-2xl mr-3">🗓️</Text>
+                            <View>
+                                <Text className="text-sm font-medium text-gray-700">Ordering for:</Text>
+                                <Text className="text-lg font-bold text-gray-900">
+                                    {selectedDate.day}, {selectedDate.month} {selectedDate.date} 
+                                    {selectedDate.fullDate && (new Date(selectedDate.fullDate).getTime() === new Date(new Date().setHours(0,0,0,0)).getTime()) ? ' (Today)' : ''}
+                                </Text>
+                                <Text className="text-xs text-red-500 font-medium mt-1">
+                                    {isTimeSlotPassed(0) && "All Time slots are unavailable for Today"}
+                                </Text>
+                            </View>
                         </View>
                     </View>
                 )}
@@ -518,21 +579,21 @@ const Cart: React.FC = () => {
                         <TouchableOpacity
                             onPress={handleCheckout}
                             activeOpacity={0.8}
-                            className={`rounded-xl p-4 shadow-lg ${cartItems.length > 0 && selectedTimeSlot
+                            className={`rounded-xl p-4 shadow-lg ${!isCheckoutDisabled
                                 ? 'bg-yellow-400'
                                 : 'bg-gray-300'
                                 }`}
-                            disabled={!(cartItems.length > 0 && selectedTimeSlot)}
+                            disabled={isCheckoutDisabled}
                         >
                             <View className="items-center">
-                                <Text className={`text-xl font-extrabold mb-1 ${cartItems.length > 0 && selectedTimeSlot
+                                <Text className={`text-xl font-extrabold mb-1 ${!isCheckoutDisabled
                                     ? 'text-gray-900'
                                     : 'text-gray-500'
                                     }`}>
                                     Proceed to Payment
                                 </Text>
                                 <View className="flex-row items-center">
-                                    <Text className={`text-2xl font-extrabold ${cartItems.length > 0 && selectedTimeSlot
+                                    <Text className={`text-2xl font-extrabold ${!isCheckoutDisabled
                                         ? 'text-black'
                                         : 'text-gray-500'
                                         }`}>

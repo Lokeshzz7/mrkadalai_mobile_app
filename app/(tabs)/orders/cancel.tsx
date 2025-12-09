@@ -125,7 +125,7 @@ const Cancel = () => {
     const previousWalletBalance = 150.75
     const newWalletBalance = refundMethod === 'WALLET' ? previousWalletBalance + refundAmount : previousWalletBalance
 
-    const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`
+    const formatCurrency = (amount: number) => `₹${amount.toFixed(2)}`
 
     const InfoRow = ({ label, value }: { label: string; value: string }) => (
         <View className="flex-row justify-between items-center mb-3">

@@ -65,7 +65,7 @@ type ApiTransaction = {
     method: string;
     status: string;
     walletAmount?: number; // Optional because you use || 0
-    amount?: number;       // Optional because you use || 0
+    amount?: number;       // Optional because you use || 0
 };
 
 // Union type for FlatList data
@@ -164,9 +164,9 @@ const RechargeHistoryCard = React.memo(({ item, index }: { item: RechargeHistory
         // from={{ opacity: 0, translateY: 50 }}
         // animate={{ opacity: 1, translateY: 0 }}
         // transition={{
-        //     type: 'timing',
-        //     duration: 300,
-        //     delay: index * 100,
+        //     type: 'timing',
+        //     duration: 300,
+        //     delay: index * 100,
         // }}
         className="bg-white rounded-2xl p-4 mb-3 mx-4 shadow-md border border-gray-100"
     >
@@ -201,9 +201,9 @@ const TransactionHistoryCard = React.memo(({ item, index }: { item: TransactionH
         // from={{ opacity: 0, translateY: 50 }}
         // animate={{ opacity: 1, translateY: 0 }}
         // transition={{
-        //     type: 'timing',
-        //     duration: 300,
-        //     delay: index * 100,
+        //     type: 'timing',
+        //     duration: 300,
+        //     delay: index * 100,
         // }}
         className="bg-white rounded-2xl p-4 mb-3 mx-4 shadow-md border border-gray-100"
     >
@@ -237,7 +237,7 @@ const TransactionHistoryCard = React.memo(({ item, index }: { item: TransactionH
 
 const notices = [
     "Wallet recharges are non-refundable",
-    "Processing fees may apply",
+    "Processing fees may apply", 
     "By proceeding, you agree to our Terms of Service and Refund Policy.",
 ];
 
@@ -253,9 +253,9 @@ const ImportantNotice = () => {
 
     return (
         <View
-            from={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ type: 'timing', duration: 600, delay: 400 }}
+            // from={{ opacity: 0 }}
+            // animate={{ opacity: 1 }}
+            // transition={{ type: 'timing', duration: 600, delay: 400 }}
             className="px-4 mb-6"
         >
             <View className="bg-red-50 border border-red-200 rounded-2xl p-4 gap-2">
@@ -268,7 +268,7 @@ const ImportantNotice = () => {
     );
 };
 
-const RechargeInput = React.memo(({ rechargeAmount, setRechargeAmount, payableAmount, isRecharging }) => (
+const RechargeInput = React.memo(({ rechargeAmount, setRechargeAmount, payableAmount, isRecharging }: { rechargeAmount: string, setRechargeAmount: (text: string) => void, payableAmount: number, isRecharging: boolean }) => (
     <View className="mb-4">
         <Text className="text-gray-700 font-medium mb-2">Enter Amount</Text>
         <TextInput
@@ -279,11 +279,12 @@ const RechargeInput = React.memo(({ rechargeAmount, setRechargeAmount, payableAm
             keyboardType="numeric"
             editable={!isRecharging}
         />
-        {rechargeAmount !== '' && (
+        {/* REMOVED 2% PLATFORM FEE NOTE */}
+        {/* {rechargeAmount !== '' && (
             <Text className="text-yellow-700 text-lg mt-1">
                 Note: 2% platform fee will be added. Total payable: ₹{payableAmount.toFixed(2)}
             </Text>
-        )}
+        )} */}
     </View>
 ));
 
@@ -319,12 +320,14 @@ const Wallet = () => {
         return () => clearTimeout(timer); // cancel previous timer on next keystroke
     }, [rechargeAmount]);
 
-    const PLATFORM_FEE_PERCENT = 2;
+    // SETTING PLATFORM FEE TO ZERO
+    const PLATFORM_FEE_PERCENT = 0; 
 
-    // Calculate payable amount including fee
+    // Calculate payable amount (now just the recharge amount)
     const payableAmount = useMemo(() => {
         const amount = parseFloat(rechargeAmount) || 0;
-        return amount + (amount * PLATFORM_FEE_PERCENT) / 100;
+        // REMOVED: return amount + (amount * PLATFORM_FEE_PERCENT) / 100;
+        return amount;
     }, [rechargeAmount]);
 
     // Transform backend transaction to frontend format
@@ -467,7 +470,7 @@ const Wallet = () => {
                 type: 'error', // you can define a custom type in your toastConfig if needed
                 text1: 'Invalid Amount',
                 text2: 'Please enter a valid amount greater than 0.',
-                position: 'top',    // keep top or bottom
+                position: 'top',    // keep top or bottom
                 visibilityTime: 4000,
                 autoHide: true,
                 onPress: () => Toast.hide(),
@@ -480,21 +483,23 @@ const Wallet = () => {
 
         try {
             // Step 1: Create an order from your backend
+            // NOTE: The backend API must now handle the case where serviceCharge is 0 or removed
             const orderResponse = await walletAPI.createRechargeOrder(amount);
 
             if (!orderResponse.order || !orderResponse.order.id) {
                 throw new Error(orderResponse.message || 'Failed to create payment order.');
             }
 
-            const { id: order_id, amount: payableAmount } = orderResponse.order; // amount is in paise
-            const { serviceCharge } = orderResponse.breakdown;
+            const { id: order_id, amount: payableAmountRaw } = orderResponse.order; // payableAmountRaw is in paise
+            // const { serviceCharge } = orderResponse.breakdown; // Assuming serviceCharge is not needed or handled server-side now
 
             // Prepare options for Razorpay Checkout
             const options = {
-                description: `Recharge for ₹${amount} (+ ₹${serviceCharge} fee)`,
+                // UPDATED DESCRIPTION
+                description: `Wallet Recharge for ₹${amount}`,
                 currency: 'INR',
                 key: 'rzp_test_CqJOLIOhHoCry6', // IMPORTANT: Replace with your actual Razorpay Key ID
-                amount: payableAmount, // Amount in paise, from your backend response
+                amount: payableAmountRaw, // Amount in paise, from your backend response
                 name: 'Mr . Kadalai', // Your application's name
                 order_id: order_id, // The unique order_id from your backend
                 prefill: {
@@ -603,14 +608,14 @@ const Wallet = () => {
     const TabButton = ({ title, isActive, onPress }: TabButtonProps) => (
         <TouchableOpacity onPress={onPress} className="flex-1">
             <View
-                animate={{
-                    backgroundColor: isActive ? '#FCD34D' : '#F9FAFB',
-                }}
-                transition={{
-                    type: 'timing',
-                    duration: 200,
-                }}
-                className={`py-3 rounded-xl mx-1 border ${isActive ? 'border-yellow-400' : 'border-gray-200'}`}
+                // animate={{
+                //     backgroundColor: isActive ? '#FCD34D' : '#F9FAFB',
+                // }}
+                // transition={{
+                //     type: 'timing',
+                //     duration: 200,
+                // }}
+                className={`py-3 rounded-xl mx-1 border ${isActive ? 'border-yellow-400 bg-yellow-400' : 'border-gray-200 bg-gray-50'}`}
             >
                 <Text className={`text-center font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>
                     {title}
@@ -636,15 +641,6 @@ const Wallet = () => {
     return (
         <SafeAreaView className="flex-1 bg-white">
             {/* Header remains static at the top */}
-            {/* <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
-                <TouchableOpacity className="p-2" onPress={() => router.back()}>
-                    <Text className="text-2xl">←</Text>
-                </TouchableOpacity>
-                <Text className="text-xl font-bold text-gray-900">Wallet</Text>
-                <TouchableOpacity onPress={refreshData} className="p-2">
-                    <Text className="text-lg">🔄</Text>
-                </TouchableOpacity>
-            </View> */}
             <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100 relative">
                 <TouchableOpacity className="p-2" onPress={() => router.back()}>
                     <Text className="text-2xl">←</Text>
@@ -657,7 +653,7 @@ const Wallet = () => {
 
             {/* The main FlatList now controls all scrolling */}
             <FlatList <HistoryItem>
-                data={currentData} // Use the memoized 'currentData'
+                data={currentData} 
                 keyExtractor={(item) => item.id}
                 renderItem={({ item, index }) => {
                     if (isRechargeHistoryItem(item)) {
@@ -675,39 +671,27 @@ const Wallet = () => {
                     <>
                         {/* Wallet Balance Section */}
                         <View
-                            from={{ opacity: 0, translateY: -30 }}
-                            animate={{ opacity: 1, translateY: 0 }}
-                            transition={{ type: 'timing', duration: 600 }}
+                            // from={{ opacity: 0, translateY: -30 }}
+                            // animate={{ opacity: 1, translateY: 0 }}
+                            // transition={{ type: 'timing', duration: 600 }}
                             className="px-4 py-6"
                         >
-                            <View className="bg-white shadow-md rounded-3xl p-6 mb-4  border border-gray-100 " >
+                            <View className="bg-white shadow-md rounded-3xl p-6 mb-4  border border-gray-100 " >
                                 <View className="flex-row items-center justify-between mb-4">
                                     <View className="flex-row items-center">
-                                        {/* <View className="w-12 h-12 bg-yellow-100 rounded-2xl items-center justify-center mr-3">
-                                            <Text className="text-yellow-600 text-xl">💰</Text>
-                                        </View> */}
                                         <Text className="text-gray-800 text-2xl font-semibold">
                                             Wallet Balance
                                         </Text>
                                     </View>
-                                    {/* <View className="w-8 h-8 bg-yellow-50 rounded-full items-center justify-center">
-                                        <View className="w-2 h-2 bg-yellow-400 rounded-full" />
-                                    </View> */}
                                 </View>
 
-                                <View className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-2xl p-4 mb-4">
+                                <View className="bg-yellow-50 rounded-2xl p-4 mb-4">
                                     <Text className="text-yellow-700 text-sm font-medium mb-1 opacity-80">
                                         Available Balance
                                     </Text>
                                     <Text className="text-gray-900 text-4xl font-bold mb-2">
                                         ₹{walletBalance.toFixed(2)}
                                     </Text>
-                                    {/* <View className="flex-row items-center">
-                                        <View className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2" />
-                                        <Text className="text-gray-600 text-xs font-medium">
-                                            Active • Last updated now
-                                        </Text>
-                                    </View> */}
                                 </View>
 
                                 <View className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
@@ -738,9 +722,9 @@ const Wallet = () => {
 
                         {/* Recharge Section */}
                         <View
-                            from={{ opacity: 0, translateY: 30 }}
-                            animate={{ opacity: 1, translateY: 0 }}
-                            transition={{ type: 'timing', duration: 600, delay: 200 }}
+                            // from={{ opacity: 0, translateY: 30 }}
+                            // animate={{ opacity: 1, translateY: 0 }}
+                            // transition={{ type: 'timing', duration: 600, delay: 200 }}
                             className="px-4 mb-6"
                         >
                             <View className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
@@ -766,46 +750,12 @@ const Wallet = () => {
                                         </TouchableOpacity>
                                     ))}
                                 </View>
-                                {/* <View className="mb-4">
-                                    <Text className="text-gray-700 font-medium mb-2">Enter Amount</Text>
-                                    <TextInput
-                                        className="border border-gray-200 rounded-xl px-4 py-3 text-lg font-medium"
-                                        placeholder="₹0.00"
-                                        value={rechargeAmount}
-                                        onChangeText={setRechargeAmount}
-                                        keyboardType="numeric"
-                                        editable={!isRecharging}
-                                    />
-                                </View> */}
                                 <RechargeInput
                                     rechargeAmount={rechargeAmount}
                                     setRechargeAmount={setRechargeAmount}
                                     payableAmount={payableAmount}
                                     isRecharging={isRecharging}
                                 />
-                                {/* <View className="mb-4">
-                                    <Text className="text-gray-700 font-medium mb-2">Payment Method</Text>
-                                    <View className="flex-row flex-wrap">
-                                        {paymentMethods.map((method) => (
-                                            <TouchableOpacity
-                                                key={method}
-                                                className={`px-3 py-2 rounded-lg mr-2 mb-2 border ${selectedPaymentMethod === method
-                                                    ? 'bg-yellow-400 border-yellow-500'
-                                                    : 'bg-gray-100 border-gray-200'
-                                                    }`}
-                                                onPress={() => setSelectedPaymentMethod(method)}
-                                            >
-                                                <Text className={`text-sm font-medium ${selectedPaymentMethod === method
-                                                    ? 'text-gray-900'
-                                                    : 'text-gray-600'
-                                                    }`}>
-                                                    {method}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                </View> */}
-
 
                                 <TouchableOpacity
                                     className={`py-4 rounded-xl ${isRecharging ? 'bg-yellow-200' : 'bg-yellow-400'}`}
@@ -828,29 +778,7 @@ const Wallet = () => {
                             </View>
                         </View>
 
-                        {/* Caution Notice
-                        <View
-                            from={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ type: 'timing', duration: 600, delay: 400 }}
-                            className="px-4 mb-6"
-                        >
-                            <View className="bg-red-50 border border-red-200 rounded-2xl p-4 gap-2">
-                                <Text className="text-red-800 text-2xl font-bold mb-2">
-                                    Important Notice
-                                </Text>
-                                <Text className="text-red-700 text-sm leading-5">
-                                    • Wallet recharges are non-refundable
-                                </Text>
-                                <Text className="text-red-700 text-sm leading-5">
-                                    • Processing fees may apply
-                                </Text>
-                                <Text className="text-red-700 text-sm leading-5 ">
-                                    • By proceeding, you agree to our Terms of Service and Refund Policy.
-                                </Text>
-                            </View>
-                        </View> */}
-
+                        {/* Caution Notice */}
                         <ImportantNotice />
                         {/* Tab Buttons */}
                         <View className="flex-row px-4 py-4">

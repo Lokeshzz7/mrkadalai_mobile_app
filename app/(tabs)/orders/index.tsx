@@ -496,7 +496,7 @@ const MyOrders = () => {
             id: order.id,
             orderNumber: `#ORD-${order.id.toString().padStart(3, '0')}`,
             items: transformedItems,
-            totalPrice: `$${order.totalAmount.toFixed(2)}`,
+            totalPrice: `₹${order.totalAmount.toFixed(2)}`,
             status: order.status.toLowerCase(),
             orderTime: orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             orderDate: displayDate,                   // formatted date
@@ -652,7 +652,7 @@ const MyOrders = () => {
 
             Alert.alert(
                 "Order Cancelled",
-                `Order ${selectedOrder.orderNumber} has been cancelled successfully.${response.refundAmount ? ` $${response.refundAmount.toFixed(2)} refunded.` : ""
+                `Order ${selectedOrder.orderNumber} has been cancelled successfully.${response.refundAmount ? ` ₹${response.refundAmount.toFixed(2)} refunded.` : ""
                 }`
             );
 

@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useContext, useMemo } from 'react'
 import {
     Text,
     View,
     SafeAreaView,
     TouchableOpacity,
     ScrollView,
-    Alert,
+    Alert, // Keeping Alert for emergency contact fallback, but replacing main usages
     ActivityIndicator,
     Vibration,
     Image,
     TextInput,
-    FlatList
+    Modal
 } from 'react-native'
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router'
 import RazorpayCheckout from 'react-native-razorpay';
@@ -19,8 +19,9 @@ import { useAuth } from '../../../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCart } from '@/context/CartContext';
 import Toast from 'react-native-toast-message';
-import { useContext } from 'react';
 import { AppConfigContext } from '@/context/AppConfigContext';
+
+// --- INTERFACE DEFINITIONS (KEPT AS IS) ---
 
 interface CartProduct {
     id: number;
@@ -83,6 +84,8 @@ interface CouponItemProps {
     onApply: (code: string) => void;
 }
 
+// --- REUSABLE COMPONENTS (KEPT AS IS) ---
+
 const CouponItem = React.memo<CouponItemProps>(({ coupon, onApply }) => (
     <TouchableOpacity
         onPress={() => onApply(coupon.code)}
@@ -104,6 +107,172 @@ const CouponItem = React.memo<CouponItemProps>(({ coupon, onApply }) => (
     </TouchableOpacity>
 ))
 
+// --- NEW MODAL COMPONENTS (PROFESSIONAL UI) ---
+
+interface OrderModalData {
+    orderNumber: string;
+    amount: string;
+    deliveryTime: string;
+    paymentId?: string;
+    isWallet: boolean;
+    onGoHome: () => void;
+}
+
+interface ErrorModalData {
+    title: string;
+    message: string;
+    details?: string;
+    onTryAgain: () => void;
+    onContactSupport: () => void;
+}
+
+const BaseModal = ({ visible, onClose, children }: { visible: boolean, onClose: () => void, children: React.ReactNode }) => (
+    <Modal
+        visible={visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={onClose}
+        statusBarTranslucent={true}
+    >
+        <View
+            style={{
+                flex: 1,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                paddingHorizontal: 24,
+            }}
+        >
+            <View
+                style={{
+                    backgroundColor: 'white',
+                    borderRadius: 16,
+                    padding: 24,
+                    width: '100%',
+                    maxWidth: 380,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 5.46,
+                    elevation: 10,
+                }}
+            >
+                {children}
+            </View>
+        </View>
+    </Modal>
+)
+
+const OrderSuccessModal = ({ visible, data }: { visible: boolean, data: OrderModalData | null }) => {
+    if (!data) return null;
+
+    return (
+        <BaseModal visible={visible} onClose={data.onGoHome}>
+            <View className="items-center">
+                <View className="w-16 h-16 bg-green-100 rounded-full items-center justify-center mb-4">
+                    <Text className="text-3xl">✅</Text>
+                </View>
+                <Text className="text-2xl font-bold text-gray-900 mb-2 text-center">
+                    Order Placed!
+                </Text>
+                <Text className="text-base text-gray-600 mb-6 text-center">
+                    Your meal is being prepared. Thank you for ordering!
+                </Text>
+
+                <View className="bg-gray-50 rounded-xl p-4 w-full mb-6">
+                    <View className="flex-row justify-between py-1">
+                        <Text className="text-gray-700">Order ID:</Text>
+                        <Text className="font-semibold text-gray-900">{data.orderNumber}</Text>
+                    </View>
+                    <View className="flex-row justify-between py-1">
+                        <Text className="text-gray-700">Total Paid:</Text>
+                        <Text className="font-semibold text-green-600">{data.amount}</Text>
+                    </View>
+                    <View className="flex-row justify-between py-1 border-t border-gray-200 mt-2 pt-2">
+                        <Text className="text-gray-700">Delivery Time:</Text>
+                        <Text className="font-semibold text-gray-900">{data.deliveryTime}</Text>
+                    </View>
+                    {data.paymentId && (
+                        <View className="flex-row justify-between py-1">
+                            <Text className="text-xs text-gray-500">Payment ID:</Text>
+                            <Text className="text-xs text-gray-500">{data.paymentId.substring(0, 16)}...</Text>
+                        </View>
+                    )}
+                </View>
+
+                <TouchableOpacity
+                    className="w-full bg-yellow-400 py-3 rounded-xl"
+                    onPress={data.onGoHome}
+                    activeOpacity={0.8}
+                >
+                    <Text className="text-lg font-bold text-gray-900 text-center">
+                        View Orders
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        </BaseModal>
+    )
+}
+
+const ErrorStatusModal = ({ visible, data, onCancelPayment }: { visible: boolean, data: ErrorModalData | null, onCancelPayment: () => void }) => {
+    if (!data) return null;
+
+    const isPaymentError = data.title.includes('Payment');
+
+    return (
+        <BaseModal visible={visible} onClose={data.onTryAgain}>
+            <View className="items-center">
+                <View className={`w-16 h-16 ${isPaymentError ? 'bg-red-100' : 'bg-yellow-100'} rounded-full items-center justify-center mb-4`}>
+                    <Text className="text-3xl">{isPaymentError ? '❌' : '⚠️'}</Text>
+                </View>
+                <Text className="text-2xl font-bold text-gray-900 mb-2 text-center">
+                    {data.title}
+                </Text>
+                <Text className="text-sm text-gray-600 mb-6 text-center">
+                    {data.message}
+                </Text>
+
+                {data.details && (
+                    <View className="bg-gray-50 rounded-xl p-3 w-full mb-6">
+                        <Text className="text-xs font-semibold text-gray-800 mb-1">Details:</Text>
+                        <Text className="text-xs text-gray-600">{data.details}</Text>
+                    </View>
+                )}
+
+                <View className="flex-row w-full justify-between">
+                    <TouchableOpacity
+                        className="flex-1 bg-gray-100 py-3 rounded-xl mr-2"
+                        onPress={data.onTryAgain}
+                        activeOpacity={0.7}
+                    >
+                        <Text className="text-center font-medium text-gray-700">Try Again</Text>
+                    </TouchableOpacity>
+
+                    {isPaymentError ? (
+                        <TouchableOpacity
+                            className="flex-1 bg-red-500 py-3 rounded-xl ml-2"
+                            onPress={onCancelPayment}
+                            activeOpacity={0.7}
+                        >
+                            <Text className="text-center font-medium text-white">Go Back</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            className="flex-1 bg-gray-900 py-3 rounded-xl ml-2"
+                            onPress={data.onContactSupport}
+                            activeOpacity={0.7}
+                        >
+                            <Text className="text-center font-medium text-white">Contact Support</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+        </BaseModal>
+    )
+}
+
+// --- ORDER PAYMENT COMPONENT ---
+
 const OrderPayment = () => {
     const router = useRouter()
     const navigation = useNavigation();
@@ -122,11 +291,17 @@ const OrderPayment = () => {
     const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([])
     const [showCoupons, setShowCoupons] = useState<boolean>(false)
 
+    // Modal States
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [successModalData, setSuccessModalData] = useState<OrderModalData | null>(null);
+    const [errorModalData, setErrorModalData] = useState<ErrorModalData | null>(null);
+
     const { user } = useAuth();
     const outletId = user?.outletId;
     const { config } = useContext(AppConfigContext);
 
-    const [selectedDate, setSelectedDate] = useState(null);
+    const [selectedDate, setSelectedDate] = useState<any>(null); // Use 'any' for the Async Storage object
 
     useEffect(() => {
         const fetchSelectedDate = async () => {
@@ -159,13 +334,13 @@ const OrderPayment = () => {
                 router.back()
             }
         }
-    }, [params.cartData])
+    }, [params.cartData, router])
 
     // Get order details from params
     const selectedTimeSlot = params.selectedTimeSlot as string
     const selectedTimeSlotDisplay = params.selectedTimeSlotDisplay as string
     const subtotalAmount = parseFloat(params.subtotalAmount as string || '0')
-    const totalItems = parseInt(params.totalItems as string || '0')
+    // const totalItems = parseInt(params.totalItems as string || '0') // not used directly, removing comment
 
     // Get category icon based on product category
     const getCategoryIcon = (category: string) => {
@@ -180,9 +355,12 @@ const OrderPayment = () => {
 
     // Fetch coupons
     const fetchCoupons = useCallback(async () => {
-        const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
+        const storedOutletId = await AsyncStorage.getItem("outletId");
+        const id = parseInt(storedOutletId || "0", 10);
+        if (id === 0) return;
+
         try {
-            const coupons = await apiRequest(`/customer/outlets/coupons/${outletId}`, {
+            const coupons = await apiRequest(`/customer/outlets/coupons/${id}`, {
                 method: 'GET'
             })
             setAvailableCoupons(coupons?.coupons ?? [])
@@ -211,7 +389,9 @@ const OrderPayment = () => {
             return
         }
 
-        const outletId = parseInt(await AsyncStorage.getItem("outletId") || "0", 10);
+        const storedOutletId = await AsyncStorage.getItem("outletId");
+        const id = parseInt(storedOutletId || "0", 10);
+
         setCouponLoading(true)
         try {
             const currentTotal = subtotalAmount
@@ -220,7 +400,7 @@ const OrderPayment = () => {
                 body: {
                     code: code,
                     currentTotal,
-                    outletId
+                    outletId: id
                 }
             })
 
@@ -268,7 +448,7 @@ const OrderPayment = () => {
     // Calculate amounts
     const discount = appliedCoupon?.discount || 0
     const orderTotalAmount = subtotalAmount - discount
-    const platformFee = selectedPaymentMethod === 'UPI' ? orderTotalAmount * 0.02 : 0;
+    const platformFee = 0;
     const finalTotalAmount = orderTotalAmount + platformFee
 
     const formatCurrency = (amount: number) => `₹${amount.toFixed(2)}`
@@ -286,16 +466,7 @@ const OrderPayment = () => {
             }
         } catch (error) {
             console.error('Error fetching wallet:', error)
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to fetch wallet details',
-                position: 'top',
-                topOffset: 200,
-                visibilityTime: 4000,
-                autoHide: true,
-                onPress: () => Toast.hide(),
-            });
+            // No Toast/Alert here, as wallet details aren't critical for initial load
         } finally {
             setWalletLoading(false)
         }
@@ -305,102 +476,50 @@ const OrderPayment = () => {
         fetchWalletData()
     }, [])
 
-    // Success alert
-    const showSuccessAlert = (orderData: any, paymentId: string) => {
+    const handleGoHome = useCallback(() => {
+        clearCart();
+        navigation.popToTop();
+        router.replace('/(tabs)')
+    }, [clearCart, navigation, router]);
+
+    const handleTryAgain = useCallback(() => {
+        setShowErrorModal(false);
+        setErrorModalData(null);
+        setSelectedPaymentMethod(null);
+    }, []);
+
+    const handleContactSupport = useCallback(() => {
+        // Fallback to native alert for complex contact info
+        Alert.alert('Contact Support', 'Call: +91-XXXXX-XXXXX\nEmail: support@restaurant.com');
+        setShowErrorModal(false);
+        setErrorModalData(null);
+    }, []);
+
+    const showOrderSuccessModal = (orderData: any, paymentId?: string) => {
         const orderNumber = `#${String(orderData.id).padStart(6, '0')}`
         const amount = formatCurrency(finalTotalAmount)
+        const isWallet = !paymentId;
 
-        Alert.alert(
-            '🎉 Order Confirmed!',
-            `Congratulations! Your delicious meal is on its way!\n\n` +
-            `📋 Order: ${orderNumber}\n` +
-            `💳 Payment: ${amount}\n` +
-            `🕐 Delivery: ${selectedTimeSlotDisplay}\n` +
-            `📱 Payment ID: ${paymentId.substring(0, 12)}...\n\n` +
-            `Thank you for choosing us! 😊`,
-            [
-                {
-                    text: '🏠 Go Home',
-                    onPress: () => {
-                        clearCart();
-                        navigation.popToTop();
-                        router.replace('/(tabs)')
-                    }
-                }
-            ],
-            {
-                cancelable: false
-            }
-        )
+        setSuccessModalData({
+            orderNumber,
+            amount,
+            deliveryTime: selectedTimeSlotDisplay,
+            paymentId: paymentId || undefined,
+            isWallet,
+            onGoHome: handleGoHome
+        });
+        setShowSuccessModal(true);
     }
 
-    const showCancelledAlert = () => {
-        Alert.alert(
-            '😔 Payment Cancelled',
-            `No worries! Your delicious food is still waiting for you.\n\nWould you like to try a different payment method?`,
-            [
-                {
-                    text: 'Try Again',
-                    onPress: () => {
-                        setSelectedPaymentMethod(null)
-                    }
-                },
-                {
-                    text: 'Maybe Later',
-                    style: 'cancel',
-                    onPress: () => router.back()
-                }
-            ]
-        )
-    }
-
-    const showErrorAlert = (title: string, message: string) => {
-        Alert.alert(
-            `❌ ${title}`,
-            `${message}\n\nDon't worry, we're here to help!`,
-            [
-                {
-                    text: 'Contact Support',
-                    onPress: () => {
-                        Alert.alert('Contact Support', 'Call: +91-XXXXX-XXXXX\nEmail: support@restaurant.com')
-                    }
-                },
-                {
-                    text: 'Try Again',
-                    style: 'default',
-                    onPress: () => {
-                        setSelectedPaymentMethod(null)
-                    }
-                }
-            ]
-        )
-    }
-
-    const showWalletSuccessAlert = (orderData: any) => {
-        const orderNumber = `#${String(orderData.id).padStart(6, '0')}`
-        const amount = formatCurrency(finalTotalAmount)
-
-        Alert.alert(
-            '🎉 Order Placed Successfully!',
-            `Your wallet payment was successful!\n\n` +
-            `📋 Order: ${orderNumber}\n` +
-            `💳 Amount: ${amount}\n` +
-            `🕐 Delivery: ${selectedTimeSlotDisplay}\n\n` +
-            `Thank you for using your wallet! 😊`,
-            [
-                {
-                    text: '🏠 Go Home',
-                    onPress: () => {
-                        clearCart();
-                        navigation.popToTop();
-                        router.replace('/(tabs)')
-                    }
-                }
-            ],
-            {
-                cancelable: false
-            }
-        )
+    const showErrorStatusModal = (title: string, message: string, details?: string) => {
+        setErrorModalData({
+            title,
+            message,
+            details,
+            onTryAgain: handleTryAgain,
+            onContactSupport: handleContactSupport
+        });
+        setShowErrorModal(true);
     }
 
     const createRazorpayOrder = async (amount: number) => {
@@ -416,8 +535,6 @@ const OrderPayment = () => {
                 }
             })
 
-            console.log('Order creation response:', response)
-
             if (!response.order || !response.order.id) {
                 throw new Error('Invalid order response from server')
             }
@@ -432,19 +549,16 @@ const OrderPayment = () => {
     const handleRazorpayPayment = async () => {
         try {
             setLoading(true)
-            console.log('Starting payment process...')
-            console.log('Final amount:', finalTotalAmount)
 
             const razorpayOrder = await createRazorpayOrder(finalTotalAmount)
-            console.log('Razorpay order created:', razorpayOrder)
 
             const options = {
                 description: 'Food Order Payment',
                 currency: 'INR',
-                key: 'rzp_test_CqJOLIOhHoCry6',
+                key: 'rzp_test_CqJOLIOhHoCry6', // KEEPING TEST KEY
                 amount: razorpayOrder.amount,
                 order_id: razorpayOrder.id,
-                name: 'Mr Kadali',
+                name: 'Mr Kadalai',
                 prefill: {
                     email: user?.email || 'customer@restaurant.com',
                     name: user?.name || 'Valued Customer'
@@ -463,11 +577,6 @@ const OrderPayment = () => {
                 }
             }
 
-            console.log('Payment options (masked):', {
-                ...options,
-                key: options.key.substring(0, 8) + '****'
-            })
-
             RazorpayCheckout.open(options)
                 .then(async (paymentData) => {
                     console.log('✅ Payment successful:', paymentData)
@@ -478,27 +587,39 @@ const OrderPayment = () => {
                     console.log('❌ Payment error:', error)
                     setLoading(false)
 
-                    if (error.description && error.description.includes('cancelled')) {
-                        showCancelledAlert()
-                    } else if (error.code === 'BAD_REQUEST_ERROR') {
-                        showErrorAlert('Invalid Request', 'There was an issue with the payment setup. Please try again.')
-                    } else {
-                        showErrorAlert('Payment Failed', error.description || 'An unexpected error occurred. Please try again.')
-                    }
+                    const description = error.description || 'An unexpected error occurred. Please try again.';
 
-                    console.error('Detailed Razorpay error:', JSON.stringify(error, null, 2))
+                    if (description.includes('cancelled') || error.code === 'PAYMENT_CANCELLED') {
+                        showErrorStatusModal(
+                            'Payment Cancelled',
+                            'No worries! Your food is still waiting. Would you like to try a different payment method?',
+                            'You dismissed the payment gateway.'
+                        );
+                    } else if (error.code === 'BAD_REQUEST_ERROR') {
+                        showErrorStatusModal(
+                            'Invalid Request',
+                            'There was an issue with the payment setup. Please try again.',
+                            description
+                        );
+                    } else {
+                        showErrorStatusModal(
+                            'Payment Failed',
+                            'An unexpected error occurred during payment. Please try again.',
+                            description
+                        );
+                    }
                 })
 
         } catch (error) {
             console.error('Payment setup error:', error)
             setLoading(false)
-            showErrorAlert('Setup Error', 'Failed to initialize payment. Please try again.')
+            showErrorStatusModal('Setup Error', 'Failed to initialize payment. Please try again.', error.message)
         }
     }
 
     const verifyPaymentAndCreateOrder = async (paymentData: any) => {
         try {
-            console.log('Verifying payment and creating order...')
+            setLoading(true);
 
             const orderData = {
                 totalAmount: finalTotalAmount,
@@ -511,15 +632,13 @@ const OrderPayment = () => {
                     productId: item.productId,
                     quantity: item.quantity,
                     unitPrice: item.product.price
-                })),
+                })) as any,
                 paymentDetails: {
                     razorpay_order_id: paymentData.razorpay_order_id,
                     razorpay_payment_id: paymentData.razorpay_payment_id,
                     razorpay_signature: paymentData.razorpay_signature
                 }
             }
-
-            // console.error(orderData);
 
             const response = await apiRequest('/customer/outlets/customer-order', {
                 method: 'POST',
@@ -530,7 +649,7 @@ const OrderPayment = () => {
                 setLoading(false)
                 Vibration.vibrate([200, 100, 200])
                 setTimeout(() => {
-                    showSuccessAlert(response.order, paymentData.razorpay_payment_id)
+                    showOrderSuccessModal(response.order, paymentData.razorpay_payment_id)
                 }, 500)
             } else {
                 throw new Error('Invalid response from server')
@@ -539,26 +658,12 @@ const OrderPayment = () => {
             console.error('Order creation error:', error)
             setLoading(false)
 
-            Alert.alert(
-                '⚠️ Order Processing Issue',
-                `Your payment of ${formatCurrency(finalTotalAmount)} was successful!\n\n` +
-                `Payment ID: ${paymentData.razorpay_payment_id}\n\n` +
-                `However, there was an issue processing your order. Our team has been notified and will contact you shortly.\n\n` +
-                `Please save your Payment ID for reference.`,
-                [
-                    {
-                        text: 'Contact Support',
-                        onPress: () => {
-                            Alert.alert('Emergency Support', 'Call: +91-XXXXX-XXXXX\nEmail: urgent@restaurant.com')
-                        }
-                    },
-                    {
-                        text: 'OK',
-                        onPress: () => router.back()
-                    }
-                ],
-                { cancelable: false }
-            )
+            // Special case: Payment was successful, but order failed on server
+            showErrorStatusModal(
+                'Order Processing Issue',
+                'Your payment was successful, but there was an issue processing your order. Our team has been notified and will contact you shortly.',
+                `Payment ID: ${paymentData.razorpay_payment_id}\nAmount: ${formatCurrency(finalTotalAmount)}\nError: ${error.message || 'Server did not return order.'}`
+            );
         }
     }
 
@@ -577,10 +682,9 @@ const OrderPayment = () => {
                     productId: item.productId,
                     quantity: item.quantity,
                     unitPrice: item.product.price
-                }))
+                })) as any
             }
 
-            // console.error(orderData);
             const response = await apiRequest('/customer/outlets/customer-order', {
                 method: 'POST',
                 body: orderData
@@ -590,18 +694,19 @@ const OrderPayment = () => {
                 setLoading(false)
                 Vibration.vibrate([200, 100, 200])
                 setTimeout(() => {
-                    showWalletSuccessAlert(response.order)
+                    showOrderSuccessModal(response.order) // No payment ID for wallet
                 }, 500)
             }
         } catch (error) {
             console.error('Wallet payment error:', error);
             setLoading(false)
 
-            if (error instanceof Error) {
-                showErrorAlert('Wallet Payment Failed', error.message);
-            } else {
-                showErrorAlert('Payment Error', 'Failed to process wallet payment');
-            }
+            const message = error instanceof Error ? error.message : 'Failed to process wallet payment.';
+            showErrorStatusModal(
+                'Wallet Payment Failed',
+                message,
+                `Please check your wallet balance and try again, or select online payment.`
+            );
         }
     }
 
@@ -620,25 +725,11 @@ const OrderPayment = () => {
             return
         }
 
-        if (!cartData) {
+        if (!cartData || !selectedTimeSlot) {
             Toast.show({
                 type: 'error',
                 text1: 'Error',
-                text2: 'Cart data not found',
-                position: 'top',
-                topOffset: 200,
-                visibilityTime: 4000,
-                autoHide: true,
-                onPress: () => Toast.hide(),
-            });
-            return
-        }
-
-        if (!selectedTimeSlot) {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Delivery time slot not selected',
+                text2: 'Missing cart or delivery details',
                 position: 'top',
                 topOffset: 200,
                 visibilityTime: 4000,
@@ -829,12 +920,7 @@ const OrderPayment = () => {
                                     <Text className="text-gray-900 font-medium">{formatCurrency(orderTotalAmount)}</Text>
                                 </View>
 
-                                {selectedPaymentMethod === "UPI" && (
-                                    <View className="flex-row justify-between">
-                                        <Text className="text-gray-700">Platform Fee (2%)</Text>
-                                        <Text className="text-gray-900 font-medium">{formatCurrency(platformFee)}</Text>
-                                    </View>
-                                )}
+                                {/* Platform Fee (0) is implicitly handled by finalTotalAmount */}
 
                                 <View className="flex-row justify-between items-center border-t border-gray-200 pt-3 mt-3">
                                     <Text className="text-lg font-bold text-gray-900">Total Amount</Text>
@@ -848,7 +934,7 @@ const OrderPayment = () => {
                 {/* Coupon Section */}
                 {config.COUPONS && (
                     <View className="mx-4 mb-6">
-                        <View className="bg-white rounded-xl p-5 border border-gray-200">
+                        <View className="bg-white rounded-2xl p-5 border border-gray-200">
                             <View className="flex-row items-center justify-between mb-4">
                                 <View className="flex-row items-center">
                                     <Text className="text-lg font-bold text-gray-900">Apply Coupon</Text>
@@ -980,7 +1066,7 @@ const OrderPayment = () => {
                                     subtitle="UPI, Card, Net Banking via Razorpay"
                                     icon="🌐"
                                     onPress={() => setSelectedPaymentMethod('UPI')}
-                                    note="2% platform fee added for online payments"
+                                    note={null}
                                 />
 
                                 {selectedPaymentMethod === 'UPI' && (
@@ -1042,6 +1128,18 @@ const OrderPayment = () => {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+
+            {/* Custom Modals */}
+            <OrderSuccessModal visible={showSuccessModal} data={successModalData} />
+            <ErrorStatusModal 
+                visible={showErrorModal} 
+                data={errorModalData} 
+                onCancelPayment={() => {
+                    setShowErrorModal(false);
+                    setErrorModalData(null);
+                    router.back(); 
+                }}
+            />
         </SafeAreaView>
     );
 }
