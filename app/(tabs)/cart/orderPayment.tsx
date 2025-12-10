@@ -20,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCart } from '@/context/CartContext';
 import Toast from 'react-native-toast-message';
 import { AppConfigContext } from '@/context/AppConfigContext';
+import Constants from "expo-constants";
 
 // --- INTERFACE DEFINITIONS (KEPT AS IS) ---
 
@@ -83,6 +84,16 @@ interface CouponItemProps {
     coupon: Coupon;
     onApply: (code: string) => void;
 }
+
+const getRazorpayKey = () => {
+  const key = Constants.expoConfig?.extra?.razorpayKey;
+  if (!key) {
+    console.warn("⚠️ Razorpay key missing in Expo config!");
+  }
+  return key ?? '';
+};
+
+const RAZORPAY_KEY = getRazorpayKey();
 
 // --- REUSABLE COMPONENTS (KEPT AS IS) ---
 
@@ -555,7 +566,7 @@ const OrderPayment = () => {
             const options = {
                 description: 'Food Order Payment',
                 currency: 'INR',
-                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || '', // Razorpay Key from environment variable
+                key: RAZORPAY_KEY, // Razorpay Key from environment variable
                 amount: razorpayOrder.amount,
                 order_id: razorpayOrder.id,
                 name: 'Mr Kadalai',

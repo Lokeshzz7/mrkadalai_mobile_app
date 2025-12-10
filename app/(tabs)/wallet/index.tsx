@@ -17,6 +17,9 @@ import RazorpayCheckout from 'react-native-razorpay';
 import Toast from 'react-native-toast-message';
 import { router } from 'expo-router';
 import CustomNativeLoader from '@/components/CustomNativeLoader';
+import Constants from "expo-constants";
+
+
 
 
 interface RequestOptions extends RequestInit {
@@ -65,11 +68,21 @@ type ApiTransaction = {
     method: string;
     status: string;
     walletAmount?: number; // Optional because you use || 0
-    amount?: number;       // Optional because you use || 0
+    amount?: number; // Optional because you use || 0
 };
 
 // Union type for FlatList data
 type HistoryItem = RechargeHistoryItem | TransactionHistoryItem;
+
+const getRazorpayKey = () => {
+  const key = Constants.expoConfig?.extra?.razorpayKey;
+  if (!key) {
+    console.warn("⚠️ Razorpay key missing in Expo config!");
+  }
+  return key ?? '';
+};
+
+const RAZORPAY_KEY = getRazorpayKey();
 
 
 
@@ -498,7 +511,7 @@ const Wallet = () => {
                 // UPDATED DESCRIPTION
                 description: `Wallet Recharge for ₹${amount}`,
                 currency: 'INR',
-                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || '', // Razorpay Key from environment variable
+                key: RAZORPAY_KEY, // Razorpay Key from environment variable
                 amount: payableAmountRaw, // Amount in paise, from your backend response
                 name: 'Mr . Kadalai', // Your application's name
                 order_id: order_id, // The unique order_id from your backend
