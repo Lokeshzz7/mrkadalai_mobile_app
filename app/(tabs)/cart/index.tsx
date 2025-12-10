@@ -514,7 +514,7 @@ const Cart: React.FC = () => {
                                     {selectedDate.fullDate && (new Date(selectedDate.fullDate).getTime() === new Date(new Date().setHours(0,0,0,0)).getTime()) ? ' (Today)' : ''}
                                 </Text>
                                 <Text className="text-xs text-red-500 font-medium mt-1">
-                                    {isTimeSlotPassed(0) && "All Time slots are unavailable for Today"}
+                                    {isTimeSlotPassed(17) && "All Time slots are unavailable for Today"}
                                 </Text>
                             </View>
                         </View>
