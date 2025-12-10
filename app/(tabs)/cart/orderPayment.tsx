@@ -555,7 +555,7 @@ const OrderPayment = () => {
             const options = {
                 description: 'Food Order Payment',
                 currency: 'INR',
-                key: 'rzp_test_CqJOLIOhHoCry6', // KEEPING TEST KEY
+                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || '', // Razorpay Key from environment variable
                 amount: razorpayOrder.amount,
                 order_id: razorpayOrder.id,
                 name: 'Mr Kadalai',
@@ -1131,13 +1131,13 @@ const OrderPayment = () => {
 
             {/* Custom Modals */}
             <OrderSuccessModal visible={showSuccessModal} data={successModalData} />
-            <ErrorStatusModal 
-                visible={showErrorModal} 
-                data={errorModalData} 
+            <ErrorStatusModal
+                visible={showErrorModal}
+                data={errorModalData}
                 onCancelPayment={() => {
                     setShowErrorModal(false);
                     setErrorModalData(null);
-                    router.back(); 
+                    router.back();
                 }}
             />
         </SafeAreaView>

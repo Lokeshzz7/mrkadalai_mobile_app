@@ -237,7 +237,7 @@ const TransactionHistoryCard = React.memo(({ item, index }: { item: TransactionH
 
 const notices = [
     "Wallet recharges are non-refundable",
-    "Processing fees may apply", 
+    "Processing fees may apply",
     "By proceeding, you agree to our Terms of Service and Refund Policy.",
 ];
 
@@ -321,7 +321,7 @@ const Wallet = () => {
     }, [rechargeAmount]);
 
     // SETTING PLATFORM FEE TO ZERO
-    const PLATFORM_FEE_PERCENT = 0; 
+    const PLATFORM_FEE_PERCENT = 0;
 
     // Calculate payable amount (now just the recharge amount)
     const payableAmount = useMemo(() => {
@@ -498,7 +498,7 @@ const Wallet = () => {
                 // UPDATED DESCRIPTION
                 description: `Wallet Recharge for ₹${amount}`,
                 currency: 'INR',
-                key: 'rzp_test_CqJOLIOhHoCry6', // IMPORTANT: Replace with your actual Razorpay Key ID
+                key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || '', // Razorpay Key from environment variable
                 amount: payableAmountRaw, // Amount in paise, from your backend response
                 name: 'Mr . Kadalai', // Your application's name
                 order_id: order_id, // The unique order_id from your backend
@@ -653,7 +653,7 @@ const Wallet = () => {
 
             {/* The main FlatList now controls all scrolling */}
             <FlatList <HistoryItem>
-                data={currentData} 
+                data={currentData}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item, index }) => {
                     if (isRechargeHistoryItem(item)) {
