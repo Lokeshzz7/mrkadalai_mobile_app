@@ -270,10 +270,9 @@ const HistoryOrderCard = React.memo(
     ({ item, index, onViewReceipt }: HistoryOrderCardProps) => (
         <View className="bg-white rounded-2xl p-4 mb-4 mx-4 shadow-md border border-gray-100">
             <View className="flex-row">
-                {/* LEFT → First Product Image */}
                 <View className="w-20 h-20 mr-4">
                     <Image
-                        source={{ uri: getProductImage(item.items[0]?.product) }}
+                        source={{ uri: item.items[0]?.image }}
                         className="w-full h-full rounded-xl"
                         resizeMode="cover"
                     />
@@ -323,11 +322,11 @@ const HistoryOrderCard = React.memo(
                                     Receipt
                                 </Text>
                             </TouchableOpacity>
-                            <TouchableOpacity className="bg-yellow-400 px-3 py-2 rounded-lg">
+                            {/* <TouchableOpacity className="bg-yellow-400 px-3 py-2 rounded-lg">
                                 <Text className="text-xs font-medium text-gray-900">
                                     Re-order
                                 </Text>
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
                         </View>
                     </View>
                 </View>
