@@ -46,7 +46,6 @@ interface Order {
     };
     deliveryDate: string;     // raw deliveryDate from backend
     deliverySlot: string;
-    paymentMethod?: string;   // payment method from backend
 }
 
 interface TransformedOrderItem {
@@ -74,7 +73,6 @@ interface TransformedOrder {
     createdAt: string;        // raw createdAt for formatting
     deliveryDate: string;     // raw deliveryDate from backend
     deliverySlot: string;     // delivery slot from backend
-    paymentMethod?: string;   // payment method
 }
 
 
@@ -506,8 +504,7 @@ const MyOrders = () => {
             outlet: order.outlet,
             createdAt: order.createdAt,
             deliveryDate: order.deliveryDate,          // raw delivery date from backend
-            deliverySlot: order.deliverySlot,          // slot
-            paymentMethod: order.paymentMethod || 'WALLET'  // default to WALLET if not provided
+            deliverySlot: order.deliverySlot           // slot
         };
     }, []);
 

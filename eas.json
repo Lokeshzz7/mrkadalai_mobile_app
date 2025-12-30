@@ -9,7 +9,10 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_RAZORPAY_KEY": "rzp_test_CqJOLIOhHoCry6"
+      }
     },
     "production": {
       "android": {
@@ -17,6 +20,7 @@
       },
       "autoIncrement": true,
       "env": {
+        "EXPO_PUBLIC_RAZORPAY_KEY":"rzp_test_CqJOLIOhHoCry6",
         "NODE_ENV": "production"
       },
       "distribution": "store"    

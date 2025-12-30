@@ -1,0 +1,55 @@
+import 'dotenv/config';
+
+export default {
+  expo: {
+    name: "Mr Kadalai",
+    slug: "mobile_movie_app",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/images/logo.png",
+    scheme: "movies",
+    userInterfaceStyle: "automatic",
+    splash: {
+      image: "./assets/images/logo2.jpg",
+      resizeMode: "contain",
+      backgroundColor: "#0f0d23"
+    },
+    newArchEnabled: false,
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: "com.pavan.mobilemovieapp",
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false
+      }
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: "./assets/images/logo2.jpg",
+        backgroundColor: "#0f0d23"
+      },
+      package: "com.anonymous.mobile_movie_app",
+      googleServicesFile: "./google-services.json",
+      permissions: [
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ],
+      usesCleartextTraffic: true
+    },
+    web: {
+      bundler: "metro",
+      output: "static",
+      favicon: "./assets/images/logo.png"
+    },
+    plugins: ["expo-router"],
+    experiments: {
+      typedRoutes: true
+    },
+    extra: {
+      apiUrl: "https://api.mrkadalai.com/api",
+      razorpayKey: process.env.EXPO_PUBLIC_RAZORPAY_KEY,
+      router: { origin: false },
+      eas: {
+        projectId: "a607b40c-673e-4f34-9892-57c42f61f18e"
+      }
+    }
+  }
+};
