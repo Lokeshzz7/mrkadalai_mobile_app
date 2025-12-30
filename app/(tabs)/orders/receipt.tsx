@@ -36,6 +36,7 @@ interface Order {
     };
     deliveryDate: string;  // add
     deliverySlot: string;  // add
+    paymentMethod?: string; // add
 }
 
 const formatDate = (dateStr: string) => {
@@ -61,7 +62,8 @@ const Receipt = () => {
 
     const parsePrice = (priceString: string): number => {
         if (!priceString) return 0
-        const cleanPrice = priceString.replace('$', '').replace(',', '')
+        // Remove both $ and ₹ symbols, and commas
+        const cleanPrice = priceString.replace(/[$₹,]/g, '').trim()
         return parseFloat(cleanPrice) || 0
     }
 
@@ -80,14 +82,14 @@ const Receipt = () => {
     const orderDate = orderData.orderDate || 'N/A'
     const orderTime = orderData.orderTime || 'N/A'
 
-    const getPaymentMethodText = (method: string = 'UPI') => {
+    const getPaymentMethodText = (method: string = 'WALLET') => {
         const methodMap: { [key: string]: { text: string; icon: string } } = {
             UPI: { text: 'UPI Payment', icon: '📱' },
             CARD: { text: 'Card Payment', icon: '💳' },
             CASH: { text: 'Cash Payment', icon: '💵' },
             WALLET: { text: 'Wallet Payment', icon: '👛' }
         }
-        return methodMap[method] || { text: 'UPI Payment', icon: '📱' }
+        return methodMap[method] || { text: 'Wallet Payment', icon: '👛' }
     }
 
     const handleShare = async () => {
@@ -188,7 +190,7 @@ Thank you for your order!
         }
     }
 
-    const paymentMethodInfo = getPaymentMethodText()
+    const paymentMethodInfo = getPaymentMethodText(orderData.paymentMethod)
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -334,12 +336,6 @@ Thank you for your order!
                         </Text>
                         <View className="space-y-2">
                             <InfoRow label="Items Total" value={formatCurrency(itemsTotal)} />
-                            {itemsTotal !== actualTotalAmount && (
-                                <InfoRow
-                                    label="Additional Charges"
-                                    value={formatCurrency(actualTotalAmount - itemsTotal)}
-                                />
-                            )}
                             <InfoRow
                                 label="Total Amount"
                                 value={formatCurrency(actualTotalAmount)}
@@ -377,13 +373,9 @@ Thank you for your order!
                                     Payment Status
                                 </Text>
                                 <Text className="font-bold text-green-600">
-                                    {orderData.status.toLowerCase() === 'delivered'
-                                        ? 'Paid'
-                                        : orderData.status.toLowerCase() === 'pending'
-                                            ? 'Processing'
-                                            : orderData.status.toLowerCase() === 'cancelled'
-                                                ? 'Cancelled'
-                                                : '✅ Paid'}
+                                    {orderData.status.toLowerCase() === 'cancelled'
+                                        ? 'Refunded'
+                                        : '✅ Paid'}
                                 </Text>
                             </View>
                         </View>

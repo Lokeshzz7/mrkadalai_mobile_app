@@ -550,6 +550,17 @@ const OrderPayment = () => {
         try {
             setLoading(true)
 
+            // Check if RazorpayCheckout is available (won't work in Expo Go)
+            if (!RazorpayCheckout || typeof RazorpayCheckout.open !== 'function') {
+                setLoading(false)
+                showErrorStatusModal(
+                    'Payment Gateway Unavailable',
+                    'Online payment requires a development build. Please use Wallet payment or build the app with EAS/Expo Dev Client.',
+                    'Razorpay module not loaded. This typically happens when running in Expo Go instead of a development build.'
+                );
+                return;
+            }
+
             const razorpayOrder = await createRazorpayOrder(finalTotalAmount)
 
             const options = {
@@ -622,7 +633,7 @@ const OrderPayment = () => {
             setLoading(true);
 
             const orderData = {
-                totalAmount: finalTotalAmount,
+                totalAmount: subtotalAmount,
                 paymentMethod: 'UPI',
                 deliverySlot: selectedTimeSlot,
                 outletId: outletId,
@@ -672,7 +683,7 @@ const OrderPayment = () => {
             setLoading(true)
 
             const orderData = {
-                totalAmount: finalTotalAmount,
+                totalAmount: subtotalAmount,
                 paymentMethod: 'WALLET',
                 deliverySlot: selectedTimeSlot,
                 outletId: outletId,
