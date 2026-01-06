@@ -24,27 +24,12 @@ const faqData = [
     {
         id: 4,
         question: "How do I contact customer support?",
-        answer: "You can contact our customer support team through multiple channels: use the 'Raise a Ticket' button below, email us at support@company.com, or call our helpline at 1-800-SUPPORT during business hours."
+        answer: "You can contact our customer support ny doing the following: Use the “Raise a Ticket” button"
     },
     {
         id: 5,
         question: "What payment methods do you accept?",
-        answer: "We accept all major credit cards (Visa, MasterCard, American Express), PayPal, Apple Pay, Google Pay, and bank transfers. All payments are processed securely through encrypted channels."
-    },
-    {
-        id: 6,
-        question: "How long does shipping take?",
-        answer: "Standard shipping typically takes 3-5 business days, while express shipping takes 1-2 business days. International orders may take 7-14 business days depending on the destination country."
-    },
-    {
-        id: 7,
-        question: "Can I cancel or modify my order?",
-        answer: "Orders can be cancelled or modified within 1 hour of placement. After that, please contact customer support immediately. Once an order is shipped, it cannot be modified, but you can return items according to our return policy."
-    },
-    {
-        id: 8,
-        question: "What is your return policy?",
-        answer: "We offer a 30-day return policy for most items. Products must be in original condition with tags attached. Refunds are processed within 5-7 business days after we receive the returned item."
+        answer: "We accept the major payment methods, including: UPI and Cash"
     }
 ];
 

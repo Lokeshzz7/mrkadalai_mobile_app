@@ -250,7 +250,6 @@ const TransactionHistoryCard = React.memo(({ item, index }: { item: TransactionH
 
 const notices = [
     "Wallet recharges are non-refundable",
-    "Processing fees may apply",
     "By proceeding, you agree to our Terms of Service and Refund Policy.",
 ];
 

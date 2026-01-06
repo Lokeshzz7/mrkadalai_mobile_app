@@ -135,7 +135,8 @@ const Profile = () => {
     bio: '',
     yearOfStudy: 0,
     degree: '',
-    profileImage: '👤'
+    profileImage: '👤',
+    customerId: ''
   })
 
   const [loading, setLoading] = useState(true)
@@ -158,7 +159,8 @@ const Profile = () => {
         bio: response.bio || '',
         yearOfStudy: response.yearOfStudy || 0,
         degree: response.degree || '',
-        profileImage: '👤'
+        profileImage: '👤',
+        customerId: response.customerId || '',
       })
     } catch (error) {
       console.error('Error fetching profile:', error)
@@ -200,14 +202,6 @@ const Profile = () => {
       hasNotification: false,
       action: 'faq'
     },
-    {
-      id: 7,
-      title: 'Settings',
-      icon: '⚙️',
-      description: 'App settings and preferences',
-      hasNotification: false,
-      action: 'settings'
-    }
   ]
 
   const handleMenuItemPress = (item: any) => {
@@ -346,28 +340,39 @@ const Profile = () => {
                   {userDetails.name || 'User Name'}
                 </Text>
                 <Text className="text-gray-600 text-base mb-1">
-                  📞 {userDetails.phone || 'Phone not provided'}
+                  {userDetails.phone || 'Phone not provided'}
                 </Text>
                 <Text className="text-gray-600 text-base">
-                  📧 {userDetails.email || 'Email not provided'}
+                  {userDetails.email || 'Email not provided'}
                 </Text>
-                {userDetails.bio && (
-                  <Text className="text-gray-600 text-sm mt-2">
-                    {userDetails.bio}
-                  </Text>
-                )}
               </View>
             </View>
 
-            {userDetails.degree && (
+            {/* UG Details & Customer ID Section */}
+            {(userDetails.degree || userDetails.customerId) && (
               <View className="mt-4 pt-4 border-t border-gray-100">
-                <Text className="text-sm text-gray-600">
-                  🎓 {userDetails.degree} - Year {userDetails.yearOfStudy}
-                </Text>
+                <View className="flex-row justify-between items-center">
+                  <Text className="text-sm text-gray-600">
+                    {userDetails.degree} - Year {userDetails.yearOfStudy}
+                  </Text>
+                  
+                  {/* Displaying Customer ID here */}
+                  <View className="bg-blue-50 px-3 py-1 rounded-lg">
+                    <Text className="text-xs font-bold text-blue-600">
+                      ID: #{userDetails.customerId}
+                    </Text>
+                  </View>
+                </View>
               </View>
             )}
+            
+            {userDetails.bio && (
+              <Text className="text-gray-600 text-sm mt-3 italic">
+                "{userDetails.bio}"
+              </Text>
+            )}
           </View>
-        </View>
+          </View>
 
         {/* Menu Items */}
         <View className="bg-white rounded-2xl mx-4 mb-6 shadow-md border border-gray-100 overflow-hidden">

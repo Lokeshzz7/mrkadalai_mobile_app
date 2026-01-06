@@ -117,7 +117,8 @@ const getStatusColor = (status: string) => {
         case 'cancelled':
         case 'canceled':
         case 'partial_cancel':
-            return 'bg-red-100 text-red-800';
+        case 'partially_cancelled': 
+            return 'bg-orange-100 text-red-800';
         case 'partially_delivered':
             return 'bg-yellow-100 text-yellow-800';
         default:
@@ -140,6 +141,7 @@ const getStatusText = (status: string) => {
         case 'canceled':
             return 'Cancelled';
         case 'partial_cancel':
+        case 'partially_cancelled':
             return 'Partially Cancelled';
         case 'partially_delivered':
             return 'Partially Delivered';
@@ -147,6 +149,7 @@ const getStatusText = (status: string) => {
             return 'Unknown';
     }
 };
+
 
 
 const getProductImage = (product?: { imageUrl?: string; name?: string }) => {
@@ -273,7 +276,7 @@ const HistoryOrderCard = React.memo(
                 {/* LEFT → First Product Image */}
                 <View className="w-20 h-20 mr-4">
                     <Image
-                        source={{ uri: getProductImage(item.items[0]?.product) }}
+                        source={{ uri: item.items[0]?.image }}
                         className="w-full h-full rounded-xl"
                         resizeMode="cover"
                     />
@@ -323,11 +326,11 @@ const HistoryOrderCard = React.memo(
                                     Receipt
                                 </Text>
                             </TouchableOpacity>
-                            <TouchableOpacity className="bg-yellow-400 px-3 py-2 rounded-lg">
+                            {/* <TouchableOpacity className="bg-yellow-400 px-3 py-2 rounded-lg">
                                 <Text className="text-xs font-medium text-gray-900">
                                     Re-order
                                 </Text>
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
                         </View>
                     </View>
                 </View>

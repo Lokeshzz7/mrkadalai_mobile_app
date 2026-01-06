@@ -91,6 +91,7 @@ const Receipt = () => {
         try {
             const receiptText = `
 Receipt - Order ${orderData.orderNumber}
+Status: ${getStatusText(orderData.status).toUpperCase()}
 Date: ${orderDate}
 Time: ${orderTime}
 Delivery Date: ${formatDate(orderData.deliveryDate)}
@@ -114,6 +115,30 @@ Payment Status: Successful
         }
     }
 
+    const getStatusText = (status: string) => {
+    const key = (status || '').toLowerCase();
+
+    switch (key) {
+        case 'pending':
+            return 'Order Placed';
+        case 'processing':
+            return 'On Processing';
+        case 'completed':
+        case 'delivered':
+            return 'Delivered';
+        case 'cancelled':
+        case 'canceled':
+            return 'Cancelled';
+        case 'partial_cancel':
+        case 'partially_cancelled':
+            return 'Partially Cancelled';
+        case 'partially_delivered':
+            return 'Partially Delivered';
+        default:
+            return 'Unknown';
+    }
+};
+
     const InfoRow = ({ label, value, isTotal = false }: { label: string; value: string; isTotal?: boolean }) => (
         <View className={`flex-row justify-between items-center ${isTotal ? 'py-3 border-t border-gray-200 mt-2' : 'mb-2'}`}>
             <Text className={`${isTotal ? 'text-lg font-bold' : 'text-sm font-medium'} text-gray-700`}>
@@ -124,6 +149,9 @@ Payment Status: Successful
             </Text>
         </View>
     )
+
+    const isPartialStatus = orderData.status === 'partially_delivered' || orderData.status === 'partial_cancel';
+    const isCancelled = orderData.status === 'cancelled' || orderData.status === 'canceled';
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -142,14 +170,22 @@ Payment Status: Successful
                 <View className="mx-4 mt-6">
                     {/* Success Header */}
                     <View className="bg-white rounded-2xl px-6 py-8 mb-6 items-center shadow-sm">
-                        <View className="bg-green-100 p-3 rounded-full mb-3">
-                            <Text className="text-2xl">✅</Text>
-                        </View>
-                        <Text className="text-2xl font-bold text-gray-900 mb-2">Order Success</Text>
-                        <Text className="text-base text-gray-600 text-center">
-                            Your order is confirmed and scheduled for delivery.
-                        </Text>
-                    </View>
+    <View className={`${isCancelled ? 'bg-red-100' : isPartialStatus ? 'bg-orange-100' : 'bg-green-100'} p-3 rounded-full mb-3`}>
+        <Text className="text-2xl">
+            {isCancelled ? '❌' : isPartialStatus ? '⚠️' : '✅'}
+        </Text>
+    </View>
+    <Text className="text-2xl font-bold text-gray-900 mb-2">
+        {getStatusText(orderData.status)}
+    </Text>
+    <Text className="text-base text-gray-600 text-center">
+        {isCancelled 
+            ? "This order has been cancelled." 
+            : isPartialStatus 
+            ? "Some items in this order have been modified or partially fulfilled." 
+            : "Your order is confirmed and scheduled for delivery."}
+    </Text>
+</View>
 
                     {/* Order Details */}
                     <View className="bg-white rounded-2xl px-6 py-6 mb-6 shadow-sm">

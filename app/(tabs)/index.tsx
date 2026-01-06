@@ -83,7 +83,6 @@ const CategoryCard = React.memo(({ category, isSelected, onPress }: any) => (
       className={`px-6 py-3 rounded-full ${isSelected ? 'bg-yellow-400' : 'bg-gray-200'}`}
     >
       <View className="flex-row items-center">
-        <Text className="text-lg mr-2">{category.icon}</Text>
         <Text className={`font-medium ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
           {category.name}
         </Text>
@@ -394,7 +393,7 @@ const RestaurantHome = () => {
     <View className="bg-white pt-3 px-4">
       <View className="flex-row justify-between items-center pt-2">
         <Text className="text-2xl font-bold text-gray-900">
-          {`Hello ${user?.name || "User"}`}
+          {`Hello ${(user?.name?.split(" ")[0]) || "User"}`}
         </Text>
         <View className="flex-row items-center gap-3">
           {totalCartItems > 0 && (
