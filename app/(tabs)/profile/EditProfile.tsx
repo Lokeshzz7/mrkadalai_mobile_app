@@ -237,7 +237,7 @@ const EditProfile = () => {
           >
             {/* Name Field */}
             <View className="mb-5">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">👤 Full Name</Text>
+              <Text className="text-gray-700 text-sm font-semibold mb-2">Full Name</Text>
               <View className={`bg-gray-50 rounded-xl px-4 py-4 border ${formErrors.name ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}>
                 <TextInput
                   value={name}
@@ -256,13 +256,13 @@ const EditProfile = () => {
                 />
               </View>
               {formErrors.name ? (
-                <Text className="text-red-500 text-xs mt-1 ml-2">❌ {formErrors.name}</Text>
+                <Text className="text-red-500 text-xs mt-1 ml-2">{formErrors.name}</Text>
               ) : null}
             </View>
 
             {/* Phone Field */}
             <View className="mb-5">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">📞 Phone Number</Text>
+              <Text className="text-gray-700 text-sm font-semibold mb-2"> Phone Number</Text>
               <View className={`bg-gray-50 rounded-xl px-4 py-4 border ${formErrors.phone ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}>
                 <TextInput
                   value={phone}
@@ -281,13 +281,13 @@ const EditProfile = () => {
                 />
               </View>
               {formErrors.phone ? (
-                <Text className="text-red-500 text-xs mt-1 ml-2">❌ {formErrors.phone}</Text>
+                <Text className="text-red-500 text-xs mt-1 ml-2">{formErrors.phone}</Text>
               ) : null}
             </View>
 
             {/* Email Field */}
             <View className="mb-5">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">📧 Email Address</Text>
+              <Text className="text-gray-700 text-sm font-semibold mb-2">Email Address</Text>
               <View className={`bg-gray-50 rounded-xl px-4 py-4 border ${formErrors.email ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}>
                 <TextInput
                   value={email}
@@ -313,7 +313,7 @@ const EditProfile = () => {
 
             {/* Bio Field */}
             <View className="mb-5">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">📝 Bio</Text>
+              <Text className="text-gray-700 text-sm font-semibold mb-2">Bio</Text>
               <View className={`bg-gray-50 rounded-xl px-4 py-4 border ${formErrors.bio ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}>
                 <TextInput
                   value={bio}
@@ -340,7 +340,7 @@ const EditProfile = () => {
 
             {/* Degree Selection */}
             <View className="mb-5">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">🎓 Degree</Text>
+              <Text className="text-gray-700 text-sm font-semibold mb-2"> Degree</Text>
               <View className="flex-row space-x-4">
                 <TouchableOpacity
                   className={`flex-1 px-4 py-4 rounded-xl border ${degree === 'UG'
@@ -373,7 +373,7 @@ const EditProfile = () => {
 
             {/* Year of Study Field */}
             <View className="mb-4">
-              <Text className="text-gray-700 text-sm font-semibold mb-2">📚 Year of Study</Text>
+              <Text className="text-gray-700 text-sm font-semibold mb-2"> Year of Study</Text>
               <View className={`bg-gray-50 rounded-xl px-4 py-4 border ${formErrors.yearOfStudy ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}>
                 <TextInput
                   value={yearOfStudy}
@@ -410,7 +410,7 @@ const EditProfile = () => {
                 </View>
               ) : (
                 <Text className="text-gray-900 text-center font-bold text-lg">
-                  🚀 Update Profile
+                  Update Profile
                 </Text>
               )}
             </TouchableOpacity>

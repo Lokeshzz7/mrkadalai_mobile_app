@@ -34,7 +34,9 @@ const issueTypes = [
     { id: 2, label: "Payment Problems", value: "payment", priority: "HIGH" },
     { id: 3, label: "Order Issues", value: "order", priority: "HIGH" },
     { id: 4, label: "Technical Support", value: "technical", priority: "MEDIUM" },
-    { id: 5, label: "Others", value: "others", priority: "LOW" }
+    {id: 5, label: "Food Related", value: "Food related", priority:"HIGH"},
+    {id: 6, label: "Service Related", value: "Service related", priority:"HIGH"},
+    { id: 7, label: "Others", value: "others", priority: "LOW" }
 ];
 
 const RadioButton = React.memo(({ selected, onPress, label }: RadioButtonProps) => (
