@@ -12,6 +12,7 @@ import {
     ActivityIndicator,
     RefreshControl
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons';
 import { apiRequest } from '../../../utils/api'
 import RazorpayCheckout from 'react-native-razorpay';
 import Toast from 'react-native-toast-message';
@@ -654,8 +655,12 @@ const Wallet = () => {
         <SafeAreaView className="flex-1 bg-white">
             {/* Header remains static at the top */}
             <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100 relative">
-                <TouchableOpacity className="p-2" onPress={() => router.back()}>
-                    <Text className="text-2xl">←</Text>
+                <TouchableOpacity 
+                    onPress={() => router.back()}
+                    className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100 shadow-sm active:bg-gray-100"
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="chevron-back" size={24} color="#374151" className="mr-0.5" />
                 </TouchableOpacity>
 
                 <Text className="absolute left-0 right-0 text-center text-xl font-bold text-gray-900">
@@ -706,29 +711,7 @@ const Wallet = () => {
                                     </Text>
                                 </View>
 
-                                <View className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
-                                    <View className="flex-row items-center justify-between">
-                                        <View className="flex-1">
-                                            <View className="flex-row items-center mb-1">
-
-                                                <Text className="text-yellow-800 text-sm font-semibold">
-                                                    Total Recharged
-                                                </Text>
-                                            </View>
-                                            <Text className="text-gray-900 text-xl font-bold">
-                                                ₹{totalRecharged.toFixed(2)}
-                                            </Text>
-                                        </View>
-                                        <View className="items-end">
-                                            <Text className="text-yellow-600 text-xs font-medium mb-1">
-                                                Total Used
-                                            </Text>
-                                            <Text className="text-gray-700 text-sm font-semibold">
-                                                ₹{totalUsed.toFixed(2)}
-                                            </Text>
-                                        </View>
-                                    </View>
-                                </View>
+{/* Removed Total Recharged and Total Used section as per user request */}
                             </View>
                         </View>
 

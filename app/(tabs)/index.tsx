@@ -336,7 +336,6 @@ const RestaurantHome = () => {
         text1: 'Out of Stock',
         text2: 'This item is currently out of stock.',
         position: 'top',
-        topOffset: 200,
         visibilityTime: 5000,
         autoHide: true,
         onPress: () => Toast.hide(),
@@ -410,12 +409,13 @@ const RestaurantHome = () => {
               </View>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
+          {/* Temporarily hiding FAQ button as per user request */}
+          {/* <TouchableOpacity
             className="bg-yellow-400 px-4 py-2 rounded-full"
             onPress={() => router.push("/ticket/faq")}
           >
             <Text className="font-semibold text-gray-900">🎫 Faq</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -463,7 +463,7 @@ const RestaurantHome = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <StaticHeader />
+      {StaticHeader()}
       <FlatList
         data={filteredProducts}
         keyExtractor={(item) => item.id.toString()}

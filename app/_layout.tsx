@@ -6,9 +6,9 @@ import { useCallback, useEffect, useRef } from "react";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { Platform, View, Text } from "react-native";
 import Toast from 'react-native-toast-message';
-
+import { Ionicons, Feather } from '@expo/vector-icons';
 // Prevent auto-hide of splash screen
 SplashScreen.preventAutoHideAsync();
 
@@ -20,6 +20,33 @@ Notifications.setNotificationHandler({
     shouldSetBadge: true,
   }),
 });
+
+const toastConfig = {
+  success: (props: any) => (
+    <View className="flex-row items-center bg-white border border-gray-100 border-l-4 border-l-green-500 rounded-xl shadow-lg px-4 py-3 mx-4 self-end mt-2 max-w-[90%] w-[350px]">
+      <Feather name="check-circle" size={24} color="#10B981" />
+      <View className="ml-3 flex-1 flex-col justify-center">
+        <Text className="text-gray-900 font-bold text-base leading-tight">{props.text1}</Text>
+        {props.text2 ? <Text className="text-gray-500 text-sm mt-0.5 leading-tight" numberOfLines={2}>{props.text2}</Text> : null}
+      </View>
+    </View>
+  ),
+  error: (props: any) => (
+    <View className="flex-row items-center bg-white border border-gray-100 border-l-4 border-l-red-500 rounded-xl shadow-lg px-4 py-3 mx-4 self-end mt-2 max-w-[90%] w-[350px]">
+      <Feather name="x-circle" size={24} color="#EF4444" />
+      <View className="ml-3 flex-1 flex-col justify-center">
+        <Text className="text-gray-900 font-bold text-base leading-tight">{props.text1}</Text>
+        {props.text2 ? <Text className="text-gray-500 text-sm mt-0.5 leading-tight" numberOfLines={2}>{props.text2}</Text> : null}
+      </View>
+    </View>
+  ),
+  info: (props: any) => (
+    <View className="flex-row items-center bg-gray-900 rounded-full px-5 py-3 mx-4 mt-2 shadow-xl self-end max-w-[90%]">
+      <Ionicons name="information-circle" size={20} color="#FBBF24" />
+      <Text className="text-white font-medium text-sm ml-2.5 mr-2">{props.text1}</Text>
+    </View>
+  )
+};
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -144,7 +171,7 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
         </Stack>
-        <Toast position="top" topOffset={50} />
+        <Toast position="top" topOffset={65} config={toastConfig} />
       </AppConfigProvider>
     </AuthProvider>
   );

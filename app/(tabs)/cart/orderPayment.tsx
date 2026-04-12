@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useContext, useMemo, useRef } from 'react'
 import {
     Text,
     View,
@@ -12,7 +12,8 @@ import {
     TextInput,
     Modal
 } from 'react-native'
-import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter, useNavigation, useFocusEffect } from 'expo-router'
 import RazorpayCheckout from 'react-native-razorpay';
 import { apiRequest } from '../../../utils/api'
 import { useAuth } from '../../../context/AuthContext';
@@ -100,17 +101,18 @@ const RAZORPAY_KEY = getRazorpayKey();
 const CouponItem = React.memo<CouponItemProps>(({ coupon, onApply }) => (
     <TouchableOpacity
         onPress={() => onApply(coupon.code)}
-        className="bg-white mb-3 p-4 rounded-lg border border-gray-200"
-        activeOpacity={0.7}
+        className="bg-white mx-1 my-2 rounded-xl border border-gray-200 overflow-hidden flex-row shadow-sm"
+        activeOpacity={0.8}
     >
-        <View className="flex-row items-center justify-between">
+        <View className="bg-yellow-100 w-3 border-r border-dashed border-yellow-300" />
+        <View className="flex-1 p-4 flex-row items-center justify-between">
             <View className="flex-1">
-                <Text className="text-base font-bold text-gray-900 mb-1">{coupon.code}</Text>
-                <Text className="text-sm text-gray-600 mb-1">{coupon.description}</Text>
-                <Text className="text-xs text-gray-500">Min order: ₹{coupon.minOrderValue}</Text>
+                <Text className="text-base font-extrabold text-gray-900 mb-1 tracking-wider uppercase">{coupon.code}</Text>
+                <Text className="text-sm text-gray-500 mb-1 leading-5">{coupon.description}</Text>
+                <Text className="text-xs text-yellow-700 font-semibold mt-1">Min order: ₹{coupon.minOrderValue}</Text>
             </View>
-            <View className="bg-green-50 px-3 py-1 rounded-lg ml-3">
-                <Text className="text-green-600 text-sm font-bold">
+            <View className="bg-gray-900 px-3 py-2 rounded-xl ml-3 shadow-sm">
+                <Text className="text-yellow-400 text-sm font-extrabold tracking-wide">
                     {coupon.rewardValue < 1 ? `${(coupon.rewardValue * 100)}% OFF` : `₹${coupon.rewardValue} OFF`}
                 </Text>
             </View>
@@ -282,20 +284,42 @@ const ErrorStatusModal = ({ visible, data, onCancelPayment }: { visible: boolean
     )
 }
 
+const ProcessingWalletModal = ({ visible }: { visible: boolean }) => (
+    <BaseModal visible={visible} onClose={() => {}}>
+        <View className="items-center py-6 px-4">
+            <ActivityIndicator size="large" color="#FBA928" />
+            <Text className="text-xl font-black text-gray-900 mt-6 mb-2 tracking-wide">Processing Payment...</Text>
+            <Text className="text-sm text-gray-500 text-center font-medium">Please do not close the app or press back</Text>
+        </View>
+    </BaseModal>
+)
+
 // --- ORDER PAYMENT COMPONENT ---
 
 const OrderPayment = () => {
     const router = useRouter()
     const navigation = useNavigation();
     const params = useLocalSearchParams()
-    const { clearCart } = useCart()
+    const { clearCart, state: cartState, getTotalPrice } = useCart()
+
+    const initialSubtotalRef = useRef(getTotalPrice())
+    useFocusEffect(
+        useCallback(() => {
+            if (getTotalPrice() !== initialSubtotalRef.current) {
+                router.replace('/(tabs)/cart')
+            }
+        }, [getTotalPrice])
+    )
+
+    // Live Cart Data from Context (solves stale data on back navigation)
+    const cartData = cartState.cartData;
 
     // States
     const [walletData, setWalletData] = useState<WalletData | null>(null)
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'WALLET' | 'UPI' | null>(null)
     const [loading, setLoading] = useState(false)
     const [walletLoading, setWalletLoading] = useState(true)
-    const [cartData, setCartData] = useState<CartData | null>(null)
+    const [processingWallet, setProcessingWallet] = useState(false)
     const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
     const [couponCode, setCouponCode] = useState<string>('')
     const [couponLoading, setCouponLoading] = useState<boolean>(false)
@@ -324,34 +348,12 @@ const OrderPayment = () => {
         fetchSelectedDate();
     }, []);
 
-    // Parse cart data from params
-    useEffect(() => {
-        if (params.cartData) {
-            try {
-                const parsedCartData = JSON.parse(params.cartData as string)
-                setCartData(parsedCartData)
-            } catch (error) {
-                console.error('Error parsing cart data:', error)
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: 'Invalid cart data',
-                    position: 'top',
-                    topOffset: 200,
-                    visibilityTime: 4000,
-                    autoHide: true,
-                    onPress: () => Toast.hide(),
-                });
-                router.back()
-            }
-        }
-    }, [params.cartData, router])
-
-    // Get order details from params
+    // Get order details from valid route params
     const selectedTimeSlot = params.selectedTimeSlot as string
     const selectedTimeSlotDisplay = params.selectedTimeSlotDisplay as string
-    const subtotalAmount = parseFloat(params.subtotalAmount as string || '0')
-    // const totalItems = parseInt(params.totalItems as string || '0') // not used directly, removing comment
+    
+    // Live subtotal from context
+    const subtotalAmount = getTotalPrice()
 
     // Get category icon based on product category
     const getCategoryIcon = (category: string) => {
@@ -392,7 +394,6 @@ const OrderPayment = () => {
                 text1: 'Invalid Input',
                 text2: 'Please enter a coupon code',
                 position: 'top',
-                topOffset: 200,
                 visibilityTime: 5000,
                 autoHide: true,
                 onPress: () => Toast.hide(),
@@ -429,7 +430,6 @@ const OrderPayment = () => {
                 text1: 'Success',
                 text2: `Coupon applied successfully! You saved ₹${response.discount.toFixed(2)}`,
                 position: 'top',
-                topOffset: 200,
                 visibilityTime: 5000,
                 autoHide: true,
                 onPress: () => Toast.hide(),
@@ -440,7 +440,6 @@ const OrderPayment = () => {
                 text1: 'Coupon Error',
                 text2: error.message || 'Failed to apply coupon',
                 position: 'top',
-                topOffset: 200,
                 visibilityTime: 5000,
                 autoHide: true,
                 onPress: () => Toast.hide(),
@@ -693,6 +692,9 @@ const OrderPayment = () => {
         try {
             setLoading(true)
 
+            // Artificial delay to simulate processing and build user confidence
+            await new Promise(resolve => setTimeout(resolve, 2500))
+
             const orderData = {
                 totalAmount: subtotalAmount,
                 paymentMethod: 'WALLET',
@@ -739,7 +741,6 @@ const OrderPayment = () => {
                 text1: 'Select Payment Method',
                 text2: 'Please choose how you want to pay',
                 position: 'top',
-                topOffset: 200,
                 visibilityTime: 4000,
                 autoHide: true,
                 onPress: () => Toast.hide(),
@@ -753,7 +754,6 @@ const OrderPayment = () => {
                 text1: 'Error',
                 text2: 'Missing cart or delivery details',
                 position: 'top',
-                topOffset: 200,
                 visibilityTime: 4000,
                 autoHide: true,
                 onPress: () => Toast.hide(),
@@ -768,7 +768,6 @@ const OrderPayment = () => {
                     text1: 'Insufficient Balance',
                     text2: 'Your wallet balance is insufficient for this order',
                     position: 'top',
-                    topOffset: 200,
                     visibilityTime: 4000,
                     autoHide: true,
                     onPress: () => Toast.hide(),
@@ -877,8 +876,12 @@ const OrderPayment = () => {
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
             <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100">
-                <TouchableOpacity className="p-2" onPress={() => router.back()} disabled={loading}>
-                    <Text className="text-2xl">←</Text>
+                <TouchableOpacity 
+                    onPress={() => router.back()}
+                    className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100 shadow-sm active:bg-gray-100"
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="chevron-back" size={24} color="#374151" className="mr-0.5" />
                 </TouchableOpacity>
                 <Text className="text-xl font-bold text-gray-900">Order Summary</Text>
                 <View className="w-10" />
@@ -988,10 +991,11 @@ const OrderPayment = () => {
                                     </View>
                                 </View>
                             ) : (
-                                <View className="flex-row items-center">
+                                <View className="flex-row items-center bg-gray-50 rounded-xl border border-gray-200 p-1 shadow-sm">
                                     <TextInput
-                                        className="flex-1 bg-gray-50 px-4 py-3 rounded-lg text-base border border-gray-200"
-                                        placeholder="Enter code"
+                                        className="flex-1 px-4 py-3 text-base text-gray-900 font-bold tracking-wide uppercase"
+                                        placeholder="ENTER CODE"
+                                        placeholderTextColor="#9CA3AF"
                                         value={couponCode}
                                         onChangeText={setCouponCode}
                                         autoCapitalize="characters"
@@ -999,13 +1003,13 @@ const OrderPayment = () => {
                                     />
                                     <TouchableOpacity
                                         onPress={() => applyCoupon(couponCode)}
-                                        className={`ml-3 px-5 py-3 rounded-lg ${couponCode.trim() ? 'bg-gray-900' : 'bg-gray-300'}`}
+                                        className={`px-6 py-3 rounded-lg ${couponCode.trim() ? 'bg-gray-900 shadow-sm' : 'bg-gray-300'}`}
                                         disabled={!couponCode.trim() || couponLoading}
                                     >
                                         {couponLoading ? (
                                             <ActivityIndicator size="small" color="white" />
                                         ) : (
-                                            <Text className="text-white font-bold text-sm">Apply</Text>
+                                            <Text className="text-white font-bold text-sm tracking-widest">APPLY</Text>
                                         )}
                                     </TouchableOpacity>
                                 </View>
@@ -1152,6 +1156,7 @@ const OrderPayment = () => {
             </ScrollView>
 
             {/* Custom Modals */}
+            <ProcessingWalletModal visible={processingWallet} />
             <OrderSuccessModal visible={showSuccessModal} data={successModalData} />
             <ErrorStatusModal
                 visible={showErrorModal}
