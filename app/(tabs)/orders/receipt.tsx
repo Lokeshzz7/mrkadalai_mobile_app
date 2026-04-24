@@ -8,6 +8,7 @@ import {
     Share,
     Image
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
 interface OrderItem {
@@ -157,8 +158,12 @@ Payment Status: Successful
         <SafeAreaView className="flex-1 bg-gray-50">
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-100">
-                <TouchableOpacity className="p-2" onPress={() => router.back()}>
-                    <Text className="text-2xl">←</Text>
+                <TouchableOpacity 
+                    onPress={() => router.back()}
+                    className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100 shadow-sm active:bg-gray-100"
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="chevron-back" size={24} color="#374151" className="mr-0.5" />
                 </TouchableOpacity>
                 <Text className="text-xl font-bold text-gray-900">Receipt</Text>
                 <TouchableOpacity className="bg-yellow-400 px-4 py-2 rounded-full" onPress={handleShare}>

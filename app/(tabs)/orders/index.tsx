@@ -12,6 +12,7 @@ import {
     Alert,
     RefreshControl
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router'
 import { apiRequest } from '../../../utils/api'
 import Receipt from './receipt'
@@ -537,8 +538,7 @@ const MyOrders = () => {
                     type: 'error',
                     text1: 'Error',
                     text2: error.message || 'Failed to fetch ongoing orders. Please try again.',
-                    position: 'top',
-                    topOffset: 200,       // adjust vertical position if needed
+                    position: 'top',       // adjust vertical position if needed
                     visibilityTime: 4000, // 4 seconds
                     autoHide: true,
                     onPress: () => Toast.hide(), // tap anywhere to close
@@ -550,7 +550,6 @@ const MyOrders = () => {
                     text1: 'Error',
                     text2: 'An unexpected error occurred.',
                     position: 'top',
-                    topOffset: 200,
                     visibilityTime: 4000,
                     autoHide: true,
                     onPress: () => Toast.hide(),
@@ -576,7 +575,6 @@ const MyOrders = () => {
                     text1: 'Error',
                     text2: error.message || 'Failed to fetch orders history. Please try again.',
                     position: 'top',
-                    topOffset: 200,
                     visibilityTime: 4000,
                     autoHide: true,
                     onPress: () => Toast.hide(),
@@ -588,7 +586,6 @@ const MyOrders = () => {
                     text1: 'Error',
                     text2: 'An unexpected error occurred.',
                     position: 'top',
-                    topOffset: 200,
                     visibilityTime: 4000,
                     autoHide: true,
                     onPress: () => Toast.hide(),
@@ -682,8 +679,12 @@ const MyOrders = () => {
         <SafeAreaView className="flex-1 bg-white">
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100 relative">
-                <TouchableOpacity className="p-2" onPress={() => router.back()}>
-                    <Text className="text-2xl">←</Text>
+                <TouchableOpacity 
+                    onPress={() => router.back()}
+                    className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100 shadow-sm active:bg-gray-100"
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="chevron-back" size={24} color="#374151" className="mr-0.5" />
                 </TouchableOpacity>
                 <Text className="absolute left-0 right-0 text-center text-xl font-bold text-gray-900">My Orders</Text>
                 {/* <TouchableOpacity className="p-2" onPress={onRefresh}>

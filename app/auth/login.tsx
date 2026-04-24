@@ -57,15 +57,7 @@ const Login = () => {
   }
 
   const handleForgotPassword = () => {
-    Toast.show({
-      type: 'info',
-      text1: 'Forgot Password',
-      text2: 'Please contact support to reset your password.',
-      position: 'top',
-      visibilityTime: 4000,
-      autoHide: true,
-      onPress: () => Toast.hide(),
-    })
+    router.push('/auth/forgot-password')
   }
 
   const handleLogin = async () => {
