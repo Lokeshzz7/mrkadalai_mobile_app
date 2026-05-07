@@ -44,7 +44,7 @@ export default {
       typedRoutes: true
     },
     extra: {
-      apiUrl: "https://api.mrkadalai.com/api",
+      apiUrl: "https://mrkadalai-backend.onrender.com/api",
       razorpayKey: process.env.EXPO_PUBLIC_RAZORPAY_KEY,
       router: { origin: false },
       eas: {
