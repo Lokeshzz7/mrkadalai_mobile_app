@@ -203,9 +203,6 @@ const Cancel = () => {
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
                 {/* Sorry Message */}
                 <View
-                    from={{ opacity: 0, translateY: 30 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: 'timing', duration: 400 }}
                     className="mx-4 mt-6"
                 >
                     {/* Sorry Header */}
@@ -244,13 +241,6 @@ const Cancel = () => {
                             return (
                                 <View
                                     key={item.id}
-                                    from={{ opacity: 0, translateX: -20 }}
-                                    animate={{ opacity: 1, translateX: 0 }}
-                                    transition={{
-                                        type: 'timing',
-                                        duration: 300,
-                                        delay: index * 100
-                                    }}
                                     className="flex-row p-4 bg-gray-50 rounded-xl mb-3"
                                 >
                                     <View className="w-16 h-16 bg-yellow-100 rounded-xl items-center justify-center mr-4">

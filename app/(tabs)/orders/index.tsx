@@ -199,7 +199,7 @@ const OngoingOrderCard = React.memo(
                 {/* LEFT → First Product Image */}
                 <View className="w-20 h-20 mr-4 relative">
                     <Image
-                        source={{ uri: item.items[0].image }}
+                        source={{ uri: item.items[0]?.image }}
                         className="w-full h-full rounded-xl"
                         resizeMode="cover"
                     />
@@ -226,7 +226,7 @@ const OngoingOrderCard = React.memo(
 
                     {/* Order Summary */}
                     <Text className="text-base font-semibold text-gray-900 mb-1">
-                        {item.items[0].foodName}
+                        {item.items[0]?.foodName}
                         {item.items.length > 1 && ` +${item.items.length - 1} more`}
                     </Text>
                     <Text className="text-sm text-gray-600 mb-1">
@@ -254,12 +254,12 @@ const OngoingOrderCard = React.memo(
                             >
                                 <Text className="text-xs font-medium text-gray-700">Receipt</Text>
                             </TouchableOpacity>
-/* <TouchableOpacity
-    className="bg-red-100 px-3 py-2 rounded-lg"
-    onPress={() => onCancel(item)}
->
-    <Text className="text-xs font-medium text-red-700">Cancel</Text>
-</TouchableOpacity> */
+                        {/* <TouchableOpacity
+                            className="bg-red-100 px-3 py-2 rounded-lg"
+                            onPress={() => onCancel(item)}
+                        >
+                            <Text className="text-xs font-medium text-red-700">Cancel</Text>
+                        </TouchableOpacity> */}
                         </View>
                     </View>
                 </View>
@@ -344,14 +344,7 @@ const HistoryOrderCard = React.memo(
 const TabButton = React.memo(({ title, isActive, onPress }: TabButtonProps) => (
     <TouchableOpacity onPress={onPress} className="flex-1">
         <View
-            animate={{
-                backgroundColor: isActive ? '#FCD34D' : '#F9FAFB',
-            }}
-            transition={{
-                type: 'timing',
-                duration: 200,
-            }}
-            className={`py-3 rounded-xl mx-1 border ${isActive ? 'border-yellow-400' : 'border-gray-200'
+            className={`py-3 rounded-xl mx-1 border ${isActive ? 'border-yellow-400 bg-yellow-300' : 'border-gray-200 bg-gray-50'
                 }`}
         >
             <Text className={`text-center font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'
@@ -384,13 +377,9 @@ const CancelConfirmationModal = React.memo(
                     justifyContent: 'center',
                     alignItems: 'center',
                     paddingHorizontal: 24,
-                    // zIndex: 9999, // <--- THIS LINE WAS REMOVED
                 }}
             >
                 <View
-                    from={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'timing', duration: 250 }}
                     style={{
                         backgroundColor: 'white',
                         borderRadius: 16,
@@ -525,7 +514,7 @@ const MyOrders = () => {
 
             console.log("Full backend raw data:", JSON.stringify(data.debugOrders, null, 2));
             console.log("orer data : ", data.orders);
-            data.orders.forEach((order, i) => {
+            data.orders.forEach((order: Order, i: number) => {
                 console.log(`Order #${i + 1} items:`, order.items);
             });
             const transformedOrders = data.orders.map(transformOrder)
@@ -731,9 +720,6 @@ const MyOrders = () => {
                         }
                         ListEmptyComponent={() => (
                             <View
-                                from={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ type: 'timing', duration: 400 }}
                                 className="flex-1 items-center justify-center px-8 py-20"
                             >
                                 <Text className="text-6xl mb-4">🍽️</Text>
