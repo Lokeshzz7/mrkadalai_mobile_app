@@ -3,11 +3,12 @@ import 'dotenv/config';
 export default {
   expo: {
     name: "Mr Kadalai",
-    slug: "mobile_movie_app",
+    owner: "mrkadalais-organization",
+    slug: "mrkadalai_app",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/logo.png",
-    scheme: "movies",
+    scheme: "mrkadalai",
     userInterfaceStyle: "automatic",
     splash: {
       image: "./assets/images/logo2.jpg",
@@ -17,7 +18,7 @@ export default {
     newArchEnabled: false,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.pavan.mobilemovieapp",
+      bundleIdentifier: "com.mrkadalai.app",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false
       }
@@ -27,7 +28,7 @@ export default {
         foregroundImage: "./assets/images/logo2.jpg",
         backgroundColor: "#0f0d23"
       },
-      package: "com.anonymous.mobile_movie_app",
+      package: "com.mrkadalai.app",
       googleServicesFile: "./google-services.json",
       permissions: [
         "android.permission.RECEIVE_BOOT_COMPLETED"
@@ -48,7 +49,7 @@ export default {
       razorpayKey: process.env.EXPO_PUBLIC_RAZORPAY_KEY,
       router: { origin: false },
       eas: {
-        projectId: "a607b40c-673e-4f34-9892-57c42f61f18e"
+        projectId: "14861e3d-0c60-433f-bd71-a692c804eeed"
       }
     }
   }
