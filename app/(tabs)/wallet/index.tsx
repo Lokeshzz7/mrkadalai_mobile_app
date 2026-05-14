@@ -249,34 +249,14 @@ const TransactionHistoryCard = React.memo(({ item, index }: { item: TransactionH
     </View>
 ))
 
-const notices = [
-    "Wallet recharges are non-refundable",
-    "By proceeding, you agree to our Terms of Service and Refund Policy.",
-];
+const noticeText = "Wallet recharges are non-refundable";
 
 const ImportantNotice = () => {
-    const noticeItems = useMemo(() =>
-        notices.map((notice, index) => (
-            <Text key={index} className="text-red-700 text-sm leading-5">
-                • {notice}
-            </Text>
-        )),
-        []
-    );
-
     return (
-        <View
-            // from={{ opacity: 0 }}
-            // animate={{ opacity: 1 }}
-            // transition={{ type: 'timing', duration: 600, delay: 400 }}
-            className="px-4 mb-6"
-        >
-            <View className="bg-red-50 border border-red-200 rounded-2xl p-4 gap-2">
-                <Text className="text-red-800 text-2xl font-bold mb-2">
-                    Important Notice
-                </Text>
-                {noticeItems}
-            </View>
+        <View className="px-4 mb-6">
+            <Text className="text-red-600 text-xs text-center font-medium">
+                {noticeText}
+            </Text>
         </View>
     );
 };

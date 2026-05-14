@@ -254,12 +254,12 @@ const OngoingOrderCard = React.memo(
                             >
                                 <Text className="text-xs font-medium text-gray-700">Receipt</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
-                                className="bg-red-100 px-3 py-2 rounded-lg"
-                                onPress={() => onCancel(item)}
-                            >
-                                <Text className="text-xs font-medium text-red-700">Cancel</Text>
-                            </TouchableOpacity>
+/* <TouchableOpacity
+    className="bg-red-100 px-3 py-2 rounded-lg"
+    onPress={() => onCancel(item)}
+>
+    <Text className="text-xs font-medium text-red-700">Cancel</Text>
+</TouchableOpacity> */
                         </View>
                     </View>
                 </View>
