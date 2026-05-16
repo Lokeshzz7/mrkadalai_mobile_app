@@ -51,13 +51,13 @@ const VerifyOtp = () => {
       });
 
     } catch (err: any) {
-      console.error('Verify OTP error:', err);
-      // Give visual error feedback
-      setError(err.message || 'The code you entered is incorrect or expired.');
+      console.error('Verify OTP detailed error:', err);
+      const errorMessage = err.message || 'The code you entered is incorrect or expired.';
+      setError(errorMessage);
       Toast.show({
         type: 'error',
         text1: 'Verification Failed',
-        text2: err.message || 'Invalid or expired OTP.',
+        text2: errorMessage,
       });
     } finally {
       setIsLoading(false);

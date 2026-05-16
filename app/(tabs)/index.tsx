@@ -11,6 +11,7 @@ import {
   Image
 } from 'react-native'
 
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router'
 import { apiRequest } from '../../utils/api'
 import { useFocusEffect } from '@react-navigation/native'
@@ -392,7 +393,7 @@ const RestaurantHome = () => {
     <View className="bg-white pt-3 px-4">
       <View className="flex-row justify-between items-center pt-2">
         <Text className="text-2xl font-bold text-gray-900">
-          {`Hello ${(user?.name?.split(" ")[0]) || "User"}`}
+          {`Hello, ${(user?.name?.split(" ")[0]) || "User"}!`}
         </Text>
         <View className="flex-row items-center gap-3">
           {totalCartItems > 0 && (
@@ -401,7 +402,7 @@ const RestaurantHome = () => {
               onPress={() => router.push("/(tabs)/cart")}
               activeOpacity={0.8}
             >
-              <Text className="text-black font-semibold mr-2">Cart</Text>
+              <Ionicons name="cart" size={22} color="black" className="mr-2" />
               <View className="bg-white rounded-full min-w-6 h-6 items-center justify-center">
                 <Text className="text-black text-xs font-bold">
                   {totalCartItems}
@@ -409,13 +410,12 @@ const RestaurantHome = () => {
               </View>
             </TouchableOpacity>
           )}
-          {/* Temporarily hiding FAQ button as per user request */}
-          {/* <TouchableOpacity
+          <TouchableOpacity
             className="bg-yellow-400 px-4 py-2 rounded-full"
             onPress={() => router.push("/ticket/faq")}
           >
             <Text className="font-semibold text-gray-900">🎫 Faq</Text>
-          </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
       </View>
 

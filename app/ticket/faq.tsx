@@ -24,8 +24,8 @@ const faqData = [
     },
     {
         id: 4,
-        question: "How do I contact customer support?",
-        answer: "You can contact our customer support ny doing the following: Use the “Raise a Ticket” button"
+        question: "How do I contact Customer Support?",
+        answer: "You can contact support by clicking on the \"Raise a ticket\" button. You can also reach out to our team through mrkadalaishop@gmail.com on email or mr.kadalai on Instagram"
     },
     {
         id: 5,
@@ -68,8 +68,7 @@ const FAQItem = React.memo<FAQItemProps>(({ item, isExpanded, onToggleExpand }) 
                 {item.question}
             </Text>
             <View
-                animate={{ rotate: isExpanded ? '180deg' : '0deg' }}
-                transition={{ type: 'timing', duration: 150 }}
+                style={{ transform: [{ rotate: isExpanded ? '180deg' : '0deg' }] }}
             >
                 <Text className="text-xl font-bold" style={{ color: '#EBB22F' }}>↓</Text>
             </View>
@@ -78,10 +77,6 @@ const FAQItem = React.memo<FAQItemProps>(({ item, isExpanded, onToggleExpand }) 
         {/* Answer */}
         {isExpanded && (
             <View
-                from={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ type: 'timing', duration: 200 }}
                 style={{ overflow: 'hidden' }}
             >
                 <View className="px-4 pb-4 border-t border-gray-100">

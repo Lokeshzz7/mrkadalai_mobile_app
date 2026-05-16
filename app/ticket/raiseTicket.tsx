@@ -1,11 +1,10 @@
 import React, { useCallback, useState } from "react";
 import {
-    View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Alert, Image,
+    View, Text, SafeAreaView, ScrollView, TouchableOpacity, TextInput, Alert,
     ActivityIndicator
 } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { router } from "expo-router";
-import * as ImagePicker from 'expo-image-picker';
 import { apiRequest } from "../../utils/api";
 import Toast from "react-native-toast-message";
 
@@ -14,14 +13,6 @@ interface IssueType {
     label: string;
     value: string;
     priority: string;
-}
-
-interface UploadedImage {
-    uri: string;
-    width: number;
-    height: number;
-    type: string;
-    fileName?: string;
 }
 
 interface RadioButtonProps {
@@ -61,48 +52,9 @@ const raiseTicket = () => {
     const [selectedIssue, setSelectedIssue] = useState("");
     const [customIssue, setCustomIssue] = useState("");
     const [description, setDescription] = useState("");
-    const [uploadedImage, setUploadedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleImageUpload = useCallback(async () => {
-        try {
-            const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-            if (permissionResult.granted === false) {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Permission Required',
-                    text2: 'Permission to access camera roll is required!',
-                    position: 'top',
-                    visibilityTime: 4000,
-                    autoHide: true,
-                    onPress: () => Toast.hide(),
-                });
-                return;
-            }
-
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [4, 3],
-                quality: 1,
-            });
-
-            if (!result.canceled) {
-                setUploadedImage(result.assets[0]);
-            }
-        } catch (error) {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to pick image',
-                position: 'top',
-                visibilityTime: 4000,
-                autoHide: true,
-                onPress: () => Toast.hide(),
-            });
-        }
-    }, []);
 
     const handleSubmit = useCallback(async () => {
         // Validation
@@ -288,41 +240,7 @@ const raiseTicket = () => {
                     />
                 </View>
 
-                {/* Image Upload */}
-                <View
-                    from={{ opacity: 0, translateY: 20 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: 'timing', duration: 500, delay: 200 }}
-                    className="bg-white rounded-xl p-5 mb-6 shadow-sm"
-                >
-                    <Text className="text-lg font-bold text-gray-900 mb-4">
-                        Attach Image (Optional)
-                    </Text>
 
-                    <TouchableOpacity
-                        className="border-2 border-dashed border-gray-300 rounded-lg p-6 items-center justify-center bg-gray-50"
-                        onPress={handleImageUpload}
-                        activeOpacity={0.7}
-                    >
-                        {uploadedImage ? (
-                            <View className="items-center">
-                                <Image
-                                    source={{ uri: uploadedImage.uri }}
-                                    className="w-32 h-32 rounded-lg mb-3"
-                                    resizeMode="cover"
-                                />
-                                <Text className="text-green-600 font-semibold">Image Uploaded</Text>
-                                <Text className="text-gray-500 text-sm mt-1">Tap to change</Text>
-                            </View>
-                        ) : (
-                            <View className="items-center">
-                                <Text className="text-4xl text-gray-400 mb-2">📷</Text>
-                                <Text className="text-[#EBB22F] font-semibold text-base">Upload Image</Text>
-                                <Text className="text-gray-500 text-sm mt-1">Tap to select from gallery</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                </View>
 
                 {/* Submit Button */}
                 <View

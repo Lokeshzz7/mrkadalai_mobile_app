@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Toast from 'react-native-toast-message';
-import Icon from 'react-native-vector-icons/Feather';
+import { Feather as Icon } from '@expo/vector-icons';
 import { apiRequest } from '../../utils/api';
 
 const ResetPassword = () => {
@@ -56,12 +56,13 @@ const ResetPassword = () => {
       router.replace('/auth/login');
 
     } catch (err: any) {
-      console.error('Reset Password error:', err);
-      setError(err.message || 'Failed to securely reset password.');
+      console.error('Reset Password error details:', err);
+      const errorMessage = err.message || 'Failed to securely reset password.';
+      setError(errorMessage);
       Toast.show({
         type: 'error',
         text1: 'Reset Failed',
-        text2: err.message || 'There was an issue resetting your password.',
+        text2: errorMessage,
       });
     } finally {
       setIsLoading(false);

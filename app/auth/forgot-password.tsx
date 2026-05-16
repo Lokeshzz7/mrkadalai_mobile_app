@@ -58,11 +58,12 @@ const ForgotPassword = () => {
       });
 
     } catch (err: any) {
-      console.error('Forgot Password error:', err);
+      console.error('Forgot Password detailed error:', err);
+      const errorMessage = err.message || 'Something went wrong while sending the OTP.';
       Toast.show({
         type: 'error',
         text1: 'Request Failed',
-        text2: err.message || 'Something went wrong while sending the OTP.',
+        text2: errorMessage,
       });
     } finally {
       setIsLoading(false);
