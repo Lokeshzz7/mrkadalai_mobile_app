@@ -9,7 +9,7 @@ interface CartProduct {
   description?: string;
   price: number;
   imageUrl?: string;
-  category: 'Meals' | 'Starters' | 'Desserts' | 'Beverages';
+  category: 'Meals' | 'Starters' | 'Desserts' | 'Beverages' | 'Combo';
   inventory?: {
     quantity: number;
     reserved: number;

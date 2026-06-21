@@ -28,7 +28,7 @@ interface Product {
   description?: string;
   price: number;
   imageUrl?: string;
-  category: 'Meals' | 'Starters' | 'Desserts' | 'Beverages';
+  category: 'Meals' | 'Starters' | 'Desserts' | 'Beverages' | 'Combo';
   inventory?: {
     quantity: number;
     reserved: number;
@@ -263,7 +263,8 @@ const RestaurantHome = () => {
     'Starters': { id: 'starters', name: 'Starters', icon: '🥗' },
     'Meals': { id: 'meals', name: 'Meals', icon: '🍛' },
     'Beverages': { id: 'beverages', name: 'Beverages', icon: '🥤' },
-    'Desserts': { id: 'desserts', name: 'Desserts', icon: '🍰' }
+    'Desserts': { id: 'desserts', name: 'Desserts', icon: '🍰' },
+    'Combo': { id: 'combo', name: 'Combo', icon: '' }
   }), [])
 
   const availableCategories = useMemo(() => {
@@ -278,7 +279,8 @@ const RestaurantHome = () => {
       'Starters': '🥗',
       'Meals': '🍛',
       'Beverages': '🥤',
-      'Desserts': '🍰'
+      'Desserts': '🍰',
+      'Combo': ''
     }
     return iconMap[category] || '🍽️'
   }, [])

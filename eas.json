@@ -15,9 +15,6 @@
       }
     },
     "production": {
-      "android": {
-        "buildType": "apk" 
-      },
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_RAZORPAY_KEY":"rzp_test_CqJOLIOhHoCry6",
