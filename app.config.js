@@ -40,7 +40,19 @@ export default {
       output: "static",
       favicon: "./assets/images/logo.png"
     },
-    plugins: ["expo-router"],
+    plugins: [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
+      ]
+    ],
     experiments: {
       typedRoutes: true
     },
